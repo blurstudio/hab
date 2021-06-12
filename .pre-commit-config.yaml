@@ -1,0 +1,32 @@
+---
+repos:
+
+-   repo: https://github.com/psf/black
+    rev: 21.4b1
+    hooks:
+    -   id: black
+
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.9.1
+    hooks:
+    -   id: flake8
+        additional_dependencies:
+            - flake8-bugbear==21.3.2
+            - pep8-naming==0.11.1
+
+-   repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v1.17.0
+    hooks:
+    -   id: setup-cfg-fmt
+
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
+    hooks:
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
