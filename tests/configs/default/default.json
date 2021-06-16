@@ -1,0 +1,23 @@
+{
+    "name": "default",
+    "context": [],
+    "inherits": false,
+    "apps": {
+        "maya2019": [
+            "tikal",
+            "brSkinBrush",
+            "animBot"
+        ],
+        "maya2020": [
+            "tikal",
+            "brSkinBrush",
+            "animBot"
+        ],
+        "houdini18.5.*": [
+            "hsite"
+        ]
+    },
+    "requires": [
+        "tikal"
+    ]
+}

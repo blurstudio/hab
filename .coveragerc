@@ -1,3 +1,4 @@
 [report]
 omit =
     */site-packages/*
+show_missing = true

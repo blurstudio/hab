@@ -1,0 +1,20 @@
+{
+    "name": "all_settings",
+    "version": "0.1.0.dev1",
+    "environment": {
+        "TEST": "case",
+        "OTHER": "variable"
+    },
+    "requires": [
+        "Maya2020"
+    ],
+    "aliases": {
+        "windows": [
+            ["maya", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"],
+            ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"]
+        ],
+        "*": [
+            ["example", "{relative}/all_platform_example"]
+        ]
+    }
+}

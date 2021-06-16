@@ -1,8 +1,10 @@
 from __future__ import print_function
+import anytree
 import json
 import glob
 import logging
 import os
+from .parsers import Config
 from packaging.requirements import Requirement
 from packaging.version import Version
 from future.utils import string_types
@@ -38,6 +40,59 @@ class Resolver(object):
             root (str): If path is relative use this as directory the root path.
         """
         return os.path.abspath(os.path.join(root, path))
+
+    def closest_config(self, path, default=False):
+        """Returns the most specific leaf or the tree root matching path. Ignoring any
+        path names that don't exist in self.configs.
+
+        Args:
+            path (str): A config path relative to the root of the tree.
+            default (bool, optional): If True, search the default tree instead of the
+                tree specified by the first name in path. The leaf nodes do not need to
+                match names exactly, it will pick a default leaf that starts with the
+                most common characters. Ie if path is `:project_a:Sc001` it would match
+                `:default:Sc0` not `:default:Sc01`.
+        """
+        if default:
+            node_names = path.split(":")
+            current = self.configs["default"]
+            # Skip the root and project name it won't match default
+            for node_name in node_names[2:]:
+                # Find the node that starts with the longest match
+                matches = sorted(
+                    [c for c in current.children if node_name.startswith(c.name)],
+                    key=lambda i: i.name,
+                    reverse=True,
+                )
+                if matches:
+                    current = matches[0]
+                else:
+                    break
+            return current
+
+        # Handle the non-default lookup
+        splits = path.split(":")
+        # Find the forest to search for or return the default search
+        root_name = splits[1 if path.startswith(":") else 0]
+        if root_name not in self.configs:
+            return self.closest_config(path, default=True)
+
+        resolver = anytree.Resolver()
+        try:
+            # Workaround a zombie bug in anytree's glob. Where glob doesn't match
+            # top level paths and will raise a IndexError incorrectly.
+            # https://github.com/c0fec0de/anytree/issues/125
+            if len(splits) > 2:
+                items = resolver.glob(self.configs[root_name], path)
+            else:
+                return resolver.get(self.configs[root_name], path)
+        except anytree.resolver.ResolverError as e:
+            return e.node
+        if items:
+            return items[0]
+        # TODO: If the anytree bug gets fixed we should start hitting this line.
+        # Until then exclude it from the completeness check.
+        return self.configs[root_name]  # pragma: no cover
 
     @property
     def config_paths(self):
@@ -76,6 +131,19 @@ class Resolver(object):
             self._distros = self.parse_distros(self.distro_paths)
         return self._distros
 
+    @classmethod
+    def dump_forest(cls, forest, style=None):
+        """Convert a forest dictionary to a readable string"""
+        if style is None:
+            style = anytree.render.AsciiStyle()
+        ret = []
+        for tree_name in forest:
+            ret.append(tree_name)
+            tree = str(anytree.RenderTree(forest[tree_name], style))
+            for line in tree.split("\n"):
+                ret.append("    {}".format(line))
+        return "\n".join(ret)
+
     def find_distro(self, name):
         pass
 
@@ -96,23 +164,13 @@ class Resolver(object):
         return value.format(**kwargs)
 
     @classmethod
-    def parse_configs(cls, config_paths):
-        contexts = {}
+    def parse_configs(cls, config_paths, forest=None):
+        if forest is None:
+            forest = {}
         for dirname in config_paths:
             for path in sorted(glob.glob(os.path.join(dirname, "*.json"))):
-                with open(path) as fle:
-                    config = json.load(fle)
-                # Make a copy of the context so we can add root to it
-                context = list(config["context"])
-                # Add the default root context object
-                context.insert(0, "root")
-                working_context = contexts
-                for key in context:
-                    working_context = working_context.setdefault(key, {})
-                working_context.setdefault("configs", []).append(config)
-        # The root dictionary was just used to make it easier to construct the
-        # dictionary recursively remove it
-        return contexts["root"]
+                Config(forest, path)
+        return forest
 
     @classmethod
     def parse_distros(cls, distro_paths, relative=True):
