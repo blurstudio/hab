@@ -4,7 +4,6 @@ import glob
 import logging
 import os
 from packaging.requirements import Requirement
-from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 from future.utils import string_types
 
@@ -150,7 +149,7 @@ class Resolver(object):
                 if not relative:
                     # For supported fields convert lines starting with a `.` to
                     # absolute paths relative to path
-                    for env, cfg in config.get("environment").items():
+                    for cfg in config.get("environment").values():
                         value = cfg["value"]
                         if not isinstance(value, list):
                             # We allow the json to store a string or list, but
