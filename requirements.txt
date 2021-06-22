@@ -2,3 +2,4 @@ anytree
 click>=7.1.2
 future>=0.18.2
 packaging>=20.0
+tabulate

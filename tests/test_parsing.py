@@ -107,3 +107,12 @@ def test_config_parenting(config_root):
 
     # Check that the forest didn't loose the default tree
     assert ["habitat.parsers.Config(:default)"] == repr_list(forest["default"])
+
+
+def test_metaclass():
+    assert Application._properties == set(
+        ["name", "environment", "requires", "aliases"]
+    )
+    assert Config._properties == set(
+        ["name", "environment", "requires", "inherits", "apps"]
+    )

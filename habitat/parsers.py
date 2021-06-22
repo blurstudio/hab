@@ -1,12 +1,52 @@
+from __future__ import print_function
 import anytree
+from future.utils import with_metaclass
 import json
 import logging
 from packaging.version import Version
+import tabulate
 
 logger = logging.getLogger(__name__)
 
 
-class HabitatBase(anytree.NodeMixin):
+class NotSet(object):
+    """The data for this property is not currently set."""
+
+    def __bool__(self):
+        """NotSet should be treated as False when booled Python 3"""
+        return False
+
+    def __nonzero__(self):
+        """NotSet should be treated as False when booled Python 2"""
+        return False
+
+    def __str__(self):
+        return "NotSet"
+
+
+# Make this a singleton so it works like a boolean False for if statements.
+NotSet = NotSet()
+
+
+class HabitatProperty(property):
+    """The @property decorator that can be type checked by the metaclass"""
+
+
+class HabitatMeta(type):
+    def __new__(cls, name, bases, dct):
+        desc = set()
+        for base in bases:
+            if hasattr(base, "_properties"):
+                desc.update(base._properties)
+
+        for k, v in dct.items():
+            if isinstance(v, HabitatProperty):
+                desc.add(k)
+        dct["_properties"] = desc
+        return type.__new__(cls, name, bases, dct)
+
+
+class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     separator = ":"
 
     def __init__(self, forest, filename=None, parent=None):
@@ -27,11 +67,11 @@ class HabitatBase(anytree.NodeMixin):
         values before self.load is called if a filename is passed.
         """
         # The context setter has a lot of overhead don't use it to set the default
-        self._context = []
-        self.environment = {}
-        self.name = None
-        self.requires = []
-        self.version = None
+        self._context = NotSet
+        self.environment = NotSet
+        self.name = NotSet
+        self.requires = NotSet
+        self.version = NotSet
 
     @property
     def context(self):
@@ -98,7 +138,17 @@ class HabitatBase(anytree.NodeMixin):
                         )
                     )
 
-    @property
+    def dump(self):
+        """Return a string of the properties and their values"""
+        ret = []
+        for prop in sorted(self._properties):
+            value = getattr(self, prop)
+            if value is NotSet:
+                value = "<NotSet>"
+            ret.append((prop, value))
+        return tabulate.tabulate(ret)
+
+    @HabitatProperty
     def environment(self):
         return self._environment
 
@@ -115,15 +165,15 @@ class HabitatBase(anytree.NodeMixin):
         with open(filename, "r") as fle:
             data = json.load(fle)
         self.name = data["name"]
-        self.requires = data.get("requires")
+        self.requires = data.get("requires", NotSet)
         if "version" in data:
             self.version = Version(data.get("version"))
-        self.environment = data.get("environment")
-        self.context = data.get("context")
+        self.environment = data.get("environment", NotSet)
+        self.context = data.get("context", NotSet)
 
         return data
 
-    @property
+    @HabitatProperty
     def name(self):
         return self._name
 
@@ -131,7 +181,15 @@ class HabitatBase(anytree.NodeMixin):
     def name(self, name):
         self._name = name
 
-    @property
+    def reduced(self):
+        """Returns a new instance with the final settings applied respecting inheritance"""
+        ret = type(self)(self.forest)
+        ret._context = self.context
+        for attrname in ret._properties:
+            setattr(ret, attrname, getattr(self, attrname))
+        return ret
+
+    @HabitatProperty
     def requires(self):
         return self._requires
 
@@ -158,9 +216,9 @@ class Application(HabitatBase):
 
     def _init_variables(self):
         super(Application, self)._init_variables()
-        self.aliases = {}
+        self.aliases = NotSet
 
-    @property
+    @HabitatProperty
     def aliases(self):
         return self._aliases
 
@@ -177,10 +235,10 @@ class Application(HabitatBase):
 class Config(HabitatBase):
     def _init_variables(self):
         super(Config, self)._init_variables()
-        self.apps = {}
-        self.inherits = False
+        self.apps = NotSet
+        self.inherits = NotSet
 
-    @property
+    @HabitatProperty
     def apps(self):
         return self._apps
 
@@ -188,7 +246,7 @@ class Config(HabitatBase):
     def apps(self, apps):
         self._apps = apps
 
-    @property
+    @HabitatProperty
     def inherits(self):
         return self._inherits
 
@@ -201,6 +259,40 @@ class Config(HabitatBase):
         self.apps = data.get("apps")
         self.inherits = data.get("inherits")
         return data
+
+
+class FlatConfig(Config):
+    def __init__(self, original_node, resolver):
+        super(FlatConfig, self).__init__(original_node.forest)
+        self.original_node = original_node
+        self.resolver = resolver
+        self._context = original_node.context
+        # Copy the properties from the inheritance system
+
+    def _collect_values(self, node, default=False):
+        logger.debug("Loading node: {} inherits: {}".format(node.name, node.inherits))
+        missing_values = False
+        for attrname in self._properties:
+            value = getattr(node, attrname)
+            if value is NotSet:
+                missing_values = True
+            else:
+                setattr(self, attrname, value)
+        if node.inherits and missing_values:
+            ancestors = node.ancestors
+            if ancestors:
+                return self._collect_values(ancestors[-1], default=default)
+            elif not default and "default" in self.forest:
+                # Start processing the default setup
+                default = True
+                # TODO: Figure out how to find the default closest_config
+                default_node = self.resolver.closest_config(node.fullpath)
+                self._collect_values(default_node, default=default)
+        return missing_values
+
+    @property
+    def fullpath(self):
+        return self.separator.join([""] + [name for name in self.context])
 
 
 class Placeholder(HabitatBase):
