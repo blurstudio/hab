@@ -1,0 +1,11 @@
+{
+    "name": "houdini18.5",
+    "version": "18.5",
+    "environment": {},
+    "aliases": {
+        "windows": [
+            ["houdini", "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\houdini.exe"],
+            ["hython", "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\hython.exe"]
+        ]
+    }
+}

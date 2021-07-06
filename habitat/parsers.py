@@ -3,7 +3,11 @@ import anytree
 from future.utils import with_metaclass
 import json
 import logging
+import os
 from packaging.version import Version
+from pprint import pformat
+import re
+import sys
 import tabulate
 
 logger = logging.getLogger(__name__)
@@ -145,7 +149,15 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             value = getattr(self, prop)
             if value is NotSet:
                 value = "<NotSet>"
-            ret.append((prop, value))
+            if isinstance(value, (list, dict)):
+                # Format long data types into multiple rows for readability
+                lines = pformat(value)
+                for line in lines.split("\n"):
+                    ret.append((prop, line))
+                    # Clear the prop name so we only add it once on the left
+                    prop = ""
+            else:
+                ret.append((prop, value))
         return tabulate.tabulate(ret)
 
     @HabitatProperty
@@ -181,7 +193,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def name(self, name):
         self._name = name
 
-    def reduced(self):
+    def reduced(self, resolver=None):
         """Returns a new instance with the final settings applied respecting inheritance"""
         ret = type(self)(self.forest)
         ret._context = self.context
@@ -204,6 +216,67 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     @version.setter
     def version(self, version):
         self._version = version
+
+    def write_script(self, filename):
+        """Write the configuration to a script file to be run by terminal."""
+        _, ext = os.path.splitext(filename)
+        if ext in (".bat", ".cmd"):
+            comment = "REM "
+            env_setter = 'set "{key}={value}"\n'
+            alias_setter = ""
+        elif ext == ".ps1":
+            comment = "# "
+            env_setter = "export {key}={value}\n"
+            alias_setter = "function() {name} {code}"  # TODO: make work
+        elif ext == ".sh":
+            comment = "# "
+            env_setter = "export {key}={value}\n"
+            alias_setter = "alias {name} {code}"
+
+        aliases = []
+
+        with open(filename, "w") as fle:
+            if self.environment:
+                fle.write("{}Setting environment variables:\n".format(comment))
+                for env in self.environment:
+                    fle.write(env_setter.format(key=env, value=self.environment[env]))
+            if aliases:
+                if self.environment:
+                    fle.write("\n")
+                for alias in aliases:
+                    fle.write(alias_setter.foramt(**alias))
+
+    # TODO: this is probably not needed, remove it
+    @classmethod
+    def current_script_type(cls):
+        """Checks the current process to figure out what type of terminal
+        python is running in.
+
+        Returns:
+            str: "powershell", "cmd", "bash" or None.
+        """
+        if sys.platform == "win32":
+            print("windows")
+            # Check if we are running a command prompt or power shell
+            import psutil
+
+            proc = psutil.Process(os.getpid())
+            while proc:
+                proc = proc.parent()
+                if proc:
+                    name = proc.name()
+                    print(name)
+                    # See if it is Windows PowerShell (powershell.exe) or
+                    # PowerShell Core (pwsh[.exe]):
+                    if bool(re.match("pwsh|pwsh.exe|powershell.exe", name)):
+                        return "powershell"
+                    elif name == "cmd.exe":
+                        return "cmd"
+                    elif name == "bash.exe":
+                        return "bash"
+        else:
+            # TODO: support other script types?
+            return "bash"
 
 
 class Application(HabitatBase):
@@ -228,7 +301,7 @@ class Application(HabitatBase):
 
     def load(self, filename):
         data = super(Application, self).load(filename)
-        self.aliases = data.get("aliases")
+        self.aliases = data.get("aliases", NotSet)
         return data
 
 
@@ -256,9 +329,13 @@ class Config(HabitatBase):
 
     def load(self, filename):
         data = super(Config, self).load(filename)
-        self.apps = data.get("apps")
-        self.inherits = data.get("inherits")
+        self.apps = data.get("apps", NotSet)
+        self.inherits = data.get("inherits", NotSet)
         return data
+
+    def reduced(self, resolver=None):
+        """Returns a new instance with the final settings applied respecting inheritance"""
+        return FlatConfig(self, resolver)
 
 
 class FlatConfig(Config):
@@ -268,27 +345,29 @@ class FlatConfig(Config):
         self.resolver = resolver
         self._context = original_node.context
         # Copy the properties from the inheritance system
+        self._collect_values(self.original_node)
 
     def _collect_values(self, node, default=False):
         logger.debug("Loading node: {} inherits: {}".format(node.name, node.inherits))
-        missing_values = False
+        self._missing_values = False
         for attrname in self._properties:
+            if getattr(self, attrname) != NotSet:
+                continue
             value = getattr(node, attrname)
             if value is NotSet:
-                missing_values = True
+                self._missing_values = True
             else:
                 setattr(self, attrname, value)
-        if node.inherits and missing_values:
-            ancestors = node.ancestors
-            if ancestors:
-                return self._collect_values(ancestors[-1], default=default)
+        if node.inherits and self._missing_values:
+            parent = node.parent
+            if parent:
+                return self._collect_values(parent, default=default)
             elif not default and "default" in self.forest:
                 # Start processing the default setup
                 default = True
-                # TODO: Figure out how to find the default closest_config
                 default_node = self.resolver.closest_config(node.fullpath)
                 self._collect_values(default_node, default=default)
-        return missing_values
+        return self._missing_values
 
     @property
     def fullpath(self):

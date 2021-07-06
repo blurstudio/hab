@@ -23,11 +23,17 @@ class Resolver(object):
 
     def __init__(self, config_paths=None, distro_paths=None):
         self.config_paths = (
-            config_paths if config_paths else os.getenv("HAB_CONFIG_PATHS", "")
+            config_paths
+            if config_paths
+            else os.getenv("HAB_CONFIG_PATHS", "").split(os.pathsep)
         )
         self.distro_paths = (
-            distro_paths if distro_paths else os.getenv("HAB_DISTRO_PATHS", "")
+            distro_paths
+            if distro_paths
+            else os.getenv("HAB_DISTRO_PATHS", "").split(os.pathsep)
         )
+        logger.debug("config_paths: {}".format(self.config_paths))
+        logger.debug("distro_paths: {}".format(self.distro_paths))
         self._configs = None
         self._distros = None
 
@@ -260,8 +266,8 @@ class Resolver(object):
         return resolved
 
     def resolve(self, context):
-        contexts = self.resolve_contexts(context, self.configs)
-        return self.reduce_context(contexts)
+        context = self.closest_config(context)
+        return context.reduced(self)
 
     def resolve_environment(self, context):
         for app in context.get("apps", []):
@@ -310,8 +316,16 @@ class Resolver(object):
         return contexts
 
 
-# set HABITAT_CONFIG_PATHS=H:\public\mikeh\simp\habitat_cfgs\config;H:\public\mikeh\simp\habitat_cfgs\config\projectDummy
-# set HABITAT_DISTRO_PATHS=H:\public\mikeh\simp\habitat_cfgs\distro;C:\blur\dev\dcc\maya\tikal
+r"""
+set HAB_CONFIG_PATHS=C:\blur\dev\habitat\tests\configs\*
+set HAB_DISTRO_PATHS=C:\blur\dev\habitat\tests\distros\*
 
-# cls && python -c "import json, logging; logging.basicConfig(level=logging.DEBUG);from habitat.habitat import Resolver; r= Resolver(); print(json.dumps(r.distros, indent=2))"
-# cls && python -c "import json, logging; logging.basicConfig(level=logging.DEBUG);from habitat.habitat import Resolver; r= Resolver(); print(r.resolve_environment(r.resolve(['projectDummy', 'Sc001', 'S0001.00'])))"
+
+import logging; logging.basicConfig(level=logging.DEBUG)
+from habitat import Resolver
+r=Resolver()
+cfg = r.closest_config(':project_a:Sc001')
+print(cfg.dump())
+
+python -c "import logging; logging.basicConfig(level=logging.DEBUG);from habitat import Resolver;r=Resolver();cfg = r.closest_config(':project_a:Sc001');print(cfg.dump())"
+"""

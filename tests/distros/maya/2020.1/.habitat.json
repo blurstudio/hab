@@ -1,0 +1,14 @@
+{
+    "name": "maya2020",
+    "version": "2020.1",
+    "environment": {},
+    "aliases": {
+        "windows": [
+            ["maya", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"],
+            ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"]
+        ],
+        "*": [
+            ["example", "{relative}/all_platform_example"]
+        ]
+    }
+}

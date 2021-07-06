@@ -12,7 +12,7 @@ if exist "%tempBatchFile%" goto :uniqLoop
 
 
 :: Call our worker python process that may write the temp filename
-python -m hab --script-output %tempBatchFile% %*
+python -m habitat --script-output %tempBatchFile% %*
 
 :: If the temp file was created run it and remove it
 if exist %tempBatchFile% (

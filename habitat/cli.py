@@ -1,6 +1,5 @@
 import click
 from . import Resolver
-import json
 import logging
 import os
 
@@ -12,20 +11,34 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 class SharedSettings(object):
-    def __init__(self, paths=(), verbosity=0, script_output=None):
+    def __init__(self, configs=None, distros=None, verbosity=0, script_output=None):
         self.verbosity = verbosity
         self.script_output = os.path.abspath(script_output or ".")
-        # set HABITAT_PATH=H:\public\mikeh\simp\habitat_cfgs\config;H:\public\mikeh\simp\habitat_cfgs\config\projectDummy
-        self.paths = paths
+        self.config_paths = configs
+        self.distro_paths = distros
+        self._resolver = None
+
+    @property
+    def resolver(self):
+        if self._resolver is None:
+            self._resolver = Resolver(self.config_paths, self.distro_paths)
+        return self._resolver
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "-p",
-    "--paths",
+    "-c",
+    "--configs",
     multiple=True,
     type=click.Path(file_okay=False, resolve_path=True),
-    help="paths to find json files.",
+    help="glob paths to find configuration.",
+)
+@click.option(
+    "-d",
+    "--distros",
+    multiple=True,
+    type=click.Path(file_okay=False, resolve_path=True),
+    help="glob paths to find distro configuration.",
 )
 @click.option(
     "-v",
@@ -37,11 +50,12 @@ class SharedSettings(object):
 @click.option(
     "--script-output",
     type=click.Path(dir_okay=False, resolve_path=True),
-    help="The commands that generate an OS specific script to configure the environment will write to this location.",
+    help="The commands that generate an OS specific script to configure the"
+    "environment will write to this location.",
 )
 @click.pass_context
-def cli(ctx, paths, verbosity, script_output):
-    ctx.obj = SharedSettings(paths, verbosity)
+def cli(ctx, configs, distros, verbosity, script_output):
+    ctx.obj = SharedSettings(configs, distros, verbosity)
     if verbosity > 2:
         verbosity = 2
     level = [logging.WARNING, logging.INFO, logging.DEBUG][verbosity]
@@ -52,23 +66,29 @@ def cli(ctx, paths, verbosity, script_output):
 @click.argument("uri")
 @click.pass_obj
 def env(settings, uri):
-    """Configures and launches rez with the resolved blur setup."""
-    uri = uri.strip(":").split(":")
-
+    """Configures and launches a new shell with the resolved setup."""
     logger.info("Context: {}".format(uri))
-    logger.info("Paths: {}".format(settings.paths))
-    ret = Resolver(settings.paths).resolve(uri)
-    ret = json.dumps(ret, indent=2)
-    click.echo(ret)
+    ret = settings.resolver.resolve(uri)
+    click.echo(ret.dump())
+    # TODO: Generate a temp script to write to
+    ret.write_script(r"c:\temp\hab.bat")
+
+
+@cli.command()
+@click.argument("uri")
+@click.pass_obj
+def dump(settings, uri):
+    """Resolves and prints the requested setup."""
+    logger.info("Context: {}".format(uri))
+    ret = settings.resolver.resolve(uri)
+    click.echo(ret.dump())
 
 
 @cli.command()
 @click.argument("uri")
 @click.pass_obj
 def activate(settings, uri):
-    """Resolves the blur setup and sets environment variables in the current
-    shell so you can manually. Modify and tweak them the launch rez.
-    """
+    """Resolves the setup and updates in the current shell."""
     click.echo("Not implemented")
 
 
