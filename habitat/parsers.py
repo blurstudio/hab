@@ -8,6 +8,7 @@ from packaging.version import Version
 from pprint import pformat
 import re
 import sys
+import six
 import tabulate
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,9 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     def __init__(self, forest, filename=None, parent=None):
         super(HabitatBase, self).__init__()
-        self.filename = None
+        self._flat_environment = None
+        self._filename = None
+        self._dirname = None
         self.parent = parent
         self.forest = forest
         self._init_variables()
@@ -142,6 +145,13 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                         )
                     )
 
+    @property
+    def dirname(self):
+        """The directory name of `self.filename`. This value is used to by
+        `self.format_environment_value` to fill the "dot" variable.
+        """
+        return self._dirname
+
     def dump(self):
         """Return a string of the properties and their values"""
         ret = []
@@ -162,11 +172,61 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @HabitatProperty
     def environment(self):
+        """A dictionary of operations to perform on environment variables.
+
+        The top level dictionary defines the modification operation. Valid keys are
+        "set", "unset", "prepend" and "append". Each of these keys contain the
+        environment variable key/value pairs to be modified.
+
+        Like Rez, the first set, prepend or append operation on a variable will replace
+        the existing variable value. This quote from the Rez documentation explains why:
+        "Why does this happen? Consider PYTHONPATH - if an initial overwrite did not
+        happen, then any modules visible on PYTHONPATH before the rez environment was
+        configured would still be there. This would mean you may not have a properly
+        configured environment. If your system PyQt were on PYTHONPATH for example,
+        and you used rez-env to set a different PyQt version, an attempt to import
+        it within the configured environment would still, incorrectly, import the
+        system version."
+
+        Note however that this does not apply to the PATH env variable. You may
+        only use append and prepend on that variable.
+        """
         return self._environment
 
     @environment.setter
     def environment(self, env):
         self._environment = env
+        self._flat_environment = None
+
+    @property
+    def filename(self):
+        """The filename that defined this object. Any relative paths are
+        relative to the directory of this file.
+        """
+        return self._filename
+
+    @filename.setter
+    def filename(self, filename):
+        self._filename = filename
+        # Cache the dirname so we only need to look it up once
+        if filename:
+            self._dirname = os.path.dirname(filename)
+        else:
+            self._dirname = ""
+
+    def format_environment_value(self, value):
+        """Apply standard formatting to environment variable values.
+
+        Args:
+            value (str): The string to format
+
+        Format Keys:
+            dot: Add the dirname of self.filename or a empty string. Equivalent
+                of using the `.` object for file paths. This removes the
+                ambiguity of if a `.` should be treated as a relative file path
+                or a literal dot.
+        """
+        return value.format(dot=self.dirname)
 
     @property
     def fullpath(self):
@@ -175,7 +235,15 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def load(self, filename):
         self.filename = filename
         with open(filename, "r") as fle:
-            data = json.load(fle)
+            try:
+                data = json.load(fle)
+            except ValueError as e:
+                # Include the filename in the traceback to make debugging easier
+                six.reraise(
+                    type(e),
+                    type(e)('{} Filename: "{}"'.format(e, filename)),
+                    sys.exc_info()[2],
+                )
         self.name = data["name"]
         self.requires = data.get("requires", NotSet)
         if "version" in data:
@@ -223,15 +291,18 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         if ext in (".bat", ".cmd"):
             comment = "REM "
             env_setter = 'set "{key}={value}"\n'
-            alias_setter = ""
+            env_unsetter = 'set "{key}="\n'
+            alias_setter = "doskey {key}={value} $*"
         elif ext == ".ps1":
             comment = "# "
             env_setter = "export {key}={value}\n"
-            alias_setter = "function() {name} {code}"  # TODO: make work
+            env_unsetter = "unset {key}\n"
+            alias_setter = 'function {key}() {{ {value} "$@"; }};export -f {key};'
         elif ext == ".sh":
             comment = "# "
-            env_setter = "export {key}={value}\n"
-            alias_setter = "alias {name} {code}"
+            env_setter = '$env:{key} = "{value}"\n'
+            env_unsetter = "Remove-Item Env: {key}\n"
+            alias_setter = "function {key}() {{ {value} $args }}"
 
         aliases = []
 
@@ -242,6 +313,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     fle.write(env_setter.format(key=env, value=self.environment[env]))
             if aliases:
                 if self.environment:
+                    # Only add a blank line if we wrote environment modifications
                     fle.write("\n")
                 for alias in aliases:
                     fle.write(alias_setter.foramt(**alias))
@@ -342,6 +414,7 @@ class FlatConfig(Config):
     def __init__(self, original_node, resolver):
         super(FlatConfig, self).__init__(original_node.forest)
         self.original_node = original_node
+        self.filename = original_node.filename
         self.resolver = resolver
         self._context = original_node.context
         # Copy the properties from the inheritance system
