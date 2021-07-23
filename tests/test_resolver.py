@@ -97,7 +97,7 @@ def test_reduced(resolver):
     """Check that NotSet is used if no value is provided."""
     cfg = resolver.closest_config(":not_set")
     assert cfg.apps == {"maya2020": []}
-    assert cfg.environment == NotSet
+    assert cfg.environment_config == NotSet
     assert cfg.requires == NotSet
     assert cfg.inherits is False
     assert cfg.name == "not_set"
@@ -106,7 +106,7 @@ def test_reduced(resolver):
     # Not set on the child so should be NotSet(ie doesn't inherit from parent)
     assert cfg.apps == NotSet
     # Settings defined on the child
-    assert cfg.environment == {u"set": {u"TEST": u"case"}}
+    assert cfg.environment_config == {u"set": {u"TEST": u"case"}}
     assert cfg.requires == ["tikal"]
     assert cfg.inherits is True
     assert cfg.name == "child"
@@ -116,7 +116,7 @@ def test_reduced(resolver):
     # Inherited from the parent
     assert reduced.apps == {"maya2020": []}
     # Values defind on the child are preserved
-    assert reduced.environment == {u"set": {u"TEST": u"case"}}
+    assert reduced.environment_config == {u"set": {u"TEST": u"case"}}
     assert reduced.requires == ["tikal"]
     assert reduced.inherits is True
     assert reduced.name == "child"

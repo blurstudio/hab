@@ -7,12 +7,12 @@
 
 :: Generate a unique temp file name
 :uniqLoop
-set "tempBatchFile=%tmp%\prez~%RANDOM%.bat"
+set "tempBatchFile=%tmp%\habitat~%RANDOM%.bat"
 if exist "%tempBatchFile%" goto :uniqLoop
-
+ECHO "%tempBatchFile%"
 
 :: Call our worker python process that may write the temp filename
-python -m habitat --script-output %tempBatchFile% %*
+python -m habitat --script-output "%tempBatchFile%" %*
 
 :: If the temp file was created run it and remove it
 if exist %tempBatchFile% (

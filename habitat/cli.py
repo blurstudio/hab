@@ -3,6 +3,8 @@ from . import Resolver
 import logging
 import os
 
+# import subprocess
+
 logger = logging.getLogger(__name__)
 
 
@@ -13,7 +15,9 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 class SharedSettings(object):
     def __init__(self, configs=None, distros=None, verbosity=0, script_output=None):
         self.verbosity = verbosity
+        print("+++++ {}".format(script_output))
         self.script_output = os.path.abspath(script_output or ".")
+        print("------ {}".format(self.script_output))
         self.config_paths = configs
         self.distro_paths = distros
         self._resolver = None
@@ -49,13 +53,13 @@ class SharedSettings(object):
 )
 @click.option(
     "--script-output",
-    type=click.Path(dir_okay=False, resolve_path=True),
+    type=click.Path(dir_okay=False, resolve_path=False),
     help="The commands that generate an OS specific script to configure the"
     "environment will write to this location.",
 )
 @click.pass_context
 def cli(ctx, configs, distros, verbosity, script_output):
-    ctx.obj = SharedSettings(configs, distros, verbosity)
+    ctx.obj = SharedSettings(configs, distros, verbosity, script_output)
     if verbosity > 2:
         verbosity = 2
     level = [logging.WARNING, logging.INFO, logging.DEBUG][verbosity]
@@ -68,10 +72,12 @@ def cli(ctx, configs, distros, verbosity, script_output):
 def env(settings, uri):
     """Configures and launches a new shell with the resolved setup."""
     logger.info("Context: {}".format(uri))
+    logger.debug("Script: {}".format(settings.script_output))
     ret = settings.resolver.resolve(uri)
     click.echo(ret.dump())
     # TODO: Generate a temp script to write to
-    ret.write_script(r"c:\temp\hab.bat")
+    # args = ret.write_script(settings.script_output)
+    # subprocess.Popen(args)
 
 
 @cli.command()
@@ -82,6 +88,10 @@ def dump(settings, uri):
     logger.info("Context: {}".format(uri))
     ret = settings.resolver.resolve(uri)
     click.echo(ret.dump())
+    click.echo("-" * 50)
+    from pprint import pformat
+
+    click.echo(pformat(ret.environment))
 
 
 @cli.command()
@@ -89,7 +99,12 @@ def dump(settings, uri):
 @click.pass_obj
 def activate(settings, uri):
     """Resolves the setup and updates in the current shell."""
-    click.echo("Not implemented")
+    logger.info("Context: {}".format(uri))
+    logger.debug("Script: {}".format(settings.script_output))
+    ret = settings.resolver.resolve(uri)
+    click.echo(ret.dump())
+    # TODO: Generate a temp script to write to
+    ret.write_script(settings.script_output)
 
 
 if __name__ == "__main__":

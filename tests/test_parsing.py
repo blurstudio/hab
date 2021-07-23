@@ -18,7 +18,7 @@ def test_application_parse(config_root):
 
     assert check["name"] == app.name
     assert Version(check["version"]) == app.version
-    assert check["environment"] == app.environment
+    assert check["environment"] == app.environment_config
     assert check["requires"] == app.requires
     assert check["aliases"] == app.aliases
 
@@ -111,8 +111,46 @@ def test_config_parenting(config_root):
 
 def test_metaclass():
     assert Application._properties == set(
-        ["name", "environment", "requires", "aliases"]
+        ["name", "environment_config", "requires", "aliases"]
     )
     assert Config._properties == set(
-        ["name", "environment", "requires", "inherits", "apps"]
+        ["name", "environment_config", "requires", "inherits", "apps"]
     )
+
+
+def test_environment(resolver):
+    # Check that the correct errors are raised
+    cfg = resolver.closest_config(":not_set:env_path_set")
+    with pytest.raises(ValueError) as excinfo:
+        cfg.environment
+    assert (
+        str(excinfo.value)
+        == 'You can not use PATH for the set operation: "path_variable"'
+    )
+
+    cfg = resolver.closest_config(":not_set:env_path_unset")
+    with pytest.raises(ValueError) as excinfo:
+        cfg.environment
+    assert str(excinfo.value) == "You can not unset PATH"
+
+    # Check environment variable resolving
+    cfg = resolver.closest_config(":not_set:env1")
+
+    assert cfg.environment["APPEND_VARIABLE"] == "append_value"
+    assert cfg.environment["MAYA_MODULE_PATH"] == "MMP_Set"
+    assert cfg.environment["PREPEND_VARIABLE"] == "prepend_value"
+    assert cfg.environment[
+        "RELATIVE_VARIABLE"
+    ] == "{dot}/prepend;{dot}/set;{dot}/append".format(dot=cfg.dirname)
+    assert cfg.environment["SET_RELATIVE"] == "{dot}".format(dot=cfg.dirname)
+    assert cfg.environment["SET_VARIABLE"] == "set_value"
+    assert cfg.environment["UNSET_VARIABLE"] == ""
+    assert cfg.environment["UNSET_VARIABLE_1"] == ""
+
+    # Check `cfg.environment is NotSet` resolves correctly
+    cfg = resolver.closest_config(":not_set")
+    assert cfg.environment == {}
+
+    # Ensure our tests cover the early out if the config is missing append/prepend
+    cfg = resolver.closest_config(":not_set:child")
+    assert cfg.environment == {"TEST": "case"}

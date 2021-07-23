@@ -56,7 +56,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     def __init__(self, forest, filename=None, parent=None):
         super(HabitatBase, self).__init__()
-        self._flat_environment = None
+        self._environment = None
         self._filename = None
         self._dirname = None
         self.parent = parent
@@ -75,7 +75,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """
         # The context setter has a lot of overhead don't use it to set the default
         self._context = NotSet
-        self.environment = NotSet
+        self.environment_config = NotSet
         self.name = NotSet
         self.requires = NotSet
         self.version = NotSet
@@ -170,8 +170,64 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 ret.append((prop, value))
         return tabulate.tabulate(ret)
 
-    @HabitatProperty
+    @property
     def environment(self):
+        """A resolved set of environment variables that should be applied to
+        configure an environment. Any values containing a empty string indicate
+        that the variable should be unset.
+        """
+        if self.environment_config is NotSet:
+            return {}
+
+        if self._environment is None:
+            # Check that we never replace path, it should only appended/prepended
+            for operation in ("unset", "set"):
+                keys = self.environment_config.get(operation, [])
+                if operation == "set":
+                    # set is a dictionary while unset is a list
+                    keys = keys.keys()
+
+                for key in keys:
+                    if key.lower() == "path":
+                        if operation == "set":
+                            key = self.environment_config[operation][key]
+                            msg = 'You can not use PATH for the set operation: "{}"'
+                        else:
+                            msg = "You can not unset PATH"
+                        raise ValueError(msg.format(key))
+
+            self._environment = {}
+            if "unset" in self.environment_config:
+                # When applying the env vars later None will trigger removing the env var.
+                # The other operations may end up replacing this value.
+                self._environment.update(
+                    {key: "" for key in self.environment_config["unset"]}
+                )
+            # set, prepend, append are all treated as set operations, this lets us override
+            # existing user and system variable values without them causing issues.
+            if "set" in self.environment_config:
+                for key, value in self.environment_config["set"].items():
+                    self._environment[key] = self.format_environment_value(value)
+            for operation in ("prepend", "append"):
+                if operation not in self.environment_config:
+                    continue
+                for key, value in self.environment_config[operation].items():
+                    existing = self._environment.get(key, "")
+                    if existing:
+                        if operation == "prepend":
+                            value = [value, existing]
+                        else:
+                            value = [existing, value]
+                    else:
+                        value = [value]
+                    self._environment[key] = self.format_environment_value(
+                        os.pathsep.join(value)
+                    )
+
+        return self._environment
+
+    @HabitatProperty
+    def environment_config(self):
         """A dictionary of operations to perform on environment variables.
 
         The top level dictionary defines the modification operation. Valid keys are
@@ -191,12 +247,12 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         Note however that this does not apply to the PATH env variable. You may
         only use append and prepend on that variable.
         """
-        return self._environment
+        return self._environment_config
 
-    @environment.setter
-    def environment(self, env):
-        self._environment = env
-        self._flat_environment = None
+    @environment_config.setter
+    def environment_config(self, env):
+        self._environment_config = env
+        self._environment = None
 
     @property
     def filename(self):
@@ -248,7 +304,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         self.requires = data.get("requires", NotSet)
         if "version" in data:
             self.version = Version(data.get("version"))
-        self.environment = data.get("environment", NotSet)
+        self.environment_config = data.get("environment", NotSet)
         self.context = data.get("context", NotSet)
 
         return data
@@ -292,31 +348,49 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             comment = "REM "
             env_setter = 'set "{key}={value}"\n'
             env_unsetter = 'set "{key}="\n'
-            alias_setter = "doskey {key}={value} $*"
+            alias_setter = 'doskey {key}="{value}" $*\n'
         elif ext == ".ps1":
-            comment = "# "
-            env_setter = "export {key}={value}\n"
-            env_unsetter = "unset {key}\n"
-            alias_setter = 'function {key}() {{ {value} "$@"; }};export -f {key};'
-        elif ext == ".sh":
             comment = "# "
             env_setter = '$env:{key} = "{value}"\n'
             env_unsetter = "Remove-Item Env: {key}\n"
-            alias_setter = "function {key}() {{ {value} $args }}"
+            alias_setter = "function {key}() {{ {value} $args }}\n"
+        elif ext == ".sh":
+            comment = "# "
+            env_setter = 'export {key}="{value}"\n'
+            env_unsetter = "unset {key}\n"
+            alias_setter = 'function {key}() {{ {value} "$@"; }};export -f {key};\n'
 
-        aliases = []
+        # TODO: Resolve aliases from distro config
+        # aliases = []
+        aliases = {
+            "windows": [
+                ["maya", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"],
+                ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"],
+                ["stext", "C:\\Program Files\\Sublime Text 3\\sublime_text.exe"],
+            ],
+            "linux": [
+                ["maya", r"/C/Program\ Files/Autodesk/Maya2020/bin/maya.exe"],
+                ["mayapy", r"/C/Program\ Files/Autodesk/Maya2020/bin/mayapy.exe"],
+            ],
+            "*": [["example", "{relative}/all_platform_example"]],
+        }["windows"]
 
         with open(filename, "w") as fle:
             if self.environment:
                 fle.write("{}Setting environment variables:\n".format(comment))
-                for env in self.environment:
-                    fle.write(env_setter.format(key=env, value=self.environment[env]))
+                for key, value in self.environment.items():
+                    setter = env_setter
+                    if not value:
+                        setter = env_unsetter
+                    fle.write(setter.format(key=key, value=value))
             if aliases:
                 if self.environment:
                     # Only add a blank line if we wrote environment modifications
                     fle.write("\n")
+                fle.write("{}Creating aliases to launch programs:\n".format(comment))
                 for alias in aliases:
-                    fle.write(alias_setter.foramt(**alias))
+                    fle.write(alias_setter.format(key=alias[0], value=alias[1]))
+        print(open(filename).read())
 
     # TODO: this is probably not needed, remove it
     @classmethod
