@@ -152,10 +152,29 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """
         return self._dirname
 
-    def dump(self):
-        """Return a string of the properties and their values"""
+    def dump(self, environment=True, environment_config=False):
+        """Return a string of the properties and their values.
+
+        Args:
+            environment (bool, optional): Show the environment value.
+            environment_config (bool, optional): Show the environment_config value.
+
+        Returns:
+            str: The configuration converted to a string
+        """
         ret = []
-        for prop in sorted(self._properties):
+        # Update what properties are shown in the dump
+        props = set(self._properties)
+        for k, v in (
+            ("environment", environment),
+            ("environment_config", environment_config),
+        ):
+            if v:
+                props.add(k)
+            else:
+                props.discard(k)
+
+        for prop in sorted(props):
             value = getattr(self, prop)
             if value is NotSet:
                 value = "<NotSet>"

@@ -4,6 +4,7 @@ import json
 import os
 from packaging.version import Version
 import pytest
+from tabulate import tabulate
 
 
 def test_application_parse(config_root):
@@ -116,6 +117,36 @@ def test_metaclass():
     assert Config._properties == set(
         ["name", "environment_config", "requires", "inherits", "apps"]
     )
+
+
+def test_dump(resolver):
+    # Build the test data so we can generate the output to check
+    # Note: using `repr([u"` so this test passes in python 2 and 3
+    pre = [["apps", "<NotSet>"]]
+    post = [
+        ["inherits", "True"],
+        ["name", "child"],
+        ["requires", repr([u"tikal"])],
+    ]
+    env = [["environment", repr({u"TEST": u"case"})]]
+    env_config = [["environment_config", repr({u"set": {u"TEST": u"case"}})]]
+    cfg = resolver.closest_config(":not_set:child")
+
+    # Check that both environments can be hidden
+    result = cfg.dump(environment=False, environment_config=False)
+    assert result == tabulate(pre + post)
+
+    # Check that both environments can be shown
+    result = cfg.dump(environment=True, environment_config=True)
+    assert result == tabulate(pre + env + env_config + post)
+
+    # Check that only environment can be shown
+    result = cfg.dump(environment=True, environment_config=False)
+    assert result == tabulate(pre + env + post)
+
+    # Check that only environment_config can be shown
+    result = cfg.dump(environment=False, environment_config=True)
+    assert result == tabulate(pre + env_config + post)
 
 
 def test_environment(resolver):

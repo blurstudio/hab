@@ -83,15 +83,23 @@ def env(settings, uri):
 @cli.command()
 @click.argument("uri")
 @click.pass_obj
-def dump(settings, uri):
+@click.option(
+    "--env/--no-env",
+    default=True,
+    help="Show the environment variable as a flattened structure.",
+)
+@click.option(
+    "--env-config/--no-env-config",
+    "--envc/--no-envc",
+    default=False,
+    help="Show the environment variable as a flattened structure.",
+)
+def dump(settings, uri, env, env_config):
     """Resolves and prints the requested setup."""
     logger.info("Context: {}".format(uri))
     ret = settings.resolver.resolve(uri)
-    click.echo(ret.dump())
+    click.echo(ret.dump(environment=env, environment_config=env_config))
     click.echo("-" * 50)
-    from pprint import pformat
-
-    click.echo(pformat(ret.environment))
 
 
 @cli.command()
