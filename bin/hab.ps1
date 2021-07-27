@@ -3,27 +3,36 @@
 # supports. This calls the python module cli passing the arguments to it and
 # ends up calling the script file that code generates if required.
 
-# Generate a unique temp file name
-$temp_ps_file=[System.IO.Path]::GetTempFileName()
+# Generate unique temp file names
+$temp_config=[System.IO.Path]::GetTempFileName()
+$temp_launch=[System.IO.Path]::GetTempFileName()
 # Remove the file that was created, we don't want it at this point.
 # Also it will cause problems if we fill all of these slots
-Remove-Item $temp_ps_file
+Remove-Item $temp_config
+Remove-Item $temp_launch
 # Rename the file extension to .ps1
-$temp_file=[System.IO.Path]::ChangeExtension($temp_file, "ps1")
-echo "%temp_file%"
+$temp_config=[System.IO.Path]::ChangeExtension($temp_config, "ps1")
+$temp_launch=[System.IO.Path]::ChangeExtension($temp_launch, "ps1")
 
 # Call our worker python process that may write the temp filename
-python -m habitat --script-output "%temp_file%" %*
+python -m habitat --file-config $temp_config --file-launch $temp_launch $args
 
-# If the temp file was created run it and remove it
-# if exist %temp_file% (
-#    #echo SCRIPT FILE: %temp_file%
-#    call %temp_file%
-#    del "%temp_file%"
-#)
+# Run the launch or config script if it was created on disk
+if (Test-Path $temp_launch -PathType Leaf)
+{
+    & $temp_launch
+}
+elseif (Test-Path $temp_config -PathType Leaf)
+{
+    . $temp_config
+}
 
-# start cmd /k H:\public\mikeh\simp\prez\prez activate :projectDummy:Sc100:S0001.00
-# start cmd /k H:\public\mikeh\simp\prez\prez activate :projectDummy:Guard
-# echo %STUDIO_ELEMENT_TYPE%
-# start cmd /k H:\public\mikeh\simp\prez\prez env :projectDummy:Sc100:S0001.00
-# echo $env:STUDIO_ELEMENT_TYPE
+# Remove the temp files if they exist
+if (Test-Path $temp_launch -PathType Leaf)
+{
+    Remove-Item $temp_launch
+}
+if (Test-Path $temp_config -PathType Leaf)
+{
+    Remove-Item $temp_config
+}

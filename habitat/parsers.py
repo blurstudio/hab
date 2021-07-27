@@ -352,6 +352,50 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def requires(self, requires):
         self._requires = requires
 
+    @classmethod
+    def shell_escape(cls, ext, value):
+        """Apply any shell specific formatting like escape characters."""
+        if ext == ".ps1":
+            return value.replace(" ", "` ")
+        return value
+
+    @classmethod
+    def shell_formats(cls, ext):
+        """Returns a file ext specific dict that is used to write launch scripts"""
+        ret = {
+            "postfix": "",
+            "prefix": "",
+        }
+        if ext in (".bat", ".cmd"):
+            ret["alias_setter"] = 'doskey {key}="{value}" $*\n'
+            ret["comment"] = "REM "
+            ret["env_setter"] = 'set "{key}={value}"\n'
+            ret["env_unsetter"] = 'set "{key}="\n'
+            ret["postfix"] = "@ECHO ON\n"
+            ret["prefix"] = "@ECHO OFF\n"
+            ret["prompt"] = 'set "PROMPT=(Habitat) $P$G"\n'
+            ret["launch"] = 'cmd.exe /k "{path}"\n'
+        elif ext == ".ps1":
+            ret["alias_setter"] = "function {key}() {{ {value} $args }}\n"
+            ret["comment"] = "# "
+            ret["env_setter"] = '$env:{key} = "{value}"\n'
+            ret[
+                "env_unsetter"
+            ] = "Remove-Item Env:\\{key} -ErrorAction SilentlyContinue\n"
+            ret["prompt"] = "function PROMPT {'(Habitat) ' + $(Get-Location) + '>'}\n"
+            ret[
+                "launch"
+            ] = 'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{path}"\n'
+        elif ext == ".sh":
+            ret[
+                "alias_setter"
+            ] = 'function {key}() {{ {value} "$@"; }};export -f {key};\n'
+            ret["comment"] = "# "
+            ret["env_setter"] = 'export {key}="{value}"\n'
+            ret["env_unsetter"] = "unset {key}\n"
+
+        return ret
+
     @property
     def version(self):
         return self._version
@@ -360,24 +404,10 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def version(self, version):
         self._version = version
 
-    def write_script(self, filename):
+    def write_script(self, config_script, launch_script=None):
         """Write the configuration to a script file to be run by terminal."""
-        _, ext = os.path.splitext(filename)
-        if ext in (".bat", ".cmd"):
-            comment = "REM "
-            env_setter = 'set "{key}={value}"\n'
-            env_unsetter = 'set "{key}="\n'
-            alias_setter = 'doskey {key}="{value}" $*\n'
-        elif ext == ".ps1":
-            comment = "# "
-            env_setter = '$env:{key} = "{value}"\n'
-            env_unsetter = "Remove-Item Env: {key}\n"
-            alias_setter = "function {key}() {{ {value} $args }}\n"
-        elif ext == ".sh":
-            comment = "# "
-            env_setter = 'export {key}="{value}"\n'
-            env_unsetter = "unset {key}\n"
-            alias_setter = 'function {key}() {{ {value} "$@"; }};export -f {key};\n'
+        _, ext = os.path.splitext(config_script)
+        shell = self.shell_formats(ext)
 
         # TODO: Resolve aliases from distro config
         # aliases = []
@@ -394,22 +424,40 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             "*": [["example", "{relative}/all_platform_example"]],
         }["windows"]
 
-        with open(filename, "w") as fle:
+        with open(config_script, "w") as fle:
+            if shell["prefix"]:
+                fle.write(shell["prefix"])
+            # Create a custom prompt
+            fle.write("{}Customizing the prompt\n".format(shell["comment"]))
+            fle.write(shell["prompt"])
+            fle.write("\n")
+
             if self.environment:
-                fle.write("{}Setting environment variables:\n".format(comment))
+                fle.write("{}Setting environment variables:\n".format(shell["comment"]))
                 for key, value in self.environment.items():
-                    setter = env_setter
+                    setter = shell["env_setter"]
                     if not value:
-                        setter = env_unsetter
+                        setter = shell["env_unsetter"]
                     fle.write(setter.format(key=key, value=value))
             if aliases:
                 if self.environment:
                     # Only add a blank line if we wrote environment modifications
                     fle.write("\n")
-                fle.write("{}Creating aliases to launch programs:\n".format(comment))
+                fle.write(
+                    "{}Creating aliases to launch programs:\n".format(shell["comment"])
+                )
                 for alias in aliases:
-                    fle.write(alias_setter.format(key=alias[0], value=alias[1]))
-        print(open(filename).read())
+                    fle.write(
+                        shell["alias_setter"].format(
+                            key=alias[0], value=self.shell_escape(ext, alias[1])
+                        )
+                    )
+            if shell["postfix"]:
+                fle.write(shell["postfix"])
+
+        if launch_script:
+            with open(launch_script, "w") as fle:
+                fle.write(shell["launch"].format(path=config_script))
 
     # TODO: this is probably not needed, remove it
     @classmethod

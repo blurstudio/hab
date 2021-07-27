@@ -3,8 +3,6 @@ from . import Resolver
 import logging
 import os
 
-# import subprocess
-
 logger = logging.getLogger(__name__)
 
 
@@ -13,11 +11,17 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 class SharedSettings(object):
-    def __init__(self, configs=None, distros=None, verbosity=0, script_output=None):
+    def __init__(
+        self,
+        configs=None,
+        distros=None,
+        verbosity=0,
+        file_config=None,
+        file_launch=None,
+    ):
         self.verbosity = verbosity
-        print("+++++ {}".format(script_output))
-        self.script_output = os.path.abspath(script_output or ".")
-        print("------ {}".format(self.script_output))
+        self.file_config = os.path.abspath(file_config or ".")
+        self.file_launch = os.path.abspath(file_launch or ".")
         self.config_paths = configs
         self.distro_paths = distros
         self._resolver = None
@@ -52,14 +56,19 @@ class SharedSettings(object):
     help="Increase the verbosity of the output. Can be used up to 3 times.",
 )
 @click.option(
-    "--script-output",
+    "--file-config",
     type=click.Path(dir_okay=False, resolve_path=False),
-    help="The commands that generate an OS specific script to configure the"
-    "environment will write to this location.",
+    help="This file will contain the shell specific configuration commands to enable"
+    "this environment configuration.",
+)
+@click.option(
+    "--file-launch",
+    type=click.Path(dir_okay=False, resolve_path=False),
+    help="This file will contain the shell specific launching command to call file-config.",
 )
 @click.pass_context
-def cli(ctx, configs, distros, verbosity, script_output):
-    ctx.obj = SharedSettings(configs, distros, verbosity, script_output)
+def cli(ctx, configs, distros, verbosity, file_config, file_launch):
+    ctx.obj = SharedSettings(configs, distros, verbosity, file_config, file_launch)
     if verbosity > 2:
         verbosity = 2
     level = [logging.WARNING, logging.INFO, logging.DEBUG][verbosity]
@@ -72,12 +81,10 @@ def cli(ctx, configs, distros, verbosity, script_output):
 def env(settings, uri):
     """Configures and launches a new shell with the resolved setup."""
     logger.info("Context: {}".format(uri))
-    logger.debug("Script: {}".format(settings.script_output))
+    logger.debug("Script: {}".format(settings.file_config))
     ret = settings.resolver.resolve(uri)
-    click.echo(ret.dump())
-    # TODO: Generate a temp script to write to
-    # args = ret.write_script(settings.script_output)
-    # subprocess.Popen(args)
+
+    ret.write_script(settings.file_config, settings.file_launch)
 
 
 @cli.command()
@@ -99,20 +106,21 @@ def dump(settings, uri, env, env_config):
     logger.info("Context: {}".format(uri))
     ret = settings.resolver.resolve(uri)
     click.echo(ret.dump(environment=env, environment_config=env_config))
-    click.echo("-" * 50)
 
 
 @cli.command()
 @click.argument("uri")
 @click.pass_obj
 def activate(settings, uri):
-    """Resolves the setup and updates in the current shell."""
+    """Resolves the setup and updates in the current shell.
+
+    In powershell and bash you must use the source dot: ". hab activate ..."
+    """
     logger.info("Context: {}".format(uri))
-    logger.debug("Script: {}".format(settings.script_output))
+    logger.debug("Script: {}".format(settings.file_config))
     ret = settings.resolver.resolve(uri)
-    click.echo(ret.dump())
-    # TODO: Generate a temp script to write to
-    ret.write_script(settings.script_output)
+
+    ret.write_script(settings.file_config)
 
 
 if __name__ == "__main__":

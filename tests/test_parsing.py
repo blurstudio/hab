@@ -172,7 +172,9 @@ def test_environment(resolver):
     assert cfg.environment["PREPEND_VARIABLE"] == "prepend_value"
     assert cfg.environment[
         "RELATIVE_VARIABLE"
-    ] == "{dot}/prepend;{dot}/set;{dot}/append".format(dot=cfg.dirname)
+    ] == "{dot}/prepend{pathsep}{dot}/set{pathsep}{dot}/append".format(
+        dot=cfg.dirname, pathsep=os.path.pathsep
+    )
     assert cfg.environment["SET_RELATIVE"] == "{dot}".format(dot=cfg.dirname)
     assert cfg.environment["SET_VARIABLE"] == "set_value"
     assert cfg.environment["UNSET_VARIABLE"] == ""
