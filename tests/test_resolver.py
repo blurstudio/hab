@@ -120,3 +120,13 @@ def test_reduced(resolver):
     assert reduced.requires == ["tikal"]
     assert reduced.inherits is True
     assert reduced.name == "child"
+    assert reduced.uri == ":not_set:child"
+
+    # Verify that uri is handled correctly
+    uri = ":not_set:child:test"
+    reduced = cfg.reduced(resolver, uri=uri)
+    assert reduced._uri == uri
+    assert reduced.uri == uri
+    cfg = resolver.closest_config(uri)
+    assert cfg._uri is NotSet
+    assert cfg.uri == ":not_set:child"

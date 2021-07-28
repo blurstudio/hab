@@ -109,7 +109,12 @@ def env(settings, uri):
     default="config",
     help="Type of report.",
 )
-def dump(settings, uri, env, env_config, report_type):
+@click.option(
+    "--flat/--no-flat",
+    default=True,
+    help="Flatten the resolved object",
+)
+def dump(settings, uri, env, env_config, report_type, flat):
     """Resolves and prints the requested setup."""
     logger.info("Context: {}".format(uri))
     if report_type in ("forest", "f"):
@@ -118,7 +123,12 @@ def dump(settings, uri, env, env_config, report_type):
         click.echo(" Distros ".center(50, "-"))
         click.echo(settings.resolver.dump_forest(settings.resolver.distros))
     else:
-        ret = settings.resolver.resolve(uri)
+        if flat:
+            ret = settings.resolver.resolve(uri)
+        else:
+            ret = settings.resolver.closest_config(uri)
+        click.echo("fullpath: {}".format(ret.fullpath))
+        click.echo(ret)
         click.echo(ret.dump(environment=env, environment_config=env_config))
 
 

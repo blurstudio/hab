@@ -117,7 +117,7 @@ def test_metaclass():
         ["name", "environment_config", "requires", "aliases", "version"]
     )
     assert Config._properties == set(
-        ["name", "environment_config", "requires", "inherits", "apps"]
+        ["name", "environment_config", "requires", "inherits", "apps", "uri"]
     )
 
 
@@ -129,6 +129,7 @@ def test_dump(resolver):
         ["inherits", "True"],
         ["name", "child"],
         ["requires", repr([u"tikal"])],
+        ["uri", ":not_set:child"],
     ]
     env = [["environment", repr({u"TEST": u"case"})]]
     env_config = [["environment_config", repr({u"set": {u"TEST": u"case"}})]]

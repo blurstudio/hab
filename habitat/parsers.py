@@ -61,6 +61,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         self._environment = None
         self._filename = None
         self._dirname = None
+        self._uri = NotSet
         self.parent = parent
         self.forest = forest
         self._init_variables()
@@ -347,7 +348,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def name(self, name):
         self._name = name
 
-    def reduced(self, resolver=None):
+    def reduced(self, resolver=None, uri=None):
         """Returns a new instance with the final settings applied respecting inheritance"""
         ret = type(self)(self.forest)
         ret._context = self.context
@@ -384,7 +385,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret["env_unsetter"] = 'set "{key}="\n'
             ret["postfix"] = "@ECHO ON\n"
             ret["prefix"] = "@ECHO OFF\n"
-            ret["prompt"] = 'set "PROMPT=(Habitat) $P$G"\n'
+            ret["prompt"] = 'set "PROMPT=[{uri}] $P$G"\n'
             ret["launch"] = 'cmd.exe /k "{path}"\n'
         elif ext == ".ps1":
             ret["alias_setter"] = "function {key}() {{ {value} $args }}\n"
@@ -393,7 +394,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret[
                 "env_unsetter"
             ] = "Remove-Item Env:\\{key} -ErrorAction SilentlyContinue\n"
-            ret["prompt"] = "function PROMPT {'(Habitat) ' + $(Get-Location) + '>'}\n"
+            ret["prompt"] = "function PROMPT {{'[{uri}] ' + $(Get-Location) + '>'}}\n"
             ret[
                 "launch"
             ] = 'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{path}"\n'
@@ -406,6 +407,12 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret["env_unsetter"] = "unset {key}\n"
 
         return ret
+
+    @property
+    def uri(self):
+        if self._uri:
+            return self._uri
+        return self.fullpath
 
     @property
     def version(self):
@@ -440,7 +447,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 fle.write(shell["prefix"])
             # Create a custom prompt
             fle.write("{}Customizing the prompt\n".format(shell["comment"]))
-            fle.write(shell["prompt"])
+            fle.write(shell["prompt"].format(uri=self.uri))
             fle.write("\n")
 
             if self.environment:
@@ -561,18 +568,24 @@ class Config(HabitatBase):
         self.inherits = data.get("inherits", NotSet)
         return data
 
-    def reduced(self, resolver=None):
+    def reduced(self, resolver=None, uri=None):
         """Returns a new instance with the final settings applied respecting inheritance"""
-        return FlatConfig(self, resolver)
+        return FlatConfig(self, resolver, uri=uri)
+
+    @HabitatProperty
+    def uri(self):
+        # Mark uri as a HabitatProperty so it is included in _properties
+        return super(Config, self).uri
 
 
 class FlatConfig(Config):
-    def __init__(self, original_node, resolver):
+    def __init__(self, original_node, resolver, uri=NotSet):
         super(FlatConfig, self).__init__(original_node.forest)
         self.original_node = original_node
         self.filename = original_node.filename
         self.resolver = resolver
         self._context = original_node.context
+        self._uri = uri
         # Copy the properties from the inheritance system
         self._collect_values(self.original_node)
 
@@ -580,6 +593,10 @@ class FlatConfig(Config):
         logger.debug("Loading node: {} inherits: {}".format(node.name, node.inherits))
         self._missing_values = False
         for attrname in self._properties:
+            if attrname == "uri":
+                # TODO: Add detection of setters to HabitatProperty and don't set values without setters
+                # There is no setter for uri, setting it now will cause errors in testing
+                continue
             if getattr(self, attrname) != NotSet:
                 continue
             value = getattr(node, attrname)
@@ -607,7 +624,7 @@ class FlatConfig(Config):
 
     @property
     def fullpath(self):
-        return self.separator.join([""] + [name for name in self.context])
+        return self.separator.join([""] + [name for name in self.context] + [self.name])
 
 
 class Placeholder(HabitatBase):

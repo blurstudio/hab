@@ -274,9 +274,9 @@ class Resolver(object):
                     resolved[key] = value
         return resolved
 
-    def resolve(self, context):
-        context = self.closest_config(context)
-        return context.reduced(self)
+    def resolve(self, uri):
+        context = self.closest_config(uri)
+        return context.reduced(self, uri=uri)
 
     def resolve_environment(self, context):
         for app in context.get("apps", []):
