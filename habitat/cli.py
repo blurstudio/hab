@@ -101,11 +101,25 @@ def env(settings, uri):
     default=False,
     help="Show the environment variable as a flattened structure.",
 )
-def dump(settings, uri, env, env_config):
+@click.option(
+    "-t",
+    "--type",
+    "report_type",
+    type=click.Choice(["config", "c", "forest", "f"]),
+    default="config",
+    help="Type of report.",
+)
+def dump(settings, uri, env, env_config, report_type):
     """Resolves and prints the requested setup."""
     logger.info("Context: {}".format(uri))
-    ret = settings.resolver.resolve(uri)
-    click.echo(ret.dump(environment=env, environment_config=env_config))
+    if report_type in ("forest", "f"):
+        click.echo(" Configs ".center(50, "-"))
+        click.echo(settings.resolver.dump_forest(settings.resolver.configs))
+        click.echo(" Distros ".center(50, "-"))
+        click.echo(settings.resolver.dump_forest(settings.resolver.distros))
+    else:
+        ret = settings.resolver.resolve(uri)
+        click.echo(ret.dump(environment=env, environment_config=env_config))
 
 
 @cli.command()

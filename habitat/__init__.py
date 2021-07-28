@@ -4,7 +4,7 @@ import json
 import glob
 import logging
 import os
-from .parsers import Config
+from .parsers import Config, Application
 from packaging.requirements import Requirement
 from packaging.version import Version
 from future.utils import string_types
@@ -179,7 +179,16 @@ class Resolver(object):
         return forest
 
     @classmethod
-    def parse_distros(cls, distro_paths, relative=True):
+    def parse_distros(cls, distro_paths, forest=None):
+        if forest is None:
+            forest = {}
+        for dirname in distro_paths:
+            for path in sorted(glob.glob(os.path.join(dirname, "*", ".habitat.json"))):
+                Application(forest, path)
+        return forest
+
+    @classmethod
+    def parse_distros_old(cls, distro_paths, relative=True):
         distros = {}
         for dirname in distro_paths:
             # Allow directly passing a git checkout path

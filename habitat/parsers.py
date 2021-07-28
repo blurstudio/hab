@@ -52,6 +52,8 @@ class HabitatMeta(type):
 
 
 class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
+    _name_key = "name"
+    _context_method = "key"
     separator = ":"
 
     def __init__(self, forest, filename=None, parent=None):
@@ -82,6 +84,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @property
     def context(self):
+        """A list of parent context strings."""
         return self._context
 
     @context.setter
@@ -201,6 +204,9 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         if self._environment is None:
             # Check that we never replace path, it should only appended/prepended
             for operation in ("unset", "set"):
+                if operation not in self.environment_config:
+                    continue
+
                 keys = self.environment_config.get(operation, [])
                 if operation == "set":
                     # set is a dictionary while unset is a list
@@ -319,12 +325,17 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     type(e)('{} Filename: "{}"'.format(e, filename)),
                     sys.exc_info()[2],
                 )
-        self.name = data["name"]
+        self.name = data[self._name_key]
         self.requires = data.get("requires", NotSet)
         if "version" in data:
             self.version = Version(data.get("version"))
         self.environment_config = data.get("environment", NotSet)
-        self.context = data.get("context", NotSet)
+
+        # TODO: make these use override methods
+        if self._context_method == "key":
+            self.context = data.get("context", NotSet)
+        elif self._context_method == "name":
+            self.context = [data["name"]]
 
         return data
 
@@ -493,12 +504,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
 
 class Application(HabitatBase):
-    def __init__(self, forest=None, filename=None, parent=None):
-        if forest is None:
-            forest = {}
-        super(Application, self).__init__(
-            forest=forest, filename=filename, parent=parent
-        )
+    _name_key = "version"
+    _context_method = "name"
 
     def _init_variables(self):
         super(Application, self)._init_variables()
@@ -516,6 +523,14 @@ class Application(HabitatBase):
         data = super(Application, self).load(filename)
         self.aliases = data.get("aliases", NotSet)
         return data
+
+    @HabitatProperty
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, version):
+        self._version = version
 
 
 class Config(HabitatBase):
@@ -581,7 +596,14 @@ class FlatConfig(Config):
                 default = True
                 default_node = self.resolver.closest_config(node.fullpath)
                 self._collect_values(default_node, default=default)
+        # self._collect_apps()
         return self._missing_values
+
+    def _collect_apps(self):
+        distros = self.resolver.distros
+        for app in self.apps:
+            print([app])
+            distros.get(app)
 
     @property
     def fullpath(self):

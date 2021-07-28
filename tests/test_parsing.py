@@ -9,7 +9,8 @@ from tabulate import tabulate
 
 def test_application_parse(config_root):
     """Check that a application json can be parsed correctly"""
-    app = Application()
+    forest = {}
+    app = Application(forest)
     path = os.path.join(
         config_root, "distros", "all_settings", "0.1.0.dev1", ".habitat.json"
     )
@@ -17,11 +18,12 @@ def test_application_parse(config_root):
 
     check = json.load(open(path))
 
-    assert check["name"] == app.name
+    assert check["version"] == app.name
     assert Version(check["version"]) == app.version
     assert check["environment"] == app.environment_config
     assert check["requires"] == app.requires
     assert check["aliases"] == app.aliases
+    assert ["all_settings"] == app.context
 
 
 def test_config_parse(config_root):
@@ -112,7 +114,7 @@ def test_config_parenting(config_root):
 
 def test_metaclass():
     assert Application._properties == set(
-        ["name", "environment_config", "requires", "aliases"]
+        ["name", "environment_config", "requires", "aliases", "version"]
     )
     assert Config._properties == set(
         ["name", "environment_config", "requires", "inherits", "apps"]
