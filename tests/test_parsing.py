@@ -1,5 +1,5 @@
 import anytree
-from habitat.parsers import Application, Config
+from habitat.parsers import ApplicationVersion, Config
 import json
 import os
 from packaging.version import Version
@@ -10,20 +10,40 @@ from tabulate import tabulate
 def test_application_parse(config_root):
     """Check that a application json can be parsed correctly"""
     forest = {}
-    app = Application(forest)
+    app = ApplicationVersion(forest)
     path = os.path.join(
         config_root, "distros", "all_settings", "0.1.0.dev1", ".habitat.json"
     )
     app.load(path)
-
     check = json.load(open(path))
 
-    assert check["version"] == app.name
+    assert "{name}=={version}".format(**check) == app.name
     assert Version(check["version"]) == app.version
     assert check["environment"] == app.environment_config
     assert check["requires"] == app.requires
     assert check["aliases"] == app.aliases
     assert ["all_settings"] == app.context
+
+    # Verify that if the json file doesn't have "version" defined it uses the
+    # parent directory as its version.
+    app = ApplicationVersion(forest)
+    path = os.path.join(config_root, "distros", "maya", "2020.0", ".habitat.json")
+    app.load(path)
+    check = json.load(open(path))
+
+    # tests\distros\maya\2020.0\.habitat.json does not have "version"
+    # defined. This allows us to test that ApplicationVersion will pull the
+    # version number from the parent directory not the json file.
+    assert "version" not in check
+    assert app.version == Version("2020.0")
+
+
+def test_application_version(resolver):
+    """Verify that we find the expected version for a given requirement."""
+    maya = resolver.distros["maya2020"]
+
+    assert maya.latest_version("maya2020").name == "maya2020==2020.1"
+    assert maya.latest_version("maya2020<2020.1").name == "maya2020==2020.0"
 
 
 def test_config_parse(config_root):
@@ -113,7 +133,7 @@ def test_config_parenting(config_root):
 
 
 def test_metaclass():
-    assert Application._properties == set(
+    assert ApplicationVersion._properties == set(
         ["name", "environment_config", "requires", "aliases", "version"]
     )
     assert Config._properties == set(

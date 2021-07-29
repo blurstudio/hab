@@ -12,4 +12,5 @@ def config_root():
 def resolver(config_root):
     """Return a standard testing resolver"""
     config_paths = (os.path.join(config_root, "configs", "*"),)
-    return Resolver(config_paths=config_paths)
+    distro_paths = (os.path.join(config_root, "distros", "*"),)
+    return Resolver(config_paths=config_paths, distro_paths=distro_paths)

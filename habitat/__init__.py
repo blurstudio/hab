@@ -4,7 +4,7 @@ import json
 import glob
 import logging
 import os
-from .parsers import Config, Application
+from .parsers import Config, ApplicationVersion
 from packaging.requirements import Requirement
 from packaging.version import Version
 from future.utils import string_types
@@ -150,8 +150,12 @@ class Resolver(object):
                 ret.append("    {}".format(line))
         return "\n".join(ret)
 
-    def find_distro(self, name):
-        pass
+    def find_distro(self, requirement):
+        """Returns the ApplicationVersion matching the requirement or None"""
+        requirement = Requirement(requirement)
+        if requirement.name in self.distros:
+            app = self.distros[requirement.name]
+            return app.latest_version(requirement)
 
     @classmethod
     def format(cls, value, config):
@@ -184,7 +188,7 @@ class Resolver(object):
             forest = {}
         for dirname in distro_paths:
             for path in sorted(glob.glob(os.path.join(dirname, "*", ".habitat.json"))):
-                Application(forest, path)
+                ApplicationVersion(forest, path)
         return forest
 
     @classmethod

@@ -4,6 +4,7 @@ from future.utils import with_metaclass
 import json
 import logging
 import os
+from packaging.requirements import Requirement
 from packaging.version import Version
 from pprint import pformat
 import re
@@ -52,8 +53,12 @@ class HabitatMeta(type):
 
 
 class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
-    _name_key = "name"
     _context_method = "key"
+    # A instance of this class is used to build a parent anytree item if no
+    # configuration was processed yet to fill in that node. This is set to the
+    # Placeholder class after it is defined below. This allows the
+    # ApplicationVersion class to use Application as its placeholder
+    _placeholder = None
     separator = ":"
 
     def __init__(self, forest, filename=None, parent=None):
@@ -96,7 +101,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             # Add the root of this tree to the forest
             if self.name in self.forest:
                 # Preserve the children of the placeholder object if it exists
-                if not isinstance(self.forest[self.name], Placeholder):
+                if not isinstance(self.forest[self.name], self._placeholder):
                     raise ValueError("Tree root {} is already set".format(self.name))
                 self.children = self.forest[self.name].children
             self.forest[self.name] = self
@@ -109,7 +114,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 root = self.forest[root_name]
                 logger.debug("Using root: {}".format(root.fullpath))
             else:
-                root = Placeholder(self.forest)
+                root = self._placeholder(self.forest)
                 root.name = root_name
                 self.forest[root_name] = root
                 logger.debug("Created placeholder root: {}".format(root.fullpath))
@@ -120,7 +125,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     root = resolver.get(root, child_name)
                     logger.debug("Found intermediary: {}".format(root.fullpath))
                 except anytree.resolver.ResolverError:
-                    root = Placeholder(self.forest, parent=root)
+                    root = self._placeholder(self.forest, parent=root)
                     root.name = child_name
                     logger.debug(
                         "Created placeholder intermediary: {}".format(root.fullpath)
@@ -134,7 +139,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 self.parent = root
                 logger.debug("Adding to parent: {}".format(root.fullpath))
             else:
-                if isinstance(target, Placeholder):
+                if isinstance(target, self._placeholder):
                     # replace the placeholder with self
                     self.parent = target.parent
                     self.children = target.children
@@ -326,10 +331,10 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     type(e)('{} Filename: "{}"'.format(e, filename)),
                     sys.exc_info()[2],
                 )
-        self.name = data[self._name_key]
+        self.name = data["name"]
         self.requires = data.get("requires", NotSet)
         if "version" in data:
-            self.version = Version(data.get("version"))
+            self.version = data.get("version")
         self.environment_config = data.get("environment", NotSet)
 
         # TODO: make these use override methods
@@ -416,10 +421,13 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @property
     def version(self):
+        """A `packaging.version.Version` representing the version of this object."""
         return self._version
 
     @version.setter
     def version(self, version):
+        if version and not isinstance(version, Version):
+            version = Version(version)
         self._version = version
 
     def write_script(self, config_script, launch_script=None):
@@ -511,11 +519,36 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
 
 class Application(HabitatBase):
-    _name_key = "version"
+    def latest_version(self, specifier):
+        """Returns the newest version available matching the specifier"""
+        versions = self.matching_versions(specifier)
+        try:
+            version = max(versions)
+        except ValueError:
+            raise Exception('Unable to find a valid version for "{}"'.format(specifier))
+        return self.versions[version]
+
+    def matching_versions(self, requirement):
+        """Returns a list of versions available matching the requirement.
+        See `packaging.requirements` for details on valid requirements, but it
+        should be the same as pip requirements.
+        """
+        if not isinstance(requirement, Requirement):
+            requirement = Requirement(requirement)
+        return requirement.specifier.filter(self.versions.keys())
+
+    @property
+    def versions(self):
+        """A dict of available application versions"""
+        return {c.version: c for c in self.children}
+
+
+class ApplicationVersion(HabitatBase):
     _context_method = "name"
+    _placeholder = Application
 
     def _init_variables(self):
-        super(Application, self)._init_variables()
+        super(ApplicationVersion, self)._init_variables()
         self.aliases = NotSet
 
     @HabitatProperty
@@ -527,16 +560,26 @@ class Application(HabitatBase):
         self._aliases = aliases
 
     def load(self, filename):
-        data = super(Application, self).load(filename)
+        data = super(ApplicationVersion, self).load(filename)
+        # If version is not defined in json data extract it from the parent
+        # directory name. This allows for simpler distribution without needing
+        # to modify version controlled files.
+        if "version" not in data:
+            self.version = os.path.basename(os.path.dirname(filename))
+
         self.aliases = data.get("aliases", NotSet)
+        self.name = "{}=={}".format(data.get("name"), self.version)
         return data
 
     @HabitatProperty
     def version(self):
-        return self._version
+        return super(ApplicationVersion, self).version
 
     @version.setter
     def version(self, version):
+        # NOTE: super doesn't work for a @property.setter
+        if version and not isinstance(version, Version):
+            version = Version(version)
         self._version = version
 
 
@@ -631,3 +674,8 @@ class Placeholder(HabitatBase):
     """Provides an parent node for a child if one hasn't been created yet.
     This node will be replaced in the tree if a node is loaded for this position.
     """
+
+
+# This is the first place where both HabitatBase and its subclass Placeholder
+# are defined, so this is where we have to set _placeholder.
+HabitatBase._placeholder = Placeholder
