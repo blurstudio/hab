@@ -1,0 +1,13 @@
+{
+    "name": "distros",
+    "context": ["not_set"],
+    "inherits": false,
+    "distros": {
+        "the_dcc": []
+    },
+    "environment": {
+        "append": {
+            "Test": "Case"
+        }
+    }
+}

@@ -3,11 +3,6 @@
     "context": [],
     "inherits": false,
     "distros": {
-        "maya2019": [
-            "tikal",
-            "brSkinBrush",
-            "animBot"
-        ],
         "maya2020": [
             "tikal",
             "brSkinBrush",
@@ -16,8 +11,5 @@
         "houdini18.5": [
             "hsite"
         ]
-    },
-    "requires": [
-        "tikal"
-    ]
+    }
 }

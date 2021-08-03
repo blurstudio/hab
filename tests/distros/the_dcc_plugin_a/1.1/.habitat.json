@@ -1,0 +1,12 @@
+{
+    "name": "the_dcc_plugin_a",
+    "distros": [
+        "the_dcc_plugin_d",
+        "the_dcc_plugin_e<2.0"
+    ],
+    "environment": {
+        "append": {
+            "DCC_MODULE_PATH": "{dot}"
+        }
+    }
+}

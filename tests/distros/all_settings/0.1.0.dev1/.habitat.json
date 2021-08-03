@@ -15,7 +15,7 @@
             "TEST_VARIABLE": "prepend_value"
         }
     }, 
-    "requires": [
+    "distros": [
         "Maya2020"
     ], 
     "aliases": {
@@ -27,12 +27,6 @@
             [
                 "mayapy", 
                 "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"
-            ]
-        ], 
-        "*": [
-            [
-                "example", 
-                "{relative}/all_platform_example"
             ]
         ]
     }

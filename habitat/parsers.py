@@ -62,14 +62,16 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     _placeholder = None
     separator = ":"
 
-    def __init__(self, forest, filename=None, parent=None):
+    def __init__(self, forest, resolver, filename=None, parent=None):
         super(HabitatBase, self).__init__()
         self._environment = None
         self._filename = None
         self._dirname = None
+        self._requires = None
         self._uri = NotSet
         self.parent = parent
         self.forest = forest
+        self.resolver = resolver
         self._init_variables()
         if filename:
             self.load(filename)
@@ -87,8 +89,30 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         self.distros = NotSet
         self.environment_config = NotSet
         self.name = NotSet
-        self.requires = NotSet
+        # self.requires = NotSet
         self.version = NotSet
+
+    def check_environment(self, environment_config):
+        """Check that the environment config only makes valid adjustments.
+        For example, check that we never replace path, only append/prepend are allowed.
+        """
+        for operation in ("unset", "set"):
+            if operation not in environment_config:
+                continue
+
+            keys = environment_config.get(operation, [])
+            if operation == "set":
+                # set is a dictionary while unset is a list
+                keys = keys.keys()
+
+            for key in keys:
+                if key.lower() == "path":
+                    if operation == "set":
+                        key = environment_config[operation][key]
+                        msg = 'You can not use PATH for the set operation: "{}"'
+                    else:
+                        msg = "You can not unset PATH"
+                    raise ValueError(msg.format(key))
 
     @property
     def context(self):
@@ -116,7 +140,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 root = self.forest[root_name]
                 logger.debug("Using root: {}".format(root.fullpath))
             else:
-                root = self._placeholder(self.forest)
+                root = self._placeholder(self.forest, self.resolver)
                 root.name = root_name
                 self.forest[root_name] = root
                 logger.debug("Created placeholder root: {}".format(root.fullpath))
@@ -127,7 +151,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     root = resolver.get(root, child_name)
                     logger.debug("Found intermediary: {}".format(root.fullpath))
                 except anytree.resolver.ResolverError:
-                    root = self._placeholder(self.forest, parent=root)
+                    root = self._placeholder(self.forest, self.resolver, parent=root)
                     root.name = child_name
                     logger.debug(
                         "Created placeholder intermediary: {}".format(root.fullpath)
@@ -206,8 +230,24 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
         for prop in sorted(props):
             value = getattr(self, prop)
+            # Custom formatting of values for readability
             if value is NotSet:
                 value = "<NotSet>"
+            if prop == "versions":
+                value = sorted([v.name for v in value])
+            if prop == "environment":
+                # Format path environment variables so they are easy to read
+                # and take up more vertical space than horizontal space
+                rows = []
+                for key in sorted(value):
+                    val = "{}: ".format(key)
+                    row = []
+                    for v in value[key].split(os.pathsep):
+                        row.append("{}{}".format(val, v))
+                        val = " " * len(val)
+                    rows.append("{}\n".format(os.pathsep).join(row))
+                value = "\n".join(rows)
+
             if isinstance(value, (list, dict)):
                 # Format long data types into multiple rows for readability
                 lines = pformat(value)
@@ -217,7 +257,12 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     prop = ""
             else:
                 ret.append((prop, value))
-        return tabulate.tabulate(ret)
+
+        ret = tabulate.tabulate(ret)
+
+        # Build a header for the details table
+        cls = type(self)
+        return "Dump of {}('{}')\n{}".format(cls.__name__, self.fullpath, ret)
 
     @property
     def environment(self):
@@ -229,52 +274,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             return {}
 
         if self._environment is None:
-            # Check that we never replace path, it should only appended/prepended
-            for operation in ("unset", "set"):
-                if operation not in self.environment_config:
-                    continue
-
-                keys = self.environment_config.get(operation, [])
-                if operation == "set":
-                    # set is a dictionary while unset is a list
-                    keys = keys.keys()
-
-                for key in keys:
-                    if key.lower() == "path":
-                        if operation == "set":
-                            key = self.environment_config[operation][key]
-                            msg = 'You can not use PATH for the set operation: "{}"'
-                        else:
-                            msg = "You can not unset PATH"
-                        raise ValueError(msg.format(key))
-
             self._environment = {}
-            if "unset" in self.environment_config:
-                # When applying the env vars later None will trigger removing the env var.
-                # The other operations may end up replacing this value.
-                self._environment.update(
-                    {key: "" for key in self.environment_config["unset"]}
-                )
-            # set, prepend, append are all treated as set operations, this lets us override
-            # existing user and system variable values without them causing issues.
-            if "set" in self.environment_config:
-                for key, value in self.environment_config["set"].items():
-                    self._environment[key] = self.format_environment_value(value)
-            for operation in ("prepend", "append"):
-                if operation not in self.environment_config:
-                    continue
-                for key, value in self.environment_config[operation].items():
-                    existing = self._environment.get(key, "")
-                    if existing:
-                        if operation == "prepend":
-                            value = [value, existing]
-                        else:
-                            value = [existing, value]
-                    else:
-                        value = [value]
-                    self._environment[key] = self.format_environment_value(
-                        os.pathsep.join(value)
-                    )
+            self.update_environment(self.environment_config)
 
         return self._environment
 
@@ -354,7 +355,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 )
         self.name = data["name"]
         self.distros = data.get("distros", NotSet)
-        self.requires = data.get("requires", NotSet)
+        # self.requires = data.get("requires", NotSet)
         if "version" in data:
             self.version = data.get("version")
         self.environment_config = data.get("environment", NotSet)
@@ -385,11 +386,14 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @HabitatProperty
     def requires(self):
-        return self._requires
+        if self.distros is NotSet:
+            return []
 
-    @requires.setter
-    def requires(self, requires):
-        self._requires = requires
+        if self._requires is None:
+            requires = self.resolver.resolve_requirements(self.distros)
+            self._requires = sorted([str(r) for r in requires.values()])
+
+        return self._requires
 
     @classmethod
     def shell_escape(cls, ext, value):
@@ -435,6 +439,37 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
         return ret
 
+    def update_environment(self, environment_config, obj=None):
+        """Check and update environment with the provided environment config."""
+        if obj is None:
+            obj = self
+        self.check_environment(environment_config)
+
+        if "unset" in environment_config:
+            # When applying the env vars later None will trigger removing the env var.
+            # The other operations may end up replacing this value.
+            self.environment.update({key: "" for key in environment_config["unset"]})
+        # set, prepend, append are all treated as set operations, this lets us override
+        # existing user and system variable values without them causing issues.
+        if "set" in environment_config:
+            for key, value in environment_config["set"].items():
+                self.environment[key] = obj.format_environment_value(value)
+        for operation in ("prepend", "append"):
+            if operation not in environment_config:
+                continue
+            for key, value in environment_config[operation].items():
+                existing = self.environment.get(key, "")
+                if existing:
+                    if operation == "prepend":
+                        value = [value, existing]
+                    else:
+                        value = [existing, value]
+                else:
+                    value = [value]
+                self.environment[key] = obj.format_environment_value(
+                    os.pathsep.join(value)
+                )
+
     @property
     def uri(self):
         if self._uri:
@@ -457,21 +492,6 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         _, ext = os.path.splitext(config_script)
         shell = self.shell_formats(ext)
 
-        # TODO: Resolve aliases from distro config
-        # aliases = []
-        aliases = {
-            "windows": [
-                ["maya", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"],
-                ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"],
-                ["stext", "C:\\Program Files\\Sublime Text 3\\sublime_text.exe"],
-            ],
-            "linux": [
-                ["maya", r"/C/Program\ Files/Autodesk/Maya2020/bin/maya.exe"],
-                ["mayapy", r"/C/Program\ Files/Autodesk/Maya2020/bin/mayapy.exe"],
-            ],
-            "*": [["example", "{relative}/all_platform_example"]],
-        }["windows"]
-
         with open(config_script, "w") as fle:
             if shell["prefix"]:
                 fle.write(shell["prefix"])
@@ -487,17 +507,18 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     if not value:
                         setter = shell["env_unsetter"]
                     fle.write(setter.format(key=key, value=value))
-            if aliases:
+
+            if hasattr(self, "aliases") and self.aliases:
                 if self.environment:
                     # Only add a blank line if we wrote environment modifications
                     fle.write("\n")
                 fle.write(
                     "{}Creating aliases to launch programs:\n".format(shell["comment"])
                 )
-                for alias in aliases:
+                for alias in self.aliases:
                     fle.write(
                         shell["alias_setter"].format(
-                            key=alias[0], value=self.shell_escape(ext, alias[1])
+                            key=alias, value=self.shell_escape(ext, self.aliases[alias])
                         )
                     )
             if shell["postfix"]:
@@ -594,7 +615,8 @@ class ApplicationVersion(HabitatBase):
             self.version = os.path.basename(os.path.dirname(filename))
 
         self.aliases = data.get("aliases", NotSet)
-        self.name = u"{}=={}".format(data.get("name"), self.version)
+        self.application_name = data.get("name")
+        self.name = u"{}=={}".format(self.application_name, self.version)
         return data
 
     @HabitatProperty
@@ -639,12 +661,12 @@ class Config(HabitatBase):
 
 class FlatConfig(Config):
     def __init__(self, original_node, resolver, uri=NotSet):
-        super(FlatConfig, self).__init__(original_node.forest)
+        super(FlatConfig, self).__init__(original_node.forest, resolver)
         self.original_node = original_node
         self.filename = original_node.filename
-        self.resolver = resolver
         self._context = original_node.context
         self._uri = uri
+        self._versions = None
         # Copy the properties from the inheritance system
         self._collect_values(self.original_node)
 
@@ -672,18 +694,82 @@ class FlatConfig(Config):
                 default = True
                 default_node = self.resolver.closest_config(node.fullpath)
                 self._collect_values(default_node, default=default)
-        # self._collect_apps()
+        self._collect_distros()
         return self._missing_values
 
-    def _collect_apps(self):
-        distros = self.resolver.distros
-        for app in self.apps:
-            print([app])
-            distros.get(app)
+    def _collect_distros(self):
+        # TODO: figure out complicated dependency resolution. Ie where tikal
+        # requires >maya2020.1 and animBot requires <maya2020.4, etc.
+        specifiers = {}
+        for requirement in self.distros:
+
+            if not isinstance(requirement, Requirement):
+                requirement = Requirement(requirement)
+
+            if requirement.name not in self.resolver.distros:
+                # Requirement is not available, this should probably raise a error eventually.
+                specifiers[requirement.name] = NotSet
+                continue
+
+            if requirement.name not in specifiers:
+                specifiers[requirement.name] = SpecifierSet()
+            specifiers[requirement.name] &= requirement.specifier
+
+        distros = []
+        for requirement, specifier in specifiers.items():
+            if specifier == NotSet:
+                logger.warning("{} distro not defined.")
+                continue
+
+            distro = self.resolver.find_distro(requirement)
+            if not distro:
+                logger.warning(
+                    "{} has no matching versions for {}".format(requirement, specifier)
+                )
+                continue
+            distros.append(distro)
+
+    @HabitatProperty
+    def aliases(self):
+        ret = {}
+        for version in self.versions:
+            if version.aliases:
+                for alias in version.aliases.get("windows", []):
+                    ret[alias[0]] = version.format_environment_value(alias[1])
+
+        return ret
+
+    @property
+    def environment(self):
+        """A resolved set of environment variables that should be applied to
+        configure an environment. Any values containing a empty string indicate
+        that the variable should be unset.
+        """
+        empty = self._environment is None
+        super(FlatConfig, self).environment
+        # Add any environment variables defined by the linked versions
+        if empty:
+            for version in self.versions:
+                self.update_environment(version.environment_config, obj=version)
+
+        return self._environment
 
     @property
     def fullpath(self):
         return self.separator.join([""] + [name for name in self.context] + [self.name])
+
+    @HabitatProperty
+    def versions(self):
+        if self._distros is NotSet:
+            return []
+
+        if self._versions is None:
+            self._versions = []
+            reqs = self.resolver.resolve_requirements(self.distros)
+            for req in reqs.values():
+                self._versions.append(self.resolver.find_distro(req))
+
+        return self._versions
 
 
 class Placeholder(HabitatBase):

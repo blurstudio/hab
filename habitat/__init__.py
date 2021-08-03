@@ -4,7 +4,9 @@ import json
 import glob
 import logging
 import os
+from .errors import DistroNotDefined, NoValidVersion
 from .parsers import Config, ApplicationVersion
+from .solvers import Solver
 from packaging.requirements import Requirement
 from packaging.version import Version
 from future.utils import string_types
@@ -152,7 +154,8 @@ class Resolver(object):
 
     def find_distro(self, requirement):
         """Returns the ApplicationVersion matching the requirement or None"""
-        requirement = Requirement(requirement)
+        if not isinstance(requirement, Requirement):
+            requirement = Requirement(requirement)
         if requirement.name in self.distros:
             app = self.distros[requirement.name]
             return app.latest_version(requirement)
@@ -173,22 +176,20 @@ class Resolver(object):
         kwargs["relative"] = os.path.dirname(config["filename"])
         return value.format(**kwargs)
 
-    @classmethod
-    def parse_configs(cls, config_paths, forest=None):
+    def parse_configs(self, config_paths, forest=None):
         if forest is None:
             forest = {}
         for dirname in config_paths:
             for path in sorted(glob.glob(os.path.join(dirname, "*.json"))):
-                Config(forest, path)
+                Config(forest, self, path)
         return forest
 
-    @classmethod
-    def parse_distros(cls, distro_paths, forest=None):
+    def parse_distros(self, distro_paths, forest=None):
         if forest is None:
             forest = {}
         for dirname in distro_paths:
             for path in sorted(glob.glob(os.path.join(dirname, "*", ".habitat.json"))):
-                ApplicationVersion(forest, path)
+                ApplicationVersion(forest, self, path)
         return forest
 
     @classmethod
@@ -286,7 +287,7 @@ class Resolver(object):
         for app in context.get("apps", []):
             req = Requirement(app)
             if req.name not in self.distros:
-                raise ValueError(
+                raise DistroNotDefined(
                     "Unable to find app definition for {}".format(req.name)
                 )
             logger.debug("Found application: {}".format(req))
@@ -300,9 +301,26 @@ class Resolver(object):
             try:
                 version = max(versions)
             except ValueError:
-                raise Exception('Unable to find a valid version for "{}"'.format(req))
+                # TODO: Define a better exception for this.
+                raise NoValidVersion(
+                    'Unable to find a valid version for "{}" requirement'.format(req)
+                )
 
             logger.info("Using {} {}".format(req.name, version))
+
+    def resolve_requirements(self, requirements):
+        """Recursively solve the provided requirements into a final list of requirements.
+
+        Args:
+            requirements (list): The requirements to resolve.
+
+        Raises:
+            Exception: "Exceeded maximum depth" if no results were found
+            Exception: "Unable to find a valid version for ..."
+        """
+
+        solver = Solver(requirements, self)
+        return solver.resolve()
 
     @classmethod
     def resolve_contexts(cls, selected_context, context_map):

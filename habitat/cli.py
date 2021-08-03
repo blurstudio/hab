@@ -127,8 +127,7 @@ def dump(settings, uri, env, env_config, report_type, flat):
             ret = settings.resolver.resolve(uri)
         else:
             ret = settings.resolver.closest_config(uri)
-        click.echo("fullpath: {}".format(ret.fullpath))
-        click.echo(ret)
+
         click.echo(ret.dump(environment=env, environment_config=env_config))
 
 

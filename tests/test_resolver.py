@@ -1,6 +1,9 @@
 import anytree
 from habitat import Resolver
+from habitat.errors import MaxRedirectError
 from habitat.parsers import NotSet
+from habitat.solvers import Solver
+from packaging.requirements import Requirement
 import os
 import pytest
 
@@ -104,7 +107,7 @@ def test_reduced(resolver):
     cfg = resolver.closest_config(":not_set")
     assert_maya_distros(cfg)
     assert cfg.environment_config == NotSet
-    assert cfg.requires == NotSet
+    assert cfg.requires == ["maya2020"]
     assert cfg.inherits is False
     assert cfg.name == "not_set"
 
@@ -113,7 +116,7 @@ def test_reduced(resolver):
     assert cfg.distros == NotSet
     # Settings defined on the child
     assert cfg.environment_config == {u"set": {u"TEST": u"case"}}
-    assert cfg.requires == ["tikal"]
+    assert cfg.requires == []
     assert cfg.inherits is True
     assert cfg.name == "child"
 
@@ -121,9 +124,9 @@ def test_reduced(resolver):
     reduced = cfg.reduced(resolver)
     # Inherited from the parent
     assert_maya_distros(reduced)
-    # Values defind on the child are preserved
+    # Values defined on the child are preserved
     assert reduced.environment_config == {u"set": {u"TEST": u"case"}}
-    assert reduced.requires == ["tikal"]
+    assert reduced.requires == ["maya2020"]
     assert reduced.inherits is True
     assert reduced.name == "child"
     assert reduced.uri == ":not_set:child"
@@ -136,3 +139,122 @@ def test_reduced(resolver):
     cfg = resolver.closest_config(uri)
     assert cfg._uri is NotSet
     assert cfg.uri == ":not_set:child"
+
+
+def test_resolve_requirements_simple(resolver):
+    requirements = {
+        Requirement("the_dcc"): None,
+    }
+
+    # A simple resolve with no recalculations
+    resolved = resolver.resolve_requirements(requirements)
+
+    assert len(resolved) == 5
+    assert str(resolved["the_dcc"]) == "the_dcc"
+    # required by the_dcc==1.2 distro
+    assert str(resolved["the_dcc_plugin_a"]) == "the_dcc_plugin_a>=1.0"
+    assert str(resolved["the_dcc_plugin_b"]) == "the_dcc_plugin_b>=0.9"
+    assert str(resolved["the_dcc_plugin_e"]) == "the_dcc_plugin_e<2.0"
+    # required by the_dcc_plugin_a distro
+    assert str(resolved["the_dcc_plugin_d"]) == "the_dcc_plugin_d"
+
+    # Check the versions
+    assert resolver.find_distro(resolved["the_dcc"]).name == "the_dcc==1.2"
+    assert (
+        resolver.find_distro(resolved["the_dcc_plugin_a"]).name
+        == "the_dcc_plugin_a==1.1"
+    )
+    assert (
+        resolver.find_distro(resolved["the_dcc_plugin_b"]).name
+        == "the_dcc_plugin_b==1.1"
+    )
+    assert (
+        resolver.find_distro(resolved["the_dcc_plugin_d"]).name
+        == "the_dcc_plugin_d==1.1"
+    )
+    assert (
+        resolver.find_distro(resolved["the_dcc_plugin_e"]).name
+        == "the_dcc_plugin_e==1.1"
+    )
+
+
+def test_solver_errors(resolver):
+    """Test that the correct errors are raised"""
+
+    # Check that if we exceed max_redirects a MaxRedirectError is raised
+    # Note: To have a stable test, the order of requirements matters. So this needs to
+    # use a list or OrderedDict to guarantee that the_dcc==1.2 requirements are
+    # processed before the_dcc_plugin_b which specifies the_dcc<1.2 forcing a redirect.
+    requirements = [
+        Requirement("the_dcc"),
+        Requirement("the_dcc_plugin_b==0.9"),
+    ]
+
+    solver = Solver(requirements, resolver)
+    solver.max_redirects = 0
+    with pytest.raises(MaxRedirectError):
+        solver.resolve()
+
+
+def test_resolve_requirements_recalculate(resolver):
+    """The first pick "the_dcc==1.2" gets discarded by plugin_b. Make sure the correct
+    distros are picked.
+    """
+
+    # Resolve requires re-calculating
+    requirements = [
+        Requirement("the_dcc"),
+        Requirement("the_dcc_plugin_b==0.9"),
+    ]
+
+    # Use the underlying Solver so we have access to debug resolve_requirements obscures
+    solver = Solver(requirements, resolver)
+    resolved = solver.resolve()
+
+    # Check that we had to recalculate the resolve at least one time.
+    assert solver.redirects_required == 1
+    # Check that the_dcc 1.2 had to be ignored, triggering the recalculate
+    assert len(solver.invalid) == 1
+    assert str(solver.invalid["the_dcc"]) == "the_dcc!=1.2"
+
+    # Check that the resolve is correct
+    assert len(resolved) == 5
+    assert str(resolved["the_dcc"]) == "the_dcc<1.2"
+    # required by the_dcc==1.1 distro
+    assert str(resolved["the_dcc_plugin_a"]) == "the_dcc_plugin_a>=1.0"
+    assert str(resolved["the_dcc_plugin_b"]) == "the_dcc_plugin_b==0.9"
+    assert str(resolved["the_dcc_plugin_e"]) == "the_dcc_plugin_e<2.0"
+    # required by the_dcc_plugin_a distro
+    assert str(resolved["the_dcc_plugin_d"]) == "the_dcc_plugin_d"
+
+    # Check the versions
+    assert resolver.find_distro(resolved["the_dcc"]).name == "the_dcc==1.1"
+    assert (
+        resolver.find_distro(resolved["the_dcc_plugin_a"]).name
+        == "the_dcc_plugin_a==1.1"
+    )
+    assert (
+        resolver.find_distro(resolved["the_dcc_plugin_b"]).name
+        == "the_dcc_plugin_b==0.9"
+    )
+    assert (
+        resolver.find_distro(resolved["the_dcc_plugin_d"]).name
+        == "the_dcc_plugin_d==1.1"
+    )
+    assert (
+        resolver.find_distro(resolved["the_dcc_plugin_e"]).name
+        == "the_dcc_plugin_e==1.1"
+    )
+
+
+def test_resolve_requirements_errors(resolver):
+
+    # This requirement is not possible because the_dcc_plugin_b requires the_dcc<1.2
+    requirements = {
+        Requirement("the_dcc>1.1"): None,
+        Requirement("the_dcc_plugin_b<1.0"): None,
+    }
+
+    # TODO: Use a custom exception not Exception
+    with pytest.raises(Exception):
+        resolver.resolve_requirements(requirements)

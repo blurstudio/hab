@@ -1,0 +1,8 @@
+{
+    "name": "the_dcc_plugin_a",
+    "environment": {
+        "append": {
+            "DCC_MODULE_PATH": "{dot}"
+        }
+    }
+}

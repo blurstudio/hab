@@ -7,10 +7,10 @@ import pytest
 from tabulate import tabulate
 
 
-def test_application_parse(config_root):
+def test_application_parse(config_root, resolver):
     """Check that a application json can be parsed correctly"""
     forest = {}
-    app = ApplicationVersion(forest)
+    app = ApplicationVersion(forest, resolver)
     path = os.path.join(
         config_root, "distros", "all_settings", "0.1.0.dev1", ".habitat.json"
     )
@@ -20,13 +20,13 @@ def test_application_parse(config_root):
     assert "{name}=={version}".format(**check) == app.name
     assert Version(check["version"]) == app.version
     assert check["environment"] == app.environment_config
-    assert check["requires"] == app.requires
+
     assert check["aliases"] == app.aliases
     assert ["all_settings"] == app.context
 
     # Verify that if the json file doesn't have "version" defined it uses the
     # parent directory as its version.
-    app = ApplicationVersion(forest)
+    app = ApplicationVersion(forest, resolver)
     path = os.path.join(config_root, "distros", "maya", "2020.0", ".habitat.json")
     app.load(path)
     check = json.load(open(path))
@@ -46,10 +46,10 @@ def test_application_version(resolver):
     assert maya.latest_version("maya2020<2020.1").name == "maya2020==2020.0"
 
 
-def test_config_parse(config_root):
+def test_config_parse(config_root, resolver):
     """Check that a config json can be parsed correctly"""
     forest = {}
-    config = Config(forest)
+    config = Config(forest, resolver)
     path = os.path.join(config_root, "configs", "default", "default.json")
     config.load(path)
 
@@ -58,7 +58,6 @@ def test_config_parse(config_root):
     assert check["name"] == config.name
     assert check["context"] == config.context
     assert check["inherits"] == config.inherits
-    assert check["requires"] == config.requires
 
     # We can't do a simple comparison of Requirement keys so check that these resolved
     assert len(check["distros"]) == len(config.distros)
@@ -71,7 +70,7 @@ def test_config_parse(config_root):
     assert forest["default"] == config
 
 
-def test_config_parenting(config_root):
+def test_config_parenting(config_root, resolver):
     """Check that a correct tree structure is generated especially when loaded
     in a incorrect order.
     """
@@ -82,12 +81,13 @@ def test_config_parenting(config_root):
     forest = {}
     # Ensure the forest has multiple trees when processing
     shared_path = os.path.join(config_root, "configs", "default", "default.json")
-    Config(forest, filename=shared_path)
+    Config(forest, resolver, filename=shared_path)
 
     # Load the tree structure from child to parent to test that the placeholder system
     # works as expected
     Config(
         forest,
+        resolver,
         filename=os.path.join(
             config_root, "configs", "project_a", "project_a_Sc001_animation.json"
         ),
@@ -103,13 +103,14 @@ def test_config_parenting(config_root):
     mid_level_path = os.path.join(
         config_root, "configs", "project_a", "project_a_Sc001.json"
     )
-    Config(forest, filename=mid_level_path)
+    Config(forest, resolver, filename=mid_level_path)
     check[1] = "habitat.parsers.Config(':project_a:Sc001')"
     assert check == repr_list(forest["project_a"])
 
     # Check that a middle Config object is used not replaced
     Config(
         forest,
+        resolver,
         filename=os.path.join(
             config_root, "configs", "project_a", "project_a_Sc001_rigging.json"
         ),
@@ -119,18 +120,18 @@ def test_config_parenting(config_root):
 
     # Check that a root item is replaced
     top_level_path = os.path.join(config_root, "configs", "project_a", "project_a.json")
-    Config(forest, filename=top_level_path)
+    Config(forest, resolver, filename=top_level_path)
     check[0] = "habitat.parsers.Config(':project_a')"
     assert check == repr_list(forest["project_a"])
 
     # Verify that the correct exceptions are raised if root duplicates are loaded
     with pytest.raises(ValueError):
-        Config(forest, filename=top_level_path)
+        Config(forest, resolver, filename=top_level_path)
     assert check == repr_list(forest["project_a"])
 
     # and at the leaf level
     with pytest.raises(ValueError):
-        Config(forest, filename=mid_level_path)
+        Config(forest, resolver, filename=mid_level_path)
     assert check == repr_list(forest["project_a"])
 
     # Check that the forest didn't loose the default tree
@@ -153,28 +154,29 @@ def test_dump(resolver):
     post = [
         ["inherits", "True"],
         ["name", "child"],
-        ["requires", repr([u"tikal"])],
+        ["requires", []],
         ["uri", ":not_set:child"],
     ]
-    env = [["environment", repr({u"TEST": u"case"})]]
+    env = [["environment", "TEST: case"]]
     env_config = [["environment_config", repr({u"set": {u"TEST": u"case"}})]]
     cfg = resolver.closest_config(":not_set:child")
+    header = "Dump of {}('{}')\n{{}}".format(type(cfg).__name__, cfg.fullpath)
 
     # Check that both environments can be hidden
     result = cfg.dump(environment=False, environment_config=False)
-    assert result == tabulate(pre + post)
+    assert result == header.format(tabulate(pre + post))
 
     # Check that both environments can be shown
     result = cfg.dump(environment=True, environment_config=True)
-    assert result == tabulate(pre + env + env_config + post)
+    assert result == header.format(tabulate(pre + env + env_config + post))
 
     # Check that only environment can be shown
     result = cfg.dump(environment=True, environment_config=False)
-    assert result == tabulate(pre + env + post)
+    assert result == header.format(tabulate(pre + env + post))
 
     # Check that only environment_config can be shown
     result = cfg.dump(environment=False, environment_config=True)
-    assert result == tabulate(pre + env_config + post)
+    assert result == header.format(tabulate(pre + env_config + post))
 
 
 def test_environment(resolver):
