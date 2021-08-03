@@ -95,8 +95,14 @@ def test_closest_config(resolver, path, result, reason):
 
 def test_reduced(resolver):
     """Check that NotSet is used if no value is provided."""
+
+    def assert_maya_distros(cfg):
+        assert len(cfg.distros) == 1
+        assert str(list(cfg.distros.keys())[0]) == "maya2020"
+        assert cfg.distros[list(cfg.distros.keys())[0]] == []
+
     cfg = resolver.closest_config(":not_set")
-    assert cfg.apps == {"maya2020": []}
+    assert_maya_distros(cfg)
     assert cfg.environment_config == NotSet
     assert cfg.requires == NotSet
     assert cfg.inherits is False
@@ -104,7 +110,7 @@ def test_reduced(resolver):
 
     cfg = resolver.closest_config(":not_set:child")
     # Not set on the child so should be NotSet(ie doesn't inherit from parent)
-    assert cfg.apps == NotSet
+    assert cfg.distros == NotSet
     # Settings defined on the child
     assert cfg.environment_config == {u"set": {u"TEST": u"case"}}
     assert cfg.requires == ["tikal"]
@@ -114,7 +120,7 @@ def test_reduced(resolver):
     # Verify that a flattened config properly inherits values
     reduced = cfg.reduced(resolver)
     # Inherited from the parent
-    assert reduced.apps == {"maya2020": []}
+    assert_maya_distros(reduced)
     # Values defind on the child are preserved
     assert reduced.environment_config == {u"set": {u"TEST": u"case"}}
     assert reduced.requires == ["tikal"]

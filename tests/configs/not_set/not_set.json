@@ -2,7 +2,7 @@
     "name": "not_set",
     "context": [],
     "inherits": false,
-    "apps": {
+    "distros": {
         "maya2020": []
     }
 }

@@ -2,7 +2,7 @@
     "name": "Sc11",
     "context": ["default"],
     "inherits": false,
-    "apps": {
+    "distros": {
         "maya2019": [
             "tikal",
             "brSkinBrush",
@@ -13,7 +13,7 @@
             "brSkinBrush",
             "animBot"
         ],
-        "houdini18.5.*": [
+        "houdini18.5": [
             "hsite"
         ]
     },

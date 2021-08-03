@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 from pprint import pformat
 import re
@@ -75,7 +76,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     def __repr__(self):
         cls = type(self)
-        return "{}.{}({})".format(cls.__module__, cls.__name__, self.fullpath)
+        return "{}.{}('{}')".format(cls.__module__, cls.__name__, self.fullpath)
 
     def _init_variables(self):
         """Called by __init__. Subclasses can override this to set default variable
@@ -83,6 +84,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """
         # The context setter has a lot of overhead don't use it to set the default
         self._context = NotSet
+        self.distros = NotSet
         self.environment_config = NotSet
         self.name = NotSet
         self.requires = NotSet
@@ -160,6 +162,25 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         `self.format_environment_value` to fill the "dot" variable.
         """
         return self._dirname
+
+    @HabitatProperty
+    def distros(self):
+        return self._distros
+
+    @distros.setter
+    def distros(self, distros):
+        # Ensure the contents are converted to Requirement objects
+        if distros:
+            # Applications can define distros as lists, convert to a dict
+            if isinstance(distros, list):
+                distros = {k: None for k in distros}
+
+            for d in distros.keys():
+                if not isinstance(d, Requirement):
+                    # Replace the existing requirement string with a requirement object
+                    distros[Requirement(d)] = distros[d]
+                    del distros[d]
+        self._distros = distros
 
     def dump(self, environment=True, environment_config=False):
         """Return a string of the properties and their values.
@@ -332,6 +353,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     sys.exc_info()[2],
                 )
         self.name = data["name"]
+        self.distros = data.get("distros", NotSet)
         self.requires = data.get("requires", NotSet)
         if "version" in data:
             self.version = data.get("version")
@@ -528,14 +550,18 @@ class Application(HabitatBase):
             raise Exception('Unable to find a valid version for "{}"'.format(specifier))
         return self.versions[version]
 
-    def matching_versions(self, requirement):
-        """Returns a list of versions available matching the requirement.
+    def matching_versions(self, specification):
+        """Returns a list of versions available matching the version specification.
         See `packaging.requirements` for details on valid requirements, but it
         should be the same as pip requirements.
         """
-        if not isinstance(requirement, Requirement):
-            requirement = Requirement(requirement)
-        return requirement.specifier.filter(self.versions.keys())
+        if isinstance(specification, Requirement):
+            specifier = specification.specifier
+        elif isinstance(specification, SpecifierSet):
+            specifier = specification
+        else:
+            specifier = Requirement(specification).specifier
+        return specifier.filter(self.versions.keys())
 
     @property
     def versions(self):
@@ -568,7 +594,7 @@ class ApplicationVersion(HabitatBase):
             self.version = os.path.basename(os.path.dirname(filename))
 
         self.aliases = data.get("aliases", NotSet)
-        self.name = "{}=={}".format(data.get("name"), self.version)
+        self.name = u"{}=={}".format(data.get("name"), self.version)
         return data
 
     @HabitatProperty
@@ -586,16 +612,7 @@ class ApplicationVersion(HabitatBase):
 class Config(HabitatBase):
     def _init_variables(self):
         super(Config, self)._init_variables()
-        self.apps = NotSet
         self.inherits = NotSet
-
-    @HabitatProperty
-    def apps(self):
-        return self._apps
-
-    @apps.setter
-    def apps(self, apps):
-        self._apps = apps
 
     @HabitatProperty
     def inherits(self):
@@ -607,7 +624,6 @@ class Config(HabitatBase):
 
     def load(self, filename):
         data = super(Config, self).load(filename)
-        self.apps = data.get("apps", NotSet)
         self.inherits = data.get("inherits", NotSet)
         return data
 

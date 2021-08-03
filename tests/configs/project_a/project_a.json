@@ -2,7 +2,7 @@
     "name": "project_a",
     "context": [],
     "inherits": false,
-    "apps": {
+    "distros": {
         "maya2020": [
             "tikal>=0.19.0",
             "brSkinBrush>=0.1.0",
