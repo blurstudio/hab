@@ -39,14 +39,16 @@ class SharedSettings(object):
     "--configs",
     multiple=True,
     type=click.Path(file_okay=False, resolve_path=True),
-    help="glob paths to find configuration.",
+    help="glob paths to find configuration. Uses the env var `HAB_CONFIG_PATHS` "
+    "if not passed.",
 )
 @click.option(
     "-d",
     "--distros",
     multiple=True,
     type=click.Path(file_okay=False, resolve_path=True),
-    help="glob paths to find distro configuration.",
+    help="glob paths to find distro configuration. Uses the env var `HAB_DISTRO_PATHS` "
+    "if not passed.",
 )
 @click.option(
     "-v",

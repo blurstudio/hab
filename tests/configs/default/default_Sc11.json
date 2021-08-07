@@ -11,8 +11,5 @@
         "houdini18.5": [
             "hsite"
         ]
-    },
-    "requires": [
-        "tikal"
-    ]
+    }
 }

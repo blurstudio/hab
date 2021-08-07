@@ -6,8 +6,5 @@
         "maya2020": [
             "tikal==0.18.0"
         ]
-    },
-    "requires": [
-        "tikal"
-    ]
+    }
 }

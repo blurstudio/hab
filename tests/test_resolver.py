@@ -41,6 +41,14 @@ def test_environment_variables(config_root):
     assert resolver_direct.config_paths == config_paths_direct
     assert resolver_direct.distro_paths == distro_paths_direct
 
+    # Check that we properly split string paths into a lists if provided
+    resolver_env = Resolver(
+        config_paths=os.pathsep.join(config_paths_env),
+        distro_paths=os.pathsep.join(distro_paths_env),
+    )
+    assert resolver_env.config_paths == config_paths_env
+    assert resolver_env.distro_paths == distro_paths_env
+
 
 def test_config(resolver):
     """Spot check a few of the parsed configs to enesure config works."""
@@ -96,6 +104,33 @@ def test_closest_config(resolver, path, result, reason):
     assert resolver.closest_config(path).fullpath == result, reason
 
 
+def test_dump_forest(resolver):
+    """Test the dump_forest method on resolver"""
+    result = resolver.dump_forest(resolver.configs)
+    check = "\n".join(
+        (
+            "default",
+            "    habitat.parsers.Config(':default')",
+            "    |-- habitat.parsers.Config(':default:Sc1')",
+            "    +-- habitat.parsers.Config(':default:Sc11')",
+            "not_set",
+            "    habitat.parsers.Config(':not_set')",
+            "    |-- habitat.parsers.Config(':not_set:child')",
+            "    |-- habitat.parsers.Config(':not_set:env1')",
+            "    |-- habitat.parsers.Config(':not_set:env_path_set')",
+            "    |-- habitat.parsers.Config(':not_set:env_path_unset')",
+            "    |-- habitat.parsers.Config(':not_set:distros')",
+            "    +-- habitat.parsers.Config(':not_set:no_env')",
+            "project_a",
+            "    habitat.parsers.Config(':project_a')",
+            "    +-- habitat.parsers.Config(':project_a:Sc001')",
+            "        |-- habitat.parsers.Config(':project_a:Sc001:Animation')",
+            "        +-- habitat.parsers.Config(':project_a:Sc001:Rigging')",
+        )
+    )
+    assert result == check
+
+
 def test_reduced(resolver):
     """Check that NotSet is used if no value is provided."""
 
@@ -115,7 +150,10 @@ def test_reduced(resolver):
     # Not set on the child so should be NotSet(ie doesn't inherit from parent)
     assert cfg.distros == NotSet
     # Settings defined on the child
-    assert cfg.environment_config == {u"set": {u"TEST": u"case"}}
+    assert cfg.environment_config == {
+        u"set": {u"TEST": u"case"},
+        u"unset": [u"UNSET_VARIABLE"],
+    }
     assert cfg.requires == []
     assert cfg.inherits is True
     assert cfg.name == "child"
@@ -125,7 +163,10 @@ def test_reduced(resolver):
     # Inherited from the parent
     assert_maya_distros(reduced)
     # Values defined on the child are preserved
-    assert reduced.environment_config == {u"set": {u"TEST": u"case"}}
+    assert reduced.environment_config == {
+        u"set": {u"TEST": u"case"},
+        u"unset": [u"UNSET_VARIABLE"],
+    }
     assert reduced.requires == ["maya2020"]
     assert reduced.inherits is True
     assert reduced.name == "child"
@@ -176,6 +217,9 @@ def test_resolve_requirements_simple(resolver):
         resolver.find_distro(resolved["the_dcc_plugin_e"]).name
         == "the_dcc_plugin_e==1.1"
     )
+
+    # Check that we can pass a string not a Requirement object to find_distro
+    assert resolver.find_distro("the_dcc==1.2").name == "the_dcc==1.2"
 
 
 def test_solver_errors(resolver):

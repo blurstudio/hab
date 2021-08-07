@@ -8,7 +8,6 @@ from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 from pprint import pformat
-import re
 import sys
 import six
 import tabulate
@@ -235,7 +234,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 value = "<NotSet>"
             if prop == "versions":
                 value = sorted([v.name for v in value])
-            if prop == "environment":
+            if prop == "environment" and value:
                 # Format path environment variables so they are easy to read
                 # and take up more vertical space than horizontal space
                 rows = []
@@ -270,8 +269,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         configure an environment. Any values containing a empty string indicate
         that the variable should be unset.
         """
-        if self.environment_config is NotSet:
-            return {}
+        if self.environment_config is NotSet and self._environment is None:
+            self._environment = {}
 
         if self._environment is None:
             self._environment = {}
@@ -348,9 +347,17 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 data = json.load(fle)
             except ValueError as e:
                 # Include the filename in the traceback to make debugging easier
+                msg = '{} Filename: "{}"'.format(e, filename)
+                # Workaround some inconsistencies between python 2 and 3 json implementations.
+                # Python 3 uses JsonDecodeError that requires two extra arguments.
+                try:
+                    args = (msg, e.doc, e.pos)
+                except AttributeError:
+                    args = (msg,)
+
                 six.reraise(
                     type(e),
-                    type(e)('{} Filename: "{}"'.format(e, filename)),
+                    type(e)(*args),
                     sys.exc_info()[2],
                 )
         self.name = data["name"]
@@ -378,11 +385,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     def reduced(self, resolver=None, uri=None):
         """Returns a new instance with the final settings applied respecting inheritance"""
-        ret = type(self)(self.forest)
-        ret._context = self.context
-        for attrname in ret._properties:
-            setattr(ret, attrname, getattr(self, attrname))
-        return ret
+        return FlatConfig(self, resolver, uri=uri)
 
     @HabitatProperty
     def requires(self):
@@ -429,13 +432,15 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret[
                 "launch"
             ] = 'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{path}"\n'
-        elif ext == ".sh":
+        elif ext == "":  # Assume no ext is a .sh file
             ret[
                 "alias_setter"
             ] = 'function {key}() {{ {value} "$@"; }};export -f {key};\n'
             ret["comment"] = "# "
             ret["env_setter"] = 'export {key}="{value}"\n'
             ret["env_unsetter"] = "unset {key}\n"
+            ret["prompt"] = r"PS1=[{uri}] [\u@\h \W]\$"  # TODO: Improve this
+            ret["launch"] = ""  # TODO: set this
 
         return ret
 
@@ -448,17 +453,17 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         if "unset" in environment_config:
             # When applying the env vars later None will trigger removing the env var.
             # The other operations may end up replacing this value.
-            self.environment.update({key: "" for key in environment_config["unset"]})
+            self._environment.update({key: "" for key in environment_config["unset"]})
         # set, prepend, append are all treated as set operations, this lets us override
         # existing user and system variable values without them causing issues.
         if "set" in environment_config:
             for key, value in environment_config["set"].items():
-                self.environment[key] = obj.format_environment_value(value)
+                self._environment[key] = obj.format_environment_value(value)
         for operation in ("prepend", "append"):
             if operation not in environment_config:
                 continue
             for key, value in environment_config[operation].items():
-                existing = self.environment.get(key, "")
+                existing = self._environment.get(key, "")
                 if existing:
                     if operation == "prepend":
                         value = [value, existing]
@@ -466,7 +471,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                         value = [existing, value]
                 else:
                     value = [value]
-                self.environment[key] = obj.format_environment_value(
+                self._environment[key] = obj.format_environment_value(
                     os.pathsep.join(value)
                 )
 
@@ -527,38 +532,6 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         if launch_script:
             with open(launch_script, "w") as fle:
                 fle.write(shell["launch"].format(path=config_script))
-
-    # TODO: this is probably not needed, remove it
-    @classmethod
-    def current_script_type(cls):
-        """Checks the current process to figure out what type of terminal
-        python is running in.
-
-        Returns:
-            str: "powershell", "cmd", "bash" or None.
-        """
-        if sys.platform == "win32":
-            print("windows")
-            # Check if we are running a command prompt or power shell
-            import psutil
-
-            proc = psutil.Process(os.getpid())
-            while proc:
-                proc = proc.parent()
-                if proc:
-                    name = proc.name()
-                    print(name)
-                    # See if it is Windows PowerShell (powershell.exe) or
-                    # PowerShell Core (pwsh[.exe]):
-                    if bool(re.match("pwsh|pwsh.exe|powershell.exe", name)):
-                        return "powershell"
-                    elif name == "cmd.exe":
-                        return "cmd"
-                    elif name == "bash.exe":
-                        return "bash"
-        else:
-            # TODO: support other script types?
-            return "bash"
 
 
 class Application(HabitatBase):
@@ -649,10 +622,6 @@ class Config(HabitatBase):
         self.inherits = data.get("inherits", NotSet)
         return data
 
-    def reduced(self, resolver=None, uri=None):
-        """Returns a new instance with the final settings applied respecting inheritance"""
-        return FlatConfig(self, resolver, uri=uri)
-
     @HabitatProperty
     def uri(self):
         # Mark uri as a HabitatProperty so it is included in _properties
@@ -694,40 +663,8 @@ class FlatConfig(Config):
                 default = True
                 default_node = self.resolver.closest_config(node.fullpath)
                 self._collect_values(default_node, default=default)
-        self._collect_distros()
+
         return self._missing_values
-
-    def _collect_distros(self):
-        # TODO: figure out complicated dependency resolution. Ie where tikal
-        # requires >maya2020.1 and animBot requires <maya2020.4, etc.
-        specifiers = {}
-        for requirement in self.distros:
-
-            if not isinstance(requirement, Requirement):
-                requirement = Requirement(requirement)
-
-            if requirement.name not in self.resolver.distros:
-                # Requirement is not available, this should probably raise a error eventually.
-                specifiers[requirement.name] = NotSet
-                continue
-
-            if requirement.name not in specifiers:
-                specifiers[requirement.name] = SpecifierSet()
-            specifiers[requirement.name] &= requirement.specifier
-
-        distros = []
-        for requirement, specifier in specifiers.items():
-            if specifier == NotSet:
-                logger.warning("{} distro not defined.")
-                continue
-
-            distro = self.resolver.find_distro(requirement)
-            if not distro:
-                logger.warning(
-                    "{} has no matching versions for {}".format(requirement, specifier)
-                )
-                continue
-            distros.append(distro)
 
     @HabitatProperty
     def aliases(self):

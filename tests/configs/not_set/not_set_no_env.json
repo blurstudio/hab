@@ -1,0 +1,8 @@
+{
+    "name": "no_env",
+    "context": ["not_set"],
+    "inherits": false,
+    "distros": {
+        "the_dcc": []
+    }
+}

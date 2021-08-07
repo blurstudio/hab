@@ -1,9 +1,11 @@
 import anytree
-from habitat.parsers import ApplicationVersion, Config
+from habitat.parsers import ApplicationVersion, Config, NotSet
 import json
 import os
 from packaging.version import Version
 import pytest
+import re
+import sys
 from tabulate import tabulate
 
 
@@ -157,8 +159,13 @@ def test_dump(resolver):
         ["requires", []],
         ["uri", ":not_set:child"],
     ]
-    env = [["environment", "TEST: case"]]
-    env_config = [["environment_config", repr({u"set": {u"TEST": u"case"}})]]
+    env = [["environment", "TEST: case"], ["", "UNSET_VARIABLE:"]]
+    if sys.version_info[0] == 2:
+        check = "{u'set': {u'TEST': u'case'}, u'unset': [u'UNSET_VARIABLE']}"
+    else:
+        check = "{'set': {'TEST': 'case'}, 'unset': ['UNSET_VARIABLE']}"
+
+    env_config = [["environment_config", check]]
     cfg = resolver.closest_config(":not_set:child")
     header = "Dump of {}('{}')\n{{}}".format(type(cfg).__name__, cfg.fullpath)
 
@@ -177,6 +184,15 @@ def test_dump(resolver):
     # Check that only environment_config can be shown
     result = cfg.dump(environment=False, environment_config=True)
     assert result == header.format(tabulate(pre + env_config + post))
+
+
+def test_dump_flat(resolver):
+    """Test additional dump settings for FlatConfig objects"""
+    cfg = resolver.resolve(":not_set:child")
+    # Check that dump formats versions nicely
+    result = cfg.dump()
+    check = "versions     {!r}".format([u"maya2020==2020.1"])
+    assert check in result
 
 
 def test_environment(resolver):
@@ -216,4 +232,100 @@ def test_environment(resolver):
 
     # Ensure our tests cover the early out if the config is missing append/prepend
     cfg = resolver.closest_config(":not_set:child")
-    assert cfg.environment == {"TEST": "case"}
+    assert cfg.environment == {"TEST": "case", u"UNSET_VARIABLE": ""}
+
+
+def test_flat_config(resolver):
+    ret = resolver.resolve(":not_set:child")
+    assert ret.environment == {"TEST": "case", u"UNSET_VARIABLE": ""}
+    assert ret.environment == {"TEST": "case", u"UNSET_VARIABLE": ""}
+    assert ret.environment == {"TEST": "case", u"UNSET_VARIABLE": ""}
+
+    # Check for edge case where self._environment was reset if the config didn't define
+    # environment, but the attached distros did.
+    ret = resolver.resolve(":not_set:no_env")
+    assert list(ret.environment.keys()) == ["DCC_MODULE_PATH"]
+    assert list(ret.environment.keys()) == ["DCC_MODULE_PATH"]
+
+
+def test_invalid_config(config_root, resolver):
+    """Check that if an invalid json file is processed, its filename is included in
+    the traceback"""
+    path = os.path.join(config_root, "invalid.json")
+    check = re.escape(r' Filename: "{}"'.format(path))
+
+    with pytest.raises(ValueError, match=check):
+        Config({}, resolver, filename=path)
+
+
+def test_misc_coverage(resolver):
+    """Test that cover misc lines not covered by the rest of the tests"""
+    assert str(NotSet) == "NotSet"
+
+    # Check that dirname is modified when setting a blank filename
+    cfg = Config({}, resolver)
+    cfg.filename = ""
+    assert cfg.filename == ""
+    assert cfg.dirname == ""
+
+    # String values are cast to the correct type
+    cfg.version = "1.0"
+    assert cfg.version == Version("1.0")
+
+
+def test_write_script_bat(resolver, tmpdir):
+    cfg = resolver.resolve(":not_set:child")
+    file_config = tmpdir.join("config.bat")
+    file_launch = tmpdir.join("launch.bat")
+    cfg.write_script(str(file_config), str(file_launch))
+
+    assert 'cmd.exe /k "{}"\n'.format(file_config) == open(str(file_launch)).read()
+
+    config = open(str(file_config)).read()
+    assert 'set "PROMPT=[:not_set:child] $P$G"' in config
+    assert 'set "TEST=case"' in config
+    assert r'doskey maya="C:\Program Files\Autodesk\Maya2020\bin\maya.exe" $*' in config
+
+
+def test_write_script_ps1(resolver, tmpdir):
+    cfg = resolver.resolve(":not_set:child")
+    file_config = tmpdir.join("config.ps1")
+    file_launch = tmpdir.join("launch.ps1")
+    cfg.write_script(str(file_config), str(file_launch))
+
+    assert (
+        'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{}"\n'.format(
+            file_config
+        )
+        == open(str(file_launch)).read()
+    )
+
+    config = open(str(file_config)).read()
+    assert "function PROMPT {'[:not_set:child] ' + $(Get-Location) + '>'}" in config
+    assert '$env:TEST = "case"' in config
+    assert (
+        r"function maya() { C:\Program` Files\Autodesk\Maya2020\bin\maya.exe $args }"
+        in config
+    )
+
+
+def test_write_script_sh(resolver, tmpdir):
+    cfg = resolver.resolve(":not_set:child")
+    file_config = tmpdir.join("config")
+    file_launch = tmpdir.join("launch")
+    cfg.write_script(str(file_config), str(file_launch))
+
+    # assert (
+    #     'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{}"\n'.format(
+    #         file_config
+    #     )
+    #     == open(str(file_launch)).read()
+    # )
+
+    # config = open(str(file_config)).read()
+    # assert "function PROMPT {'[:not_set:child] ' + $(Get-Location) + '>'}" in config
+    # assert '$env:TEST = "case"' in config
+    # assert (
+    #     r"function maya() { C:\Program` Files\Autodesk\Maya2020\bin\maya.exe $args }"
+    #     in config
+    # )
