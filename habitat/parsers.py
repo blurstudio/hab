@@ -35,10 +35,15 @@ NotSet = NotSet()
 
 
 class HabitatProperty(property):
-    """The @property decorator that can be type checked by the metaclass"""
+    """The @property decorator that can be type checked by the `HabitatMeta` metaclass
+
+    Any properties using this decorator will have their name added to `_properties`.
+    """
 
 
 class HabitatMeta(type):
+    """Scans for HabitatProperties and adds their name to the `_properties` set."""
+
     def __new__(cls, name, bases, dct):
         desc = set()
         for base in bases:
@@ -53,12 +58,25 @@ class HabitatMeta(type):
 
 
 class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
+    """Base class for the various parser classes. Provides most of the functionality
+    to parse a json configuration file and resolve it for use in habitat.
+
+    Args:
+        forest (dict): A dictionary map used to calculate the context when resolving
+            this object.
+        resolver (habitat.Resolver): The Resolver used to lookup requirements.
+        filename (str, optional): Automatically call load on this filename.
+        parent (habitat.parsers.HabitatBase, optional): Parent for this object.
+    """
+
+    # Subclasses can change this to control how data is tweaked by the load method.
     _context_method = "key"
     # A instance of this class is used to build a parent anytree item if no
     # configuration was processed yet to fill in that node. This is set to the
     # Placeholder class after it is defined below. This allows the
     # ApplicationVersion class to use Application as its placeholder
     _placeholder = None
+    # Configure anytree to use `:` instead of `/` as the separator
     separator = ":"
 
     def __init__(self, forest, resolver, filename=None, parent=None):

@@ -1,106 +1,328 @@
-# Python Example
+# Habitat
 
-This is a template project to jump-start the creation of additional project repositories, managed by Blur Studio, on GitHub. Below is a walk-through of various characteristics of the project.
+A launcher that lets you configure software distributions and how they are consumed with
+dependency resolution.
 
-## Package Configuration
+## URI
 
-### `setup.py`
+`:identifier1:identifier2:...`
 
-- Enables the `setuptools` extension `setuptools_scm`. This extension replaces the need to statically define a package's version and instead derives the version from SCM metadata (such as the latest git tag).
-- Permit package installation in editable mode. (i.e. `pip install -e .`)
+You specify a configuration using a simple URI of identifiers separated by a `:`. If the
+uri starts with a leading `:` it is a absolute path. Currently habitat only supports
+absolute uri's. This is based on the Element Browser Widget uri. We are working on
+developing a more feature rich uri for Trax and we will add support for that in habitat.
 
-_You should not need to modify the contents `setup.py`._
+Examples:
+* :projectDummy:Sc001:S0001.00
+* :projectDummy:Sc001:S0001.00:Animation
+* :projectDummy:Thug
+* :default
 
-> _Originally `setup.py` was the primary manor by which to define a package's metadata. It has mostly been replaced by `setup.cfg`._
+## CLI
 
-### `setup.cfg`
+The Habitat cli is the current way that users will interact with habitat, but all of the
+actual work is done in the api so we can make gui's based on habitat in the future.
 
-- Defines static package metadata such as package description, author, and PyPI classifiers.
-- Lists package requirements (`install_requires`).
-- Lists auxiliary package requirements (`extras_require`). These can be installed by appending the extras group name (or "all" for all groups) in square-brackets upon install (ex: `pip install -e .[lint]`).
-- Configures `flake8`.
+1. `hab env`: The env command launches a new shell configured by habitat. You can exit
+the shell to return to the original configuration. This is how most users will interact
+with habitat in the command line.
+2. `hab activate`: Updates the current shell with the habitat configuration. This is
+similar to activating a virtualenv, but currently there is no way to deactivate. This is
+ mostly how scripts can make use of habitat.
+ 3. `hab dump`: Formats the resolved configuration and prints it. Used for debugging
+ configurations.
 
-_Be sure to update the various properties so they pertain to your project._
+Examples:
 
-### `pyproject.toml`
+```bash
+$ hab env :projectDummy
+$ hab env :projectDummy:Thug
+```
 
-- Defines build system characteristics, more specifically those pertaining to `setuptools_scm` which provides automatic versioning based off git repo state.
-- Configures `pytest`.
+The cli prompt is updated while inside a habitat config is active. It is `[URI] [cwd]`
+Where URI is the uri requested and cwd is the current working directory.
 
-_The only property that will need updating is the `write_to` destination for the `version.txt`-file._
+## API
 
-> _While it would be ideal to fully migrate to `pyproject.toml` there are still several aspects of configuration that have not yet fully migrated to support the finalized [PEP 621] standard._
+TODO
 
-### `requirements.txt` & `requirements-dev.txt`
+## Configuration
 
-- Defines a list of packages required in order to install and run the project's package.
-- The `-dev` requirements file lists packages useful during development (ex: `pytest`, `flake8`).
+Habitat is configured by json files found with glob strings passed to the cli or defined
+by environment variables.
 
-_Keep these up to date with any packages required by the project._
+### Distro
 
-## Coding Style & Formatting
+A distro defines a application or plugin that has multiple versions. It is mostly used
+to define aliases and environment variables. It can also define additional requirements.
 
-### flake8
+Distros are found by scanning glob strings defined in the `HAB_DISTRO_PATHS` environment
+variable, or if passed to the cli. Multiple paths can be defined separated by `os.pathsep`.
+It is processed left to right and if a duplicate distro version is found a warning is
+logged and it is skipped.
 
-Analyses for a number of common errors and syntactical violations. Configuration is provided by a section in `setup.cfg`.
+Example: `~/development/distros/*/*:/mnt/studio/distros/*`
 
-### black
+At a minimum a distro requires this folder structure: `[name]\[version]\.habitat.json`.
+The `[name]` folder is referenced by one of the disto_path globs.
 
-Conforms code to a set of opinionated formatting standards.
+Example .habitat.json:
+```json
+{
+    "name": "maya2020",
+    "version": "2020.1",
+    "environment": {
+        "append": {
+            "MAYA_MODULE_PATH": "{dot}"
+        }
+    },
+    "aliases": {
+        "windows": [
+            ["maya", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"],
+            ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"]
+        ]
+    }
+}
 
-## Pre-commit Hooks
+```
 
-To simplify the linting and formatting process a basic configuration of pre-commit has been added. Integrating with Git hooks, pre-commit executes a set of actions before a commit is added to the repository interrupting the commit if any of the hooks fail or make additional changes.
+In most cases  you will not define version in `.habitat.json`. If not defined, the
+parent folder is used as the version. This makes it easy for automated deployments
+without needing to modify a file checked into version control.
 
-Before you can start using pre-commit you will need to install it via pip (`pip install pre-commit`) and install the Git hook scripts into your local copy of the Git repository (`pre-commit install`). The next time any changes are committed those scripts will execute and run the hooks configured in `.pre-commit-config.yaml`. Below are the hooks currently configured:
+You will note that I'm using the version of maya in the name. This allows you to provide
+access to multiple versions of the Maya application. Only one version of a given distro
+name is going to be used so if you need access to multiple versions of maya you must use
+this method. If there are duplicate alias names, only one will be provided and it is not
+consistent, so you should define version specific aliases as well if you pan to use more
+than one for a given config.
 
-| Hook                     | Description                                                        |
-|--------------------------|--------------------------------------------------------------------|
-| [black]                  | Conforms code to a set of opinionated formatting standards.        |
-| [flake8]                 | Analyses for a number of common errors and syntactical violations. |
-| [setup-cfg-fmt]          | Applies a consistent format to `setup.cfg` files.                  |
-| [check-json]             | Attempts to load all json files to verify syntax.                  |
-| [check-toml]             | Attempts to load all toml files to verify syntax.                  |
-| [check-xml]              | Attempts to load all xml files to verify syntax.                   |
-| [check-yaml]             | Attempts to load all yaml files to verify syntax.                  |
-| [debug-statements]       | Ensures there are no debug breakpoints present.                    |
-| [end-of-file-fixer]      | Ensures each file has one newline at the end.                      |
-| [requirements-txt-fixer] | Sorts entries in requirements.txt and removes incorrect entries.   |
-| [trailing-whitespace]    | Trims any trailing whitespace from lines.                          |
+### Config
 
-## GitHub Action Workflows
+A config defines the environment to be applied. The context is picked by the provided URI.
+This is where we will define project/asset/sequence/department etc specific configurations.
+They are mostly used to define distros, lock those distros to specific versions, and can
+be used to set environment variables like `BDEV_TOOL_ENVIRONMENT` to force users to a
+specific treegrunt environment.
 
-### Static Analysis
+A given config needs two pieces of information defined, its name and context. The
+context is a list of its parents names. When joined together they would build a URI.
 
-Runs against every push, regardless of branch. Checks the codebase for common errors and syntactical violations with `flake8` and that the code is formatted according to `black`.
+Example project_a_thug_animation.json:
+```json
+{
+    "name": "Animation",
+    "context": ["project_a", "Thug"],
+    "environment": {
+        "set": {
+            "BDEV_TOOL_ENVIRONMENT": "project_a"
+        }
+    },
+    "inherits": true,
+    "distros": [
+        "maya2020"
+    ]
+}
+```
 
-### Release
+#### Config Inheritance
 
-Runs when a new release is created.
+When resolving a URI it will find the closest exact match, so if `:project_a:Thug` is
+passed but Thug does not have a config, its parent project_a is used. If there is no
+config for project_a, the default config will be used.
 
-## Community Documents
+The config system has an inheritance system that follows a tree structure. If a property
+is `NotSet` on the chosen config and the config has inherit enabled the closest parent
+with that property set will be used. If the root of the tree has inherit enabled, and
+the property still is `NotSet`, then the `default` tree will be checked.
 
-### `CODE_OF_CONDUCT.md`
+When the default tree is checked when resolving inheritance, some special rules for
+matching contexts are applied. It will attempt to find the most specific context defined
+in the default tree, but it will find the largest partial match for the start each URI
+identifier. In the [default test config](tests/configs/default), you will see `Sc1` and
+`Sc11`. The URI of `:not_a_project:Sc101` would end up using `:default:Sc1`. The URI
+`:not_a_project:Sc110` would use `:default:Sc11`. The URI `:not_a_project:Sc200` would
+use `:default`.
 
-Describes a set of standards contributors and maintainers alike are intended to follow when interacting with and contributing to projects maintained by Blur Studio.
+### Variable Formatting
 
-### `CONTRIBUTING.md`
+The configuration environment variables and aliases can be formatted using str.format syntax.
 
-A kick-start document standardizing the manor by which other developers can contribute to projects maintained by Blur Studio.
+Currently supported variables:
+* `{dot}`: The directory name of the .json config file. Think of this as the relative path
+`.` when using the command line, but this is a clear indication that it needs to be
+replaced with the dirname and not left alone.
 
-### `BUG_REPORT.md`, `FEATURE_REQUEST.md`, & `PULL_REQUEST_TEMPLATE.md`
+### Defining Aliases
 
-Templates for reporting issues (bugs or feature requests) and submitting pull requests. Each provide a scaffolding for reporters and contributors to follow, ensuring each request has the appropriate information upon first submission.
+Aliases are normally defined for distros. They provide information to create a command
+in the terminal and what program that command runs. The top level dictionary is specifies
+the operating system this alias is for.
 
-[PEP 621]: https://www.python.org/dev/peps/pep-0621/
-[black]: https://github.com/psf/black
-[flake8]: https://gitlab.com/pycqa/flake8
-[setup-cfg-fmt]: https://github.com/asottile/setup-cfg-fmt
-[check-json]: https://github.com/pre-commit/pre-commit-hooks#check-json
-[check-toml]: https://github.com/pre-commit/pre-commit-hooks#check-toml
-[check-xml]: https://github.com/pre-commit/pre-commit-hooks#check-xml
-[check-yaml]: https://github.com/pre-commit/pre-commit-hooks#check-yaml
-[debug-statements]: https://github.com/pre-commit/pre-commit-hooks#debug-statements
-[end-of-file-fixer]: https://github.com/pre-commit/pre-commit-hooks#end-of-file-fixer
-[requirements-txt-fixer]: https://github.com/pre-commit/pre-commit-hooks#requirements-txt-fixer
-[trailing-whitespace]: https://github.com/pre-commit/pre-commit-hooks#trailing-whitespace
+```json
+    "aliases": {
+        "windows": [
+            ["maya", "C:\\Program Files\\Autodesk\\Maya2022\\bin\\maya.exe"],
+            ["mayapy", "C:\\Program Files\\Autodesk\\Maya2022\\bin\\mayapy.exe"]
+        ],
+        "linux": [
+            ["maya", "/usr/autodesk/maya2022/bin/maya2022"],
+            ["mayapy", "/usr/autodesk/maya2022/bin/mayapy"]
+        ]
+    }
+```
+
+`HabitatBase.aliases` is reduced to just the current operating system's aliases.
+
+
+### Defining Environments
+
+The `environment` key in distro and config definitions is used to configure modifications
+to the resolved environment. This is stored in `HabitatBase.environment_config`.
+
+```json
+    "environment": {
+        "unset": [
+            "UNSET_VARIABLE"
+        ], 
+        "set": {
+            "MAYA_MODULE_PATH": "{dot}"
+        }, 
+        "append": {
+            "MAYA_MODULE_PATH": "{dot}/append",
+        }, 
+        "prepend": {
+            "MAYA_MODULE_PATH": "prepend_value"
+        }
+    }
+```
+
+There are 4 valid top level keys they are processed in this order if used:
+* unset: The names of environment variables to remove.
+* set: Replace or set the environment variable to this value.
+* prepend: Treat this variable as a list and insert the value at the start of the list.
+* append: Treat this variable as a list and add the value at the end of the list.
+
+The `unset` key stores a list of environment variable names, the rest store a dictionary
+of environment variable keys and the values to store.
+
+The `HabitatBase.environment` property shows the final resolved
+environment variables that will be applied. When using a resolved `FlatConfig` object,
+environment also contains the merger of all environment_config definitions for all
+`distros`.
+These environment variables will be directly set if there is a value, and unset if the
+value is blank. Habitat doesn't inherit the session/system/user environment variable
+values with the exception of the `PATH` variable as this would break the system.
+Like Rez, the first set, prepend or append operation on a variable will replace the
+existing variable value.
+
+This quote from the Rez documentation explains why:
+> "Why does this happen? Consider PYTHONPATH - if an initial overwrite did not happen,
+> then any modules visible on PYTHONPATH before the rez environment was configured would
+> still be there. This would mean you may not have a properly configured environment. If
+> your system PyQt were on PYTHONPATH for example, and you used rez-env to set a
+> different PyQt version, an attempt to import it within the configured environment would
+> still, incorrectly, import the system version."
+
+### Defining Distros
+
+The `distos` key in distro and config definitions is used to define the distro version
+requirements. When a config is processed the distro requirements are evaluated recursively
+to include the requirements of the latest ApplicationVersion matching the specifier.
+This uses the python packaging module to resolve version specifiers so you can use the
+same configuration syntax you would use in a pip requirements file.
+
+```json
+    "distros": [
+        "maya2020",
+        "maya2022",
+        "houdini18.5",
+        "hsite",
+        "animBot<=1.4",
+        "studiolibrary==2.5.7.post1"
+    ]
+
+```
+
+The resolved versions matching the requested distros are shown in the `versions` property.
+
+
+# Caveats
+
+* When using `hab env` in the command prompt, doskey aliases don't get cleared when you
+exit a context.
+* Powershell disables running .ps1 scripts disabled by default. If you get a error like
+`hab.ps1 cannot be loaded because running scripts is disabled on this system.`, you will
+need to launch the Powershell with this command `powershell -ExecutionPolicy Unrestricted`.
+We can administratively default the execution policy to unrestricted, so we may do that
+in the future.
+* To use `hab activate` in bash or Powershell you need to use `source`. Powershell has the
+`.` operator so I would use that for both Powershell and bash. `. hab activate :default`.
+
+# Glosary
+
+* activate: Update the current process(shell) for a given configuration. Name taken from virtualenv.
+* env: In the cli this launches a new process for a given configuration. Name taken from rez.
+* config: Defines the environment variables and distros that should be used when a
+specific URI is requested.
+* distro: Defines environment variables and aliases that a specific application or
+plugin requires, and other distros that it depends on.
+* URI: A `:` separated list of identifiers used to choose a specific config. A absolute
+URI starts with a `:` and currently habitat only works with absolute URI strings.
+
+# Future Plans
+
+I need to add support for ~ and using environment variables for the config/distro paths.
+
+I need to properly support developer override. Currently if the same context is defined
+a error is raised. This should be changed to a log message and only the first found is
+used. We may want to raise a error if more than one matching context is found inside the
+same glob string.
+
+I plan to setup pkg_resource plugin interfaces that will allow us to customize how
+configurations are defined. This will allow us to define the configurations using the
+database not json files on the network. But we can still use json files to define
+offsite/offline workflows.
+
+I'm thinking of making it so a config can define overrides for distro requirements.
+
+Update the HabitatBase.dump to show the nice requires list for distros. They show the
+same info, but requires is readable and distros is not. The api needs the contents of
+distros. They show the same info so its not worth showing both of them.
+
+
+# Terms
+
+This is a list of most of the names of objects and a really quick description of what
+they are used for. I think we should come up with better names for a lot of this stuff,
+so suggestions are welcome.
+
+* **Resolver:** The main class of habitat(probably needs renamed)
+* **Resolver.config:** What a user chooses to load. Normally defined by a URI like `:project_a:Sc001:S0001.00:Animation`.
+* **Resolver.distro:** Defines a version of a DCC or plugin. Config's specify distros that are required.
+* **Resolver.closest_config:** Resolves the requested URI into the closest defined config. The closest_config for `:project_a:Sc001:S0001.00:Animation` may resolve to `:project_a:Sc001`, or even `:default`, etc.
+* **Resolver.dump_forest and HabitatBase.dump:** are methods to print readable representations of the object for debugging.
+* **Resolver.resolve:** Uses Resolver.closest_config then converts that into a FlatConfig with reduced.
+* **habitat.parsers.NotSet:** A None like object used to indicate that a parser property was not modified by any configuration. This is important for resolving the FlatConfig object.
+* **HabitatProperty:** A subclass of property that lets the HabitatMeta metaclass populate the _properties set with all HabitatProperty names.
+* **forest:** A dictionary map of Configs or Distros. These are stored on Resolver._configs and Resolver._distros.
+* **HabitatBase.context:** The resolved URI parents of the current HabitatBase object. This does not include the name of the object, just its parents. `:project_a:Sc001` would resolve into context: `["project_a"]` and name: `"Sc001"`.
+* **HabitatBase.distros:** A map of `packaging.requirements.Requirement` objects defining what distros to load
+* **HabitatBase.environment:** The final resolved set of environment variables that this config should load or application should add to the config.
+* **HabitatBase.environment_config:** A dict of instructions for how to build environment variables. If a value should be prepended or appended or set. environment is build from these sets of instructions.
+* **HabitatBase.format_environment_value:** Uses str.format with a built set of kwargs to fill in. For example, replaces {dot} with HabitatBase.dirname replicating `.` in file paths. Also used on aliases.
+* **HabitatBase.name:** The name of the config or distro.
+* **HabitatBase.reduced:** Turns a Config instance into a FlatConfig that is fully resolved including any inherited values from higher in the config.
+* **HabitatBase.requires:** A simple string list of the resolved requirements this config requires.
+* **HabitatBase.uri:** The URI a config is for.
+* **HabitatBase.write_script:** Writes a config and optionally a launcher script to configure a terminal to match the resolved configuration.
+* **HabitatBase.alias:** The name of a alias to create in the terminal and the command to associate with the terminal.
+* **Application: Subclass of HabitatBase:** The container for ApplicationVersion objects. One per DCC or plugin exists in the distro forest. This probably should be renamed to Distro.
+* **ApplicationVersion: Subclass of HabitatBase:** A specific version of the given application, its requirements, aliases, and environment variables. This probably should be renamed to DistroVersion.
+* **Config: Subclass of HabitatBase:** All configs are resolved into these objects. The configuration for a given URI that defines what environment variables and Applications need to be loaded if this config is chosen.
+* **FlatConfig: Subclass of Config:** A fully resolved and flattened Config object. Any values NotSet on the Config this is built from, are attempted to be set from the parents of that Config. If still not found, it will attempt to find the value from a matching config on the Default tree instead.
+* **Placeholder: Subclass of HabitatBase:** Used as the parent of a config if no parent config was found.
+* **hab env:** Creates a new terminal in an existing terminal with all environment variables, aliases and the prompt configured. You can exit the terminal to get back to the previous settings.
+* **hab activate:** Updates the current terminal in the same way as cli.env. Mostly intended for scripts. You can not exit the terminal to get back to your old terminal.
+* **hab dump:** Prints the results of dump and dump_forest for debugging and inspection.
+* **Solver:** A class used to solve the recursive dependency to a flat list that matches all requirements.
