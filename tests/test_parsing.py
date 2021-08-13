@@ -279,36 +279,53 @@ def test_write_script_bat(resolver, tmpdir):
     cfg = resolver.resolve(":not_set:child")
     file_config = tmpdir.join("config.bat")
     file_launch = tmpdir.join("launch.bat")
+    # Batch is windows only, force the code to evaluate as if it was on windows
+    cfg._platform_override = "windows"
     cfg.write_script(str(file_config), str(file_launch))
 
-    assert 'cmd.exe /k "{}"\n'.format(file_config) == open(str(file_launch)).read()
+    config_text = open(str(file_config)).read()
+    launch_text = open(str(file_launch)).read()
 
-    config = open(str(file_config)).read()
-    assert 'set "PROMPT=[:not_set:child] $P$G"' in config
-    assert 'set "TEST=case"' in config
-    assert r'doskey maya="C:\Program Files\Autodesk\Maya2020\bin\maya.exe" $*' in config
+    # Ensure this test passes if run with cygwin or command prompt/powershell on windows
+    alias = cfg.cygpath([r"C:\Program Files\Autodesk\Maya2020\bin\maya.exe"])[0]
+    file_config = cfg.cygpath([str(file_config)])[0]
+    file_launch = cfg.cygpath([str(file_launch)])[0]
+
+    assert 'cmd.exe /k "{}"\n'.format(file_config) == launch_text
+
+    assert 'set "PROMPT=[:not_set:child] $P$G"' in config_text
+    assert 'set "TEST=case"' in config_text
+    assert r'doskey maya="{}" $*'.format(alias) in config_text
 
 
 def test_write_script_ps1(resolver, tmpdir):
     cfg = resolver.resolve(":not_set:child")
     file_config = tmpdir.join("config.ps1")
     file_launch = tmpdir.join("launch.ps1")
+    # Powershell is windows only, force the code to evaluate as if it was on windows
+    cfg._platform_override = "windows"
     cfg.write_script(str(file_config), str(file_launch))
+
+    config_text = open(str(file_config)).read()
+    launch_text = open(str(file_launch)).read()
+
+    # Ensure this test passes if run with cygwin or command prompt/powershell on windows
+    alias = cfg.cygpath([r"C:\Program Files\Autodesk\Maya2020\bin\maya.exe"])[0]
+    alias = cfg.shell_escape(".ps1", alias)
+    file_config = cfg.cygpath([str(file_config)])[0]
+    file_launch = cfg.cygpath([str(file_launch)])[0]
 
     assert (
         'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{}"\n'.format(
             file_config
         )
-        == open(str(file_launch)).read()
+        == launch_text
     )
-
-    config = open(str(file_config)).read()
-    assert "function PROMPT {'[:not_set:child] ' + $(Get-Location) + '>'}" in config
-    assert '$env:TEST = "case"' in config
     assert (
-        r"function maya() { C:\Program` Files\Autodesk\Maya2020\bin\maya.exe $args }"
-        in config
+        "function PROMPT {'[:not_set:child] ' + $(Get-Location) + '>'}" in config_text
     )
+    assert '$env:TEST = "case"' in config_text
+    assert r"function maya() {{ {} $args }}".format(alias) in config_text
 
 
 def test_write_script_sh(resolver, tmpdir):
@@ -317,17 +334,16 @@ def test_write_script_sh(resolver, tmpdir):
     file_launch = tmpdir.join("launch")
     cfg.write_script(str(file_config), str(file_launch))
 
-    # assert (
-    #     'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{}"\n'.format(
-    #         file_config
-    #     )
-    #     == open(str(file_launch)).read()
-    # )
+    config_text = open(str(file_config)).read()
+    launch_text = open(str(file_launch)).read()
 
-    # config = open(str(file_config)).read()
-    # assert "function PROMPT {'[:not_set:child] ' + $(Get-Location) + '>'}" in config
-    # assert '$env:TEST = "case"' in config
-    # assert (
-    #     r"function maya() { C:\Program` Files\Autodesk\Maya2020\bin\maya.exe $args }"
-    #     in config
-    # )
+    # Ensure this test passes if run with cygwin or command prompt/powershell on windows
+    file_config = cfg.cygpath([str(file_config)])[0]
+    file_launch = cfg.cygpath([str(file_launch)])[0]
+
+    assert "bash --init-file {}\n".format(file_config) == launch_text
+    assert 'export PS1="[:not_set:child] $PS1"' in config_text
+    assert 'export TEST="case"' in config_text
+    # Check that aliases were defined
+    assert r"function maya() {" in config_text
+    assert r' "$@"; };export -f maya;' in config_text

@@ -1,4 +1,5 @@
 [report]
 omit =
     */site-packages/*
+    */.tox/*
 show_missing = true

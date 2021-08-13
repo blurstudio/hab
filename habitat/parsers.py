@@ -86,6 +86,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         self._environment = None
         self._filename = None
         self._dirname = None
+        self._platform_override = None
         self._requires = None
         self._uri = NotSet
         self.parent = parent
@@ -114,6 +115,9 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     @property
     def _platform(self):
         """Returns the current operating system `windows` or `linux`."""
+        if self._platform_override:
+            # Provide a method for testing to always test for running on a specific os
+            return self._platform_override
         return "windows" if sys.platform == "win32" else "linux"
 
     def check_environment(self, environment_config):
@@ -449,7 +453,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             if sys.platform == "win32" and distutils.spawn.find_executable("cygpath"):
                 cmd = ["cygpath", "-ua"]
                 cmd.extend(paths)
-                paths = subprocess.check_output(cmd)
+                paths = subprocess.check_output(cmd).decode()
                 return paths.split("\n")
         return paths
 

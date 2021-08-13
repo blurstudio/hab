@@ -6,6 +6,9 @@
         "windows": [
             ["maya", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"],
             ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"]
+        ],
+        "linux": [
+            ["maya", "/usr/local/bin/maya"]
         ]
     }
 }
