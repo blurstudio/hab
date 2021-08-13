@@ -216,12 +216,14 @@ def test_environment(resolver):
     assert cfg.environment["APPEND_VARIABLE"] == "append_value"
     assert cfg.environment["MAYA_MODULE_PATH"] == "MMP_Set"
     assert cfg.environment["PREPEND_VARIABLE"] == "prepend_value"
-    assert cfg.environment[
-        "RELATIVE_VARIABLE"
-    ] == "{dot}/prepend{pathsep}{dot}/set{pathsep}{dot}/append".format(
-        dot=cfg.dirname, pathsep=os.path.pathsep
+
+    check = "{dot}/prepend{pathsep}{dot}/set{pathsep}{dot}/append".format(
+        dot=cfg.dirname.replace("\\", "/"), pathsep=os.path.pathsep
     )
-    assert cfg.environment["SET_RELATIVE"] == "{dot}".format(dot=cfg.dirname)
+    assert cfg.environment["RELATIVE_VARIABLE"] == check
+    assert cfg.environment["SET_RELATIVE"] == "{dot}".format(
+        dot=cfg.dirname.replace("\\", "/")
+    )
     assert cfg.environment["SET_VARIABLE"] == "set_value"
     assert cfg.environment["UNSET_VARIABLE"] == ""
     assert cfg.environment["UNSET_VARIABLE_1"] == ""

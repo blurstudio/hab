@@ -350,9 +350,10 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             dot: Add the dirname of self.filename or a empty string. Equivalent
                 of using the `.` object for file paths. This removes the
                 ambiguity of if a `.` should be treated as a relative file path
-                or a literal dot.
+                or a literal dot. Houdini doesn't support the native slash direction
+                on windows, so backslashes are replaced with forward slashes.
         """
-        return value.format(dot=self.dirname)
+        return value.format(dot=self.dirname.replace("\\", "/"))
 
     @property
     def fullpath(self):
