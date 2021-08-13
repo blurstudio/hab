@@ -38,9 +38,3 @@ if exist %temp_config_file% (
 )
 
 @ECHO ON
-
-:: start cmd /k H:\public\mikeh\simp\prez\prez activate :projectDummy:Sc100:S0001.00
-:: start cmd /k H:\public\mikeh\simp\prez\prez activate :projectDummy:Guard
-:: echo %STUDIO_ELEMENT_TYPE%
-:: start cmd /k H:\public\mikeh\simp\prez\prez env :projectDummy:Sc100:S0001.00
-:: echo $env:STUDIO_ELEMENT_TYPE

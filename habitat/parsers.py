@@ -1,5 +1,6 @@
 from __future__ import print_function
 import anytree
+import distutils.spawn
 from future.utils import with_metaclass
 import json
 import logging
@@ -10,6 +11,7 @@ from packaging.version import Version
 from pprint import pformat
 import sys
 import six
+import subprocess
 import tabulate
 
 logger = logging.getLogger(__name__)
@@ -422,7 +424,28 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """Apply any shell specific formatting like escape characters."""
         if ext == ".ps1":
             return value.replace(" ", "` ")
+        if ext in (".sh", ""):
+            return value.replace(" ", "\\ ")
         return value
+
+    @classmethod
+    def cygpath(cls, paths):
+        """Convert file paths from windows to cygwin/mingw file paths.
+        If on win32 and can find the cygpath exe, calls it with subprocess to convert
+        the provided paths to work in cygwin.
+
+        Args:
+            paths (list): A list of windows file paths to convert to unix paths.
+
+        Returns:
+            list: The possibly converted file paths.
+        """
+        if sys.platform == "win32" and distutils.spawn.find_executable("cygpath"):
+            cmd = ["cygpath", "-ua"]
+            cmd.extend(paths)
+            paths = subprocess.check_output(cmd)
+            return paths.split("\n")
+        return paths
 
     @classmethod
     def shell_formats(cls, ext):
@@ -451,15 +474,16 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret[
                 "launch"
             ] = 'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{path}"\n'
-        elif ext == "":  # Assume no ext is a .sh file
+        elif ext in (".sh", ""):  # Assume no ext is a .sh file
             ret[
                 "alias_setter"
             ] = 'function {key}() {{ {value} "$@"; }};export -f {key};\n'
             ret["comment"] = "# "
             ret["env_setter"] = 'export {key}="{value}"\n'
             ret["env_unsetter"] = "unset {key}\n"
-            ret["prompt"] = r"PS1=[{uri}] [\u@\h \W]\$"  # TODO: Improve this
-            ret["launch"] = ""  # TODO: set this
+            # For now just tack the habitat uri onto the prompt
+            ret["prompt"] = 'export PS1="[{uri}] $PS1"\n'
+            ret["launch"] = "bash --init-file {path}\n"
 
         return ret
 
@@ -550,7 +574,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
         if launch_script:
             with open(launch_script, "w") as fle:
-                fle.write(shell["launch"].format(path=config_script))
+                paths = self.cygpath([config_script])
+                fle.write(shell["launch"].format(path=paths[0]))
 
 
 class Application(HabitatBase):
@@ -690,8 +715,15 @@ class FlatConfig(Config):
         ret = {}
         for version in self.versions:
             if version.aliases:
-                for alias in version.aliases.get("windows", []):
-                    ret[alias[0]] = version.format_environment_value(alias[1])
+                plat = "windows" if sys.platform == "win32" else "linux"
+                # cygpath currently requires a subprocess call, but we can pass multiple
+                # paths to it to process all of them at once. If using windows and
+                # cygpath is found, use it to translate the paths so they work
+                aliases_def = version.aliases.get(plat, [])
+                aliases = self.cygpath([a[1] for a in aliases_def])
+
+                for i, alias in enumerate(aliases_def):
+                    ret[alias[0]] = version.format_environment_value(aliases[i])
 
         return ret
 

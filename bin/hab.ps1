@@ -6,7 +6,8 @@
 # Generate unique temp file names
 $temp_config=[System.IO.Path]::GetTempFileName()
 $temp_launch=[System.IO.Path]::GetTempFileName()
-# Remove the file that was created, we don't want it at this point.
+
+# Remove the files that were created, we don't want them at this point.
 # Also it will cause problems if we fill all of these slots
 Remove-Item $temp_config
 Remove-Item $temp_launch
