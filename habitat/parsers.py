@@ -111,6 +111,11 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         # self.requires = NotSet
         self.version = NotSet
 
+    @property
+    def _platform(self):
+        """Returns the current operating system `windows` or `linux`."""
+        return "windows" if sys.platform == "win32" else "linux"
+
     def check_environment(self, environment_config):
         """Check that the environment config only makes valid adjustments.
         For example, check that we never replace path, only append/prepend are allowed.
@@ -440,11 +445,12 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         Returns:
             list: The possibly converted file paths.
         """
-        if sys.platform == "win32" and distutils.spawn.find_executable("cygpath"):
-            cmd = ["cygpath", "-ua"]
-            cmd.extend(paths)
-            paths = subprocess.check_output(cmd)
-            return paths.split("\n")
+        if paths:
+            if sys.platform == "win32" and distutils.spawn.find_executable("cygpath"):
+                cmd = ["cygpath", "-ua"]
+                cmd.extend(paths)
+                paths = subprocess.check_output(cmd)
+                return paths.split("\n")
         return paths
 
     @classmethod
@@ -491,6 +497,12 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """Check and update environment with the provided environment config."""
         if obj is None:
             obj = self
+
+        # If os_specific is specified, we are defining environment variables per-os
+        # not globally. Lookup the current os's configuration.
+        if environment_config.get("os_specific", False):
+            environment_config = environment_config.get(self._platform, {})
+
         self.check_environment(environment_config)
 
         if "unset" in environment_config:
@@ -715,11 +727,10 @@ class FlatConfig(Config):
         ret = {}
         for version in self.versions:
             if version.aliases:
-                plat = "windows" if sys.platform == "win32" else "linux"
                 # cygpath currently requires a subprocess call, but we can pass multiple
                 # paths to it to process all of them at once. If using windows and
                 # cygpath is found, use it to translate the paths so they work
-                aliases_def = version.aliases.get(plat, [])
+                aliases_def = version.aliases.get(self._platform, [])
                 aliases = self.cygpath([a[1] for a in aliases_def])
 
                 for i, alias in enumerate(aliases_def):

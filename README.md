@@ -224,6 +224,28 @@ This quote from the Rez documentation explains why:
 > different PyQt version, an attempt to import it within the configured environment would
 > still, incorrectly, import the system version."
 
+If required, you can create OS specific environment variable definitions. To do this,
+you nest the above structure into a dictionary with the correct `windows` or `linux`
+key. You have to add a extra key `os_specific` set to True to indicate that you are
+using os specific configurations. 
+
+```json
+    "environment": {
+        "os_specific": true,
+        "windows": {
+            "append": {
+                "GOLAEM_WINDOWS_PATH": "C:\\Golaem\\Golaem-7.3.11\\Maya2020"
+            }
+        },
+        "linux": {
+            "append": {
+                "GOLAEM_LINUX_PATH": "/Golaem/Golaem-7.3.11/Maya2020"
+            }
+        }
+    }
+```
+
+
 ### Defining Distros
 
 The `distos` key in distro and config definitions is used to define the distro version
