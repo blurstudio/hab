@@ -1,4 +1,5 @@
 import anytree
+from habitat.errors import DuplicateJsonError
 from habitat.parsers import ApplicationVersion, Config, NotSet
 import json
 import os
@@ -81,9 +82,10 @@ def test_config_parenting(config_root, resolver):
         return [repr(x) for x in anytree.iterators.PreOrderIter(node)]
 
     forest = {}
+    root_paths = set((config_root,))
     # Ensure the forest has multiple trees when processing
     shared_path = os.path.join(config_root, "configs", "default", "default.json")
-    Config(forest, resolver, filename=shared_path)
+    Config(forest, resolver, filename=shared_path, root_paths=root_paths)
 
     # Load the tree structure from child to parent to test that the placeholder system
     # works as expected
@@ -93,6 +95,7 @@ def test_config_parenting(config_root, resolver):
         filename=os.path.join(
             config_root, "configs", "project_a", "project_a_Sc001_animation.json"
         ),
+        root_paths=root_paths,
     )
     check = [
         "habitat.parsers.Placeholder(':project_a')",
@@ -105,7 +108,7 @@ def test_config_parenting(config_root, resolver):
     mid_level_path = os.path.join(
         config_root, "configs", "project_a", "project_a_Sc001.json"
     )
-    Config(forest, resolver, filename=mid_level_path)
+    Config(forest, resolver, filename=mid_level_path, root_paths=root_paths)
     check[1] = "habitat.parsers.Config(':project_a:Sc001')"
     assert check == repr_list(forest["project_a"])
 
@@ -116,24 +119,25 @@ def test_config_parenting(config_root, resolver):
         filename=os.path.join(
             config_root, "configs", "project_a", "project_a_Sc001_rigging.json"
         ),
+        root_paths=root_paths,
     )
     check.append("habitat.parsers.Config(':project_a:Sc001:Rigging')")
     assert check == repr_list(forest["project_a"])
 
     # Check that a root item is replaced
     top_level_path = os.path.join(config_root, "configs", "project_a", "project_a.json")
-    Config(forest, resolver, filename=top_level_path)
+    Config(forest, resolver, filename=top_level_path, root_paths=root_paths)
     check[0] = "habitat.parsers.Config(':project_a')"
     assert check == repr_list(forest["project_a"])
 
     # Verify that the correct exceptions are raised if root duplicates are loaded
-    with pytest.raises(ValueError):
-        Config(forest, resolver, filename=top_level_path)
+    with pytest.raises(DuplicateJsonError):
+        Config(forest, resolver, filename=top_level_path, root_paths=root_paths)
     assert check == repr_list(forest["project_a"])
 
     # and at the leaf level
-    with pytest.raises(ValueError):
-        Config(forest, resolver, filename=mid_level_path)
+    with pytest.raises(DuplicateJsonError):
+        Config(forest, resolver, filename=mid_level_path, root_paths=root_paths)
     assert check == repr_list(forest["project_a"])
 
     # Check that the forest didn't loose the default tree
@@ -347,3 +351,76 @@ def test_write_script_sh(resolver, tmpdir):
     # Check that aliases were defined
     assert r"function maya() {" in config_text
     assert r' "$@"; };export -f maya;' in config_text
+
+
+@pytest.mark.parametrize(
+    "dirname,uri",
+    (
+        ("configs_parent", ":not_set"),
+        ("configs_child", ":not_set:child"),
+    ),
+)
+def test_duplicated_configs(config_root, resolver, dirname, uri):
+    """Check that a specific config can be duplicated and that the first path
+    is the used data. If there is a duplicate in the same config path, an exception
+    is raised.
+
+    The duplicates/*_1 folders have a second definition, but are in their own unique
+    config_paths, so only the first found config is used.
+
+    The duplicates/*_2 folders have a third definition. The second and third definitions
+    are in the same config_path so a DuplicateJsonError is raised.
+    """
+    original = resolver.config_paths
+    config_paths = list(original)
+    # Check that config_paths raise exceptions correctly
+    config_paths.insert(
+        0, os.path.join(config_root, "duplicates", "{}_1".format(dirname))
+    )
+    resolver.config_paths = config_paths
+
+    # Check that the first config in config_paths was used
+    cfg = resolver.resolve(uri)
+    assert "{}_1".format(dirname) in cfg.filename
+
+    # Check that an exception is raised if there are duplicate definitions from
+    # the same config_paths directory.
+    config_paths = list(original)
+    config_paths.insert(
+        0, os.path.join(config_root, "duplicates", "{}_2".format(dirname))
+    )
+    resolver.config_paths = config_paths
+    with pytest.raises(DuplicateJsonError):
+        resolver.resolve(uri)
+
+
+def test_duplicated_distros(config_root, resolver):
+    """Check that a specific config can be duplicated and that the first path
+    is the used data. If there is a duplicate in the same config path, an exception
+    is raised.
+
+    The duplicates/distros_1 folders have a second definition, but are in their own
+    unique config_paths, so only the first found config is used.
+
+    The duplicates/distros_2 folders have a third definition. The second and third
+    definitions are in the same config_path so a DuplicateJsonError is raised.
+    """
+    original = resolver.distro_paths
+
+    # Check that the first config in distro_paths was used
+    distro_paths = list(original)
+    distro_paths.insert(0, os.path.join(config_root, "duplicates", "distros_1", "*"))
+    resolver.distro_paths = distro_paths
+
+    dcc = resolver.find_distro("the_dcc==1.2")
+    assert dcc.name == "the_dcc==1.2"
+    assert "distros_1" in dcc.filename
+
+    # Check that an exception is raised if there are duplicate definitions from
+    # the same distro_paths directory.
+    distro_paths = list(original)
+    distro_paths.insert(0, os.path.join(config_root, "duplicates", "distros_2", "*"))
+    resolver.distro_paths = distro_paths
+
+    with pytest.raises(DuplicateJsonError):
+        resolver.find_distro("the_dcc==1.2")

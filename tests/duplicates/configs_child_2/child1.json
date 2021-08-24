@@ -1,0 +1,13 @@
+{
+    "name": "child",
+    "context": ["not_set"],
+    "environment": {
+        "unset": [
+            "UNSET_VARIABLE"
+        ], 
+        "set": {
+            "TEST": "case"
+        }
+    },
+    "inherits": true
+}

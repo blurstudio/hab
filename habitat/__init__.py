@@ -157,7 +157,7 @@ class Resolver(object):
             forest = {}
         for dirname in config_paths:
             for path in sorted(glob.glob(os.path.join(dirname, "*.json"))):
-                Config(forest, self, path)
+                Config(forest, self, path, root_paths=set((dirname,)))
         return forest
 
     def parse_distros(self, distro_paths, forest=None):
@@ -165,7 +165,7 @@ class Resolver(object):
             forest = {}
         for dirname in distro_paths:
             for path in sorted(glob.glob(os.path.join(dirname, "*", ".habitat.json"))):
-                ApplicationVersion(forest, self, path)
+                ApplicationVersion(forest, self, path, root_paths=set((dirname,)))
         return forest
 
     def resolve(self, uri):

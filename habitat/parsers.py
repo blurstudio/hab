@@ -1,6 +1,7 @@
 from __future__ import print_function
 import anytree
 import distutils.spawn
+from .errors import DuplicateJsonError
 from future.utils import with_metaclass
 import json
 import logging
@@ -69,6 +70,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         resolver (habitat.Resolver): The Resolver used to lookup requirements.
         filename (str, optional): Automatically call load on this filename.
         parent (habitat.parsers.HabitatBase, optional): Parent for this object.
+        root_paths (set, optional): The base glob path being processed to create the
+            HabitatBase objects for this forest. If two
     """
 
     # Subclasses can change this to control how data is tweaked by the load method.
@@ -81,7 +84,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     # Configure anytree to use `:` instead of `/` as the separator
     separator = ":"
 
-    def __init__(self, forest, resolver, filename=None, parent=None):
+    def __init__(self, forest, resolver, filename=None, parent=None, root_paths=None):
         super(HabitatBase, self).__init__()
         self._environment = None
         self._filename = None
@@ -90,6 +93,9 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         self._requires = None
         self._uri = NotSet
         self.parent = parent
+        self.root_paths = set()
+        if root_paths:
+            self.root_paths = root_paths
         self.forest = forest
         self.resolver = resolver
         self._init_variables()
@@ -154,9 +160,28 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         if not self.context:
             # Add the root of this tree to the forest
             if self.name in self.forest:
-                # Preserve the children of the placeholder object if it exists
                 if not isinstance(self.forest[self.name], self._placeholder):
-                    raise ValueError("Tree root {} is already set".format(self.name))
+                    msg = 'Can not add "{}", the context "{}" it is already set'.format(
+                        self.filename,
+                        self.fullpath,
+                    )
+                    if self.forest[self.name].root_paths.intersection(self.root_paths):
+                        # If one of the root_paths was already added to target, then
+                        # the same context was defined inside a folder structure.
+                        # We  only support this from unique config/distro paths like if
+                        # a developer is overriding a new version of a config.
+                        raise DuplicateJsonError(msg)
+                    else:
+                        logger.warning(msg)
+                        # Document that we have processed the new paths so if there are
+                        # any duplicate context:name defined in these paths, the above
+                        # exception is raised.
+                        self.forest[self.name].root_paths.update(self.root_paths)
+
+                        # Do not run the rest of this method
+                        return
+
+                # Preserve the children of the placeholder object if it exists
                 self.children = self.forest[self.name].children
             self.forest[self.name] = self
             logger.debug("Add to forest: {}".format(self))
@@ -193,7 +218,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 self.parent = root
                 logger.debug("Adding to parent: {}".format(root.fullpath))
             else:
-                if isinstance(target, self._placeholder):
+                if isinstance(target, self._placeholder) and target.name == self.name:
                     # replace the placeholder with self
                     self.parent = target.parent
                     self.children = target.children
@@ -201,12 +226,25 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     target.parent = None
                     logger.debug("Removing placeholder: {}".format(target.fullpath))
                 else:
-                    # TODO: Better exception or handle this differently
-                    raise ValueError(
-                        'Can not add "{}", the context is already set'.format(
-                            self.fullpath
-                        )
+                    msg = 'Can not add "{}", the context "{}" it is already set'.format(
+                        self.filename,
+                        self.fullpath,
                     )
+                    if target.root_paths.intersection(self.root_paths):
+                        # If one of the root_paths was already added to target, then
+                        # the same context was defined inside a folder structure.
+                        # We  only support this from unique config/distro paths like if
+                        # a developer is overriding a new version of a config.
+                        raise DuplicateJsonError(msg)
+                    else:
+                        logger.warning(msg)
+
+                        # Document that we have processed the new paths so if there are
+                        # any duplicate context:name defined in these paths, the above
+                        # exception is raised.
+                        target.root_paths.update(self.root_paths)
+                        # Do not run the rest of this method
+                        return
 
     @property
     def dirname(self):
@@ -370,7 +408,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def fullpath(self):
         return self.separator.join([""] + [node.name for node in self.path])
 
-    def load(self, filename):
+    def _load(self, filename):
+        """Sets self.filename and parses the json file returning the data."""
         self.filename = filename
         with open(filename, "r") as fle:
             try:
@@ -390,18 +429,35 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     type(e)(*args),
                     sys.exc_info()[2],
                 )
-        self.name = data["name"]
-        self.distros = data.get("distros", NotSet)
-        # self.requires = data.get("requires", NotSet)
-        if "version" in data:
-            self.version = data.get("version")
-        self.environment_config = data.get("environment", NotSet)
+        return data
 
-        # TODO: make these use override methods
-        if self._context_method == "key":
-            self.context = data.get("context", NotSet)
-        elif self._context_method == "name":
-            self.context = [data["name"]]
+    def load(self, filename, data=None):
+        """Load this objects configuration from the given json filename.
+
+        Args:
+            filename (str): The json file to load the config from.
+            data (dict, optional): If provided this dict is used instead of parsing
+                the json file. In this case filename is ignored.
+        """
+        if data is None:
+            data = self._load(filename)
+
+        # Check for NotSet so sub-classes can set values before calling super
+        if self.name is NotSet:
+            self.name = data["name"]
+        if "version" in data and self.version is NotSet:
+            self.version = data.get("version")
+        if self.distros is NotSet:
+            self.distros = data.get("distros", NotSet)
+        if self.environment_config is NotSet:
+            self.environment_config = data.get("environment", NotSet)
+
+        if self.context is NotSet:
+            # TODO: make these use override methods
+            if self._context_method == "key":
+                self.context = data.get("context", NotSet)
+            elif self._context_method == "name":
+                self.context = [data["name"]]
 
         return data
 
@@ -640,16 +696,24 @@ class ApplicationVersion(HabitatBase):
         self._aliases = aliases
 
     def load(self, filename):
-        data = super(ApplicationVersion, self).load(filename)
-        # If version is not defined in json data extract it from the parent
-        # directory name. This allows for simpler distribution without needing
-        # to modify version controlled files.
-        if "version" not in data:
+        # Fill in the ApplicationVersion specific settings before calling super
+        data = self._load(filename)
+        self.aliases = data.get("aliases", NotSet)
+
+        if "version" in data:
+            self.version = data["version"]
+        else:
+            # If version is not defined in json data extract it from the parent
+            # directory name. This allows for simpler distribution without needing
+            # to modify version controlled files.
             self.version = os.path.basename(os.path.dirname(filename))
 
-        self.aliases = data.get("aliases", NotSet)
+        # The name should be the version == specifier.
         self.application_name = data.get("name")
         self.name = u"{}=={}".format(self.application_name, self.version)
+
+        data = super(ApplicationVersion, self).load(filename, data=data)
+
         return data
 
     @HabitatProperty
