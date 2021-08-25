@@ -97,6 +97,27 @@ this method. If there are duplicate alias names, only one will be provided and i
 consistent, so you should define version specific aliases as well if you pan to use more
 than one for a given config.
 
+#### Specifying distro version
+
+There are a few ways to define a distro version, they are provided to make deployment
+and development testing easy. Here is the 4 ways to define the version of a distro, the
+first one found is used.
+
+1. The version property in `.habitat.json`. This has some drawbacks, `.habitat.json` is
+likely checked into version control so modifying this requires committing changes to
+the repo, or working copy changes you have to maintain.
+2. A `.habitat_version.txt` file next to `.habitat.json`. The drawback to this, is that
+it requires some maintenance to update, but allows you work around the issues from # 1
+by not tracking this file in the repo.
+3. `.habitat.json`'s parent directory name. For distribution, this is the preferred
+option. You will end up needing a version folder for each deployed version of a disto
+to allow you to pick the version for a given config, so this lets you specify the
+version simply by copying it to the target location.
+4. `setuptools_scm.get_version` gets a version from version control. This is for
+developer working copies, they can simply checkout the repo and even if its not a pip
+package this will resolve a valid and automatically updated version number provided the
+repo follows the setuptools_scm requirements for defining version numbers.
+
 ### Config
 
 A config defines the environment to be applied. The context is picked by the provided URI.

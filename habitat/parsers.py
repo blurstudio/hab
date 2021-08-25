@@ -8,7 +8,7 @@ import logging
 import os
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
-from packaging.version import Version
+from packaging.version import Version, InvalidVersion
 from pprint import pformat
 import sys
 import six
@@ -700,13 +700,40 @@ class ApplicationVersion(HabitatBase):
         data = self._load(filename)
         self.aliases = data.get("aliases", NotSet)
 
+        # The version can be stored in several ways to make deployment and dev easier
         if "version" in data:
             self.version = data["version"]
+        elif os.path.exists(os.path.join(self.dirname, ".habitat_version.txt")):
+            self.version = (
+                open(os.path.join(self.dirname, ".habitat_version.txt")).read().strip()
+            )
         else:
             # If version is not defined in json data extract it from the parent
             # directory name. This allows for simpler distribution without needing
             # to modify version controlled files.
-            self.version = os.path.basename(os.path.dirname(filename))
+            try:
+                self.version = os.path.basename(self.dirname)
+            except InvalidVersion:
+                """The parent directory was not a valid version, attempt to get a
+                version using setuptools_scm.
+                """
+                from setuptools_scm import get_version
+
+                try:
+                    self.version = get_version(root=self.dirname)
+                except LookupError:
+                    raise LookupError(
+                        'Habitat was unable to determine the version for "{filename}".\n'
+                        "The version is defined in one of several ways checked in this order:\n"
+                        "1. The version property in `.habitat.json`.\n"
+                        "2. A `.habitat_version.txt` file next to `.habitat.json`.\n"
+                        "3. `.habitat.json`'s parent directory name.\n"
+                        "4. setuptools_scm can get a version from version control.\n"
+                        "The preferred method is #3 for deployed releases. #4 is the "
+                        "preferred method for developers working copies.".format(
+                            filename=self.filename
+                        )
+                    )
 
         # The name should be the version == specifier.
         self.application_name = data.get("name")

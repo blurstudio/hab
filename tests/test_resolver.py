@@ -8,7 +8,7 @@ import os
 import pytest
 
 
-def test_environment_variables(config_root):
+def test_environment_variables(config_root, helpers):
     """Check that Resolver's init respects the environment variables it uses."""
     config_paths_env = ["a/config/path", "b/config/path"]
     distro_paths_env = ["a/distro/path", "b/distro/path"]
@@ -16,22 +16,17 @@ def test_environment_variables(config_root):
     distro_paths_direct = ["z/distro/path", "zz/distro/path"]
 
     # backup the environment variables so we can restore them
-    old_environ = dict(os.environ)
-    # Set the config environment variables
-    os.environ["HAB_CONFIG_PATHS"] = os.pathsep.join(config_paths_env)
-    os.environ["HAB_DISTRO_PATHS"] = os.pathsep.join(distro_paths_env)
+    with helpers.reset_environ():
+        # Set the config environment variables
+        os.environ["HAB_CONFIG_PATHS"] = os.pathsep.join(config_paths_env)
+        os.environ["HAB_DISTRO_PATHS"] = os.pathsep.join(distro_paths_env)
 
-    try:
         # configured by the environment
         resolver_env = Resolver()
         # configured by passed arguments
         resolver_direct = Resolver(
             config_paths=config_paths_direct, distro_paths=distro_paths_direct
         )
-    finally:
-        # Restore the original environment variables
-        os.environ.clear()
-        os.environ.update(old_environ)
 
     # Check the environment configured resolver
     assert resolver_env.config_paths == config_paths_env

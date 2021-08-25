@@ -41,6 +41,33 @@ def test_application_parse(config_root, resolver):
     assert app.version == Version("2020.0")
 
 
+def test_application_version_resolve(config_root, resolver, helpers):
+    """Check the various methods for ApplicationVersion.version to be populated."""
+
+    # Test that `.habitat_version.txt` is respected if it exists.
+    forest = {}
+    app = ApplicationVersion(forest, resolver)
+    path = os.path.join(config_root, "distros_version", "txt_file", ".habitat.json")
+    app.load(path)
+    assert app.version == Version("1.7")
+
+    # Test that an error is raised if the version could not be determined
+    path = os.path.join(config_root, "distros_version", "not_scm", ".habitat.json")
+    app = ApplicationVersion(forest, resolver)
+    with pytest.raises(LookupError) as excinfo:
+        app.load(path)
+    assert str(excinfo.value).startswith("Habitat was unable to determine")
+
+    # Test that setuptools_scm is able to resolve the version.
+    app = ApplicationVersion(forest, resolver)
+    with helpers.reset_environ():
+        # This env var forces setuptools_scm to this version so we don't have to
+        # create a git repo to test that get_version is called correctly.
+        os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "1.9"
+        app.load(path)
+    assert app.version == Version("1.9")
+
+
 def test_application_version(resolver):
     """Verify that we find the expected version for a given requirement."""
     maya = resolver.distros["maya2020"]
