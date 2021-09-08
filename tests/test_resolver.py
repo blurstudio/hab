@@ -50,46 +50,46 @@ def test_config(resolver):
     any_resolver = anytree.Resolver()
     default = resolver.configs["default"]
     assert default.name == "default"
-    assert any_resolver.get(default, ":default:Sc1").name == "Sc1"
-    assert any_resolver.get(default, ":default:Sc11").name == "Sc11"
+    assert any_resolver.get(default, "/default/Sc1").name == "Sc1"
+    assert any_resolver.get(default, "/default/Sc11").name == "Sc11"
 
 
 @pytest.mark.parametrize(
     "path,result,reason",
     (
-        (":project_a", ":project_a", "Complete root path not found"),
-        (":project_a:Sc001", ":project_a:Sc001", "Complete secondary path not found"),
+        ("project_a", "project_a", "Complete root path not found"),
+        ("project_a/Sc001", "project_a/Sc001", "Complete secondary path not found"),
         (
-            ":project_a:Sc001:Animation",
-            ":project_a:Sc001:Animation",
+            "project_a/Sc001/Animation",
+            "project_a/Sc001/Animation",
             "Complete tertiary path not found",
         ),
         (
-            ":project_a:Sc001:Modeling",
-            ":project_a:Sc001",
+            "project_a/Sc001/Modeling",
+            "project_a/Sc001",
             "Invalid tertiary path not fallen back",
         ),
         (
-            ":project_a:Sc999:Modeling",
-            ":project_a",
+            "project_a/Sc999/Modeling",
+            "project_a",
             "Invalid secondary path not fallen back",
         ),
         (
-            ":project_a:very:many:paths:resolved",
-            ":project_a",
+            "project_a/very/many/paths/resolved",
+            "project_a",
             "Invalid n-length path not fallen back",
         ),
         # Default fallback
-        (":project_z", ":default", "Default root not returned for invalid root."),
+        ("project_z", "default", "Default root not returned for invalid root."),
         (
-            ":project_z:Sc001",
-            ":default",
+            "project_z/Sc001",
+            "default",
             "Default root not returned if no matching secondary.",
         ),
-        (":project_z:Sc101", ":default:Sc1", "Default secondary not returned"),
+        ("project_z/Sc101", "default/Sc1", "Default secondary not returned"),
         (
-            ":project_z:Sc110",
-            ":default:Sc11",
+            "project_z/Sc110",
+            "default/Sc11",
             "More specific default secondary not returned",
         ),
     ),
@@ -105,22 +105,22 @@ def test_dump_forest(resolver):
     check = "\n".join(
         (
             "default",
-            "    habitat.parsers.Config(':default')",
-            "    |-- habitat.parsers.Config(':default:Sc1')",
-            "    +-- habitat.parsers.Config(':default:Sc11')",
+            "    habitat.parsers.Config('default')",
+            "    |-- habitat.parsers.Config('default/Sc1')",
+            "    +-- habitat.parsers.Config('default/Sc11')",
             "not_set",
-            "    habitat.parsers.Config(':not_set')",
-            "    |-- habitat.parsers.Config(':not_set:child')",
-            "    |-- habitat.parsers.Config(':not_set:env1')",
-            "    |-- habitat.parsers.Config(':not_set:env_path_set')",
-            "    |-- habitat.parsers.Config(':not_set:env_path_unset')",
-            "    |-- habitat.parsers.Config(':not_set:distros')",
-            "    +-- habitat.parsers.Config(':not_set:no_env')",
+            "    habitat.parsers.Config('not_set')",
+            "    |-- habitat.parsers.Config('not_set/child')",
+            "    |-- habitat.parsers.Config('not_set/env1')",
+            "    |-- habitat.parsers.Config('not_set/env_path_set')",
+            "    |-- habitat.parsers.Config('not_set/env_path_unset')",
+            "    |-- habitat.parsers.Config('not_set/distros')",
+            "    +-- habitat.parsers.Config('not_set/no_env')",
             "project_a",
-            "    habitat.parsers.Config(':project_a')",
-            "    +-- habitat.parsers.Config(':project_a:Sc001')",
-            "        |-- habitat.parsers.Config(':project_a:Sc001:Animation')",
-            "        +-- habitat.parsers.Config(':project_a:Sc001:Rigging')",
+            "    habitat.parsers.Config('project_a')",
+            "    +-- habitat.parsers.Config('project_a/Sc001')",
+            "        |-- habitat.parsers.Config('project_a/Sc001/Animation')",
+            "        +-- habitat.parsers.Config('project_a/Sc001/Rigging')",
         )
     )
     assert result == check
@@ -134,14 +134,14 @@ def test_reduced(resolver):
         assert str(list(cfg.distros.keys())[0]) == "maya2020"
         assert cfg.distros[list(cfg.distros.keys())[0]] == []
 
-    cfg = resolver.closest_config(":not_set")
+    cfg = resolver.closest_config("not_set")
     assert_maya_distros(cfg)
     assert cfg.environment_config == NotSet
     assert cfg.requires == ["maya2020"]
     assert cfg.inherits is False
     assert cfg.name == "not_set"
 
-    cfg = resolver.closest_config(":not_set:child")
+    cfg = resolver.closest_config("not_set/child")
     # Not set on the child so should be NotSet(ie doesn't inherit from parent)
     assert cfg.distros == NotSet
     # Settings defined on the child
@@ -165,16 +165,16 @@ def test_reduced(resolver):
     assert reduced.requires == ["maya2020"]
     assert reduced.inherits is True
     assert reduced.name == "child"
-    assert reduced.uri == ":not_set:child"
+    assert reduced.uri == "not_set/child"
 
     # Verify that uri is handled correctly
-    uri = ":not_set:child:test"
+    uri = "not_set/child/test"
     reduced = cfg.reduced(resolver, uri=uri)
     assert reduced._uri == uri
     assert reduced.uri == uri
     cfg = resolver.closest_config(uri)
     assert cfg._uri is NotSet
-    assert cfg.uri == ":not_set:child"
+    assert cfg.uri == "not_set/child"
 
 
 def test_resolve_requirements_simple(resolver):

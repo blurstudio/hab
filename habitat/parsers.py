@@ -81,8 +81,6 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     # Placeholder class after it is defined below. This allows the
     # ApplicationVersion class to use Application as its placeholder
     _placeholder = None
-    # Configure anytree to use `:` instead of `/` as the separator
-    separator = ":"
 
     def __init__(self, forest, resolver, filename=None, parent=None, root_paths=None):
         super(HabitatBase, self).__init__()
@@ -406,7 +404,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @property
     def fullpath(self):
-        return self.separator.join([""] + [node.name for node in self.path])
+        return self.separator.join([node.name for node in self.path])
 
     def _load(self, filename):
         """Sets self.filename and parses the json file returning the data."""
@@ -850,7 +848,7 @@ class FlatConfig(Config):
 
     @property
     def fullpath(self):
-        return self.separator.join([""] + [name for name in self.context] + [self.name])
+        return self.separator.join([name for name in self.context] + [self.name])
 
     @HabitatProperty
     def versions(self):

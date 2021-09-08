@@ -5,18 +5,17 @@ dependency resolution.
 
 ## URI
 
-`:identifier1:identifier2:...`
+`identifier1/identifier2/...`
 
-You specify a configuration using a simple URI of identifiers separated by a `:`. If the
-uri starts with a leading `:` it is a absolute path. Currently habitat only supports
-absolute uri's. This is based on the Element Browser Widget uri. We are working on
-developing a more feature rich uri for Trax and we will add support for that in habitat.
+You specify a configuration using a simple URI of identifiers separated by a `/`.
+Currently habitat only supports absolute uri's. We are working on developing a more
+feature rich uri for Trax and we will add support for that in habitat.
 
 Examples:
-* :projectDummy:Sc001:S0001.00
-* :projectDummy:Sc001:S0001.00:Animation
-* :projectDummy:Thug
-* :default
+* projectDummy/Sc001/S0001.00
+* projectDummy/Sc001/S0001.00/Animation
+* projectDummy/Thug
+* default
 
 ## CLI
 
@@ -35,8 +34,8 @@ similar to activating a virtualenv, but currently there is no way to deactivate.
 Examples:
 
 ```bash
-$ hab env :projectDummy
-$ hab env :projectDummy:Thug
+$ hab env projectDummy
+$ hab env projectDummy/Thug
 ```
 
 The cli prompt is updated while inside a habitat config is active. It is `[URI] [cwd]`
@@ -161,9 +160,9 @@ When the default tree is checked when resolving inheritance, some special rules 
 matching contexts are applied. It will attempt to find the most specific context defined
 in the default tree, but it will find the largest partial match for the start each URI
 identifier. In the [default test config](tests/configs/default), you will see `Sc1` and
-`Sc11`. The URI of `:not_a_project:Sc101` would end up using `:default:Sc1`. The URI
-`:not_a_project:Sc110` would use `:default:Sc11`. The URI `:not_a_project:Sc200` would
-use `:default`.
+`Sc11`. The URI of `not_a_project/Sc101` would end up using `default/Sc1`. The URI
+`not_a_project/Sc110` would use `default/Sc11`. The URI `not_a_project/Sc200` would
+use `default`.
 
 ### Variable Formatting
 
@@ -300,7 +299,7 @@ need to launch the Powershell with this command `powershell -ExecutionPolicy Unr
 We can administratively default the execution policy to unrestricted, so we may do that
 in the future.
 * To use `hab activate` in bash or Powershell you need to use `source`. Powershell has the
-`.` operator so I would use that for both Powershell and bash. `. hab activate :default`.
+`.` operator so I would use that for both Powershell and bash. `. hab activate default`.
 
 # Glosary
 
@@ -310,8 +309,7 @@ in the future.
 specific URI is requested.
 * distro: Defines environment variables and aliases that a specific application or
 plugin requires, and other distros that it depends on.
-* URI: A `:` separated list of identifiers used to choose a specific config. A absolute
-URI starts with a `:` and currently habitat only works with absolute URI strings.
+* URI: A `/` separated list of identifiers used to choose a specific config.
 
 # Future Plans
 
@@ -341,15 +339,15 @@ they are used for. I think we should come up with better names for a lot of this
 so suggestions are welcome.
 
 * **Resolver:** The main class of habitat(probably needs renamed)
-* **Resolver.config:** What a user chooses to load. Normally defined by a URI like `:project_a:Sc001:S0001.00:Animation`.
+* **Resolver.config:** What a user chooses to load. Normally defined by a URI like `project_a/Sc001/S0001.00/Animation`.
 * **Resolver.distro:** Defines a version of a DCC or plugin. Config's specify distros that are required.
-* **Resolver.closest_config:** Resolves the requested URI into the closest defined config. The closest_config for `:project_a:Sc001:S0001.00:Animation` may resolve to `:project_a:Sc001`, or even `:default`, etc.
+* **Resolver.closest_config:** Resolves the requested URI into the closest defined config. The closest_config for `project_a/Sc001/S0001.00/Animation` may resolve to `project_a/Sc001`, or even `default`, etc.
 * **Resolver.dump_forest and HabitatBase.dump:** are methods to print readable representations of the object for debugging.
 * **Resolver.resolve:** Uses Resolver.closest_config then converts that into a FlatConfig with reduced.
 * **habitat.parsers.NotSet:** A None like object used to indicate that a parser property was not modified by any configuration. This is important for resolving the FlatConfig object.
 * **HabitatProperty:** A subclass of property that lets the HabitatMeta metaclass populate the _properties set with all HabitatProperty names.
 * **forest:** A dictionary map of Configs or Distros. These are stored on Resolver._configs and Resolver._distros.
-* **HabitatBase.context:** The resolved URI parents of the current HabitatBase object. This does not include the name of the object, just its parents. `:project_a:Sc001` would resolve into context: `["project_a"]` and name: `"Sc001"`.
+* **HabitatBase.context:** The resolved URI parents of the current HabitatBase object. This does not include the name of the object, just its parents. `project_a/Sc001` would resolve into context: `["project_a"]` and name: `"Sc001"`.
 * **HabitatBase.distros:** A map of `packaging.requirements.Requirement` objects defining what distros to load
 * **HabitatBase.environment:** The final resolved set of environment variables that this config should load or application should add to the config.
 * **HabitatBase.environment_config:** A dict of instructions for how to build environment variables. If a value should be prepended or appended or set. environment is build from these sets of instructions.

@@ -3,7 +3,7 @@ import anytree
 import glob
 import logging
 import os
-from .parsers import Config, ApplicationVersion
+from .parsers import Config, HabitatBase, ApplicationVersion
 from .solvers import Solver
 from packaging.requirements import Requirement
 from future.utils import string_types
@@ -48,8 +48,10 @@ class Resolver(object):
                 most common characters. Ie if path is `:project_a:Sc001` it would match
                 `:default:Sc0` not `:default:Sc01`.
         """
+        if not path.startswith(HabitatBase.separator):
+            path = "".join((HabitatBase.separator, path))
         if default:
-            node_names = path.split(":")
+            node_names = path.split(HabitatBase.separator)
             current = self.configs["default"]
             # Skip the root and project name it won't match default
             for node_name in node_names[2:]:
@@ -66,9 +68,9 @@ class Resolver(object):
             return current
 
         # Handle the non-default lookup
-        splits = path.split(":")
+        splits = path.split(HabitatBase.separator)
         # Find the forest to search for or return the default search
-        root_name = splits[1 if path.startswith(":") else 0]
+        root_name = splits[1 if path.startswith(HabitatBase.separator) else 0]
         if root_name not in self.configs:
             return self.closest_config(path, default=True)
 
