@@ -50,20 +50,42 @@ TODO
 Habitat is configured by json files found with glob strings passed to the cli or defined
 by environment variables.
 
+### Habitat env variables
+
+Habitat uses two environment variables to configure how it finds distro and config files.
+
+* `HAB_CONFIG_PATHS`: Configures where configs are discovered.
+* `HAB_DISTRO_PATHS`: Configures where distros discovered.
+
+These variables take one or more glob paths separated by `os.pathsep`. The paths are
+processed left to right. For a given glob string in these variables you can not have
+duplicate values. For configs a duplicate is two configs with the same URI. A duplicate
+distro is two distros with the same name and version. If this happens a
+`DuplicateJsonError` is raised. This prevents developers from copying a config and
+forgetting to update its context.
+
+You can however have duplicates across individual glob paths. The glob paths are processed
+left to right and the first config/distro is used, any subsequent duplicates are ignored
+and a warning is logged to aid in debugging. This feature allows a developer to add any
+git checkouts they are working on that will be used, but still have access to all of the
+global shared configs/distros they are not working on.
+See [specifying distro version](#Specifying-distro-version) for details on specifying a
+distro version in a git repo.
+
+* `HAB_CONFIG_PATHS` example: `~/development/configs:/mnt/studio/configs/*`
+* `HAB_DISTRO_PATHS` example: `~/development/distros:/mnt/studio/distros/*/*`
+
 ### Distro
 
 A distro defines a application or plugin that has multiple versions. It is mostly used
 to define aliases and environment variables. It can also define additional requirements.
 
-Distros are found by scanning glob strings defined in the `HAB_DISTRO_PATHS` environment
-variable, or if passed to the cli. Multiple paths can be defined separated by `os.pathsep`.
-It is processed left to right and if a duplicate distro version is found a warning is
-logged and it is skipped.
-
-Example: `~/development/distros/*/*:/mnt/studio/distros/*`
-
-At a minimum a distro requires this folder structure: `[name]\[version]\.habitat.json`.
-The `[name]` folder is referenced by one of the disto_path globs.
+A recommended released distro folder structure: `[name]\[version]\.habitat.json`.
+The `[name]` folder is referenced by one of the disto_path globs. This makes it easy
+to store multiple versions of the distro. Each glob specified by `HAB_DISTRO_PATHS` will
+automatically have `/*/.habitat.json` added to it, so the `.habitat.json` file should
+be in the root of a version folder. The root of the version folder is likely the root of
+a git repo.
 
 Example .habitat.json:
 ```json
@@ -145,9 +167,11 @@ Example project_a_thug_animation.json:
 }
 ```
 
+This config would have the URI `project_a/Thug/Animation`.
+
 #### Config Inheritance
 
-When resolving a URI it will find the closest exact match, so if `:project_a:Thug` is
+When resolving a URI it will find the closest exact match, so if `project_a/Thug` is
 passed but Thug does not have a config, its parent project_a is used. If there is no
 config for project_a, the default config will be used.
 
@@ -246,7 +270,7 @@ This quote from the Rez documentation explains why:
 
 If required, you can create OS specific environment variable definitions. To do this,
 you nest the above structure into a dictionary with the correct `windows` or `linux`
-key. You have to add a extra key `os_specific` set to True to indicate that you are
+key. You have to add a extra key `os_specific` set to `true` to indicate that you are
 using os specific configurations. 
 
 ```json
@@ -313,21 +337,17 @@ plugin requires, and other distros that it depends on.
 
 # Future Plans
 
-I need to add support for ~ and using environment variables for the config/distro paths.
-
-I need to properly support developer override. Currently if the same context is defined
-a error is raised. This should be changed to a log message and only the first found is
-used. We may want to raise a error if more than one matching context is found inside the
-same glob string.
-
-I plan to setup pkg_resource plugin interfaces that will allow us to customize how
+* Support per-alias environment variable manipulation. This will allow us to prepend to
+PATH if required per-dcc. Ie only add `C:\Program Files\Chaos Group\V-Ray\3ds Max 2019\bin`
+to PATH, if and only if using launching 3ds Max.
+* I need to add support for `~` and using environment variables for the
+`HAB_DISTRO_PATHS` and `HAB_CONFIG_PATHS`.
+* I plan to setup pkg_resource plugin interfaces that will allow us to customize how
 configurations are defined. This will allow us to define the configurations using the
 database not json files on the network. But we can still use json files to define
 offsite/offline workflows.
-
-I'm thinking of making it so a config can define overrides for distro requirements.
-
-Update the HabitatBase.dump to show the nice requires list for distros. They show the
+* I'm thinking of making it so a config can define overrides for distro requirements.
+* Update the HabitatBase.dump to show the nice requires list for distros. They show the
 same info, but requires is readable and distros is not. The api needs the contents of
 distros. They show the same info so its not worth showing both of them.
 
