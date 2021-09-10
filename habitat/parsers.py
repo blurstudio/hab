@@ -409,6 +409,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def _load(self, filename):
         """Sets self.filename and parses the json file returning the data."""
         self.filename = filename
+        logger.debug('Loading "{}"'.format(filename))
         with open(filename, "r") as fle:
             try:
                 data = json.load(fle)
@@ -669,7 +670,9 @@ class Application(HabitatBase):
             specifier = specification
         else:
             specifier = Requirement(specification).specifier
-        return specifier.filter(self.versions.keys())
+        return specifier.filter(
+            self.versions.keys(), prereleases=self.resolver.prereleases
+        )
 
     @property
     def versions(self):
@@ -718,7 +721,9 @@ class ApplicationVersion(HabitatBase):
                 from setuptools_scm import get_version
 
                 try:
-                    self.version = get_version(root=self.dirname)
+                    self.version = get_version(
+                        root=self.dirname, version_scheme="release-branch-semver"
+                    )
                 except LookupError:
                     raise LookupError(
                         'Habitat was unable to determine the version for "{filename}".\n'

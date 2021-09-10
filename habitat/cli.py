@@ -18,6 +18,7 @@ class SharedSettings(object):
         verbosity=0,
         file_config=None,
         file_launch=None,
+        pre=False,
     ):
         self.verbosity = verbosity
         self.file_config = os.path.abspath(file_config or ".")
@@ -25,11 +26,14 @@ class SharedSettings(object):
         self.config_paths = configs
         self.distro_paths = distros
         self._resolver = None
+        self.prereleases = pre
 
     @property
     def resolver(self):
         if self._resolver is None:
-            self._resolver = Resolver(self.config_paths, self.distro_paths)
+            self._resolver = Resolver(
+                self.config_paths, self.distro_paths, prereleases=self.prereleases
+            )
         return self._resolver
 
 
@@ -68,9 +72,14 @@ class SharedSettings(object):
     type=click.Path(dir_okay=False, resolve_path=False),
     help="This file will contain the shell specific launching command to call file-config.",
 )
+@click.option(
+    "--pre/--no-pre",
+    default=True,
+    help="Include pre-releases when finding the latest distro version.",
+)
 @click.pass_context
-def cli(ctx, configs, distros, verbosity, file_config, file_launch):
-    ctx.obj = SharedSettings(configs, distros, verbosity, file_config, file_launch)
+def cli(ctx, configs, distros, verbosity, file_config, file_launch, pre):
+    ctx.obj = SharedSettings(configs, distros, verbosity, file_config, file_launch, pre)
     if verbosity > 2:
         verbosity = 2
     level = [logging.WARNING, logging.INFO, logging.DEBUG][verbosity]

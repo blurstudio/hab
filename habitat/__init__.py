@@ -13,14 +13,19 @@ logger = logging.getLogger(__name__)
 
 
 class Resolver(object):
-    """
-    Configs: A configuration of requested environment setups. Can cover multiple contexts
-    Context: A string or list that is used to choose the config's to use.
-    Config: Configs reduced to just the configs that match the context and flattened
-        into a single simplified config.
+    """Used to resolve a habitat environment setup and apply it to the current environment.
+
+    Args:
+        config_paths (list, optional): List of glob paths where configs are discovered.
+            If not provided the `HAB_CONFIG_PATHS` environment variable is used.
+        distro_paths (list, optional): List of glob paths where distros are discovered.
+            If not provided the `HAB_DISTRO_PATHS` environment variable is used.
+        prereleases (bool, optional): When resolving distro versions, should
+            pre-releases be included in the latest version.
     """
 
-    def __init__(self, config_paths=None, distro_paths=None):
+    def __init__(self, config_paths=None, distro_paths=None, prereleases=False):
+        self.prereleases = prereleases
         self.config_paths = (
             config_paths
             if config_paths
