@@ -36,6 +36,19 @@ class SharedSettings(object):
             )
         return self._resolver
 
+    def write_script(self, uri, launch_script=False, launch=None, exit=False):
+        """Generate the script the calling shell scripts expect to setup the environment"""
+        logger.info("Context: {}".format(uri))
+        logger.debug("Script: {}".format(self.file_config))
+
+        file_launch = None
+        if launch_script:
+            file_launch = self.file_launch
+            logger.debug("Launch script: {}".format(file_launch))
+
+        ret = self.resolver.resolve(uri)
+        ret.write_script(self.file_config, file_launch, launch=launch, exit=exit)
+
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option(
@@ -88,14 +101,16 @@ def cli(ctx, configs, distros, verbosity, file_config, file_launch, pre):
 
 @cli.command()
 @click.argument("uri")
+@click.option(
+    "-l",
+    "--launch",
+    default=None,
+    help="Run this alias after activating. This leaves the new shell active.",
+)
 @click.pass_obj
-def env(settings, uri):
+def env(settings, uri, launch):
     """Configures and launches a new shell with the resolved setup."""
-    logger.info("Context: {}".format(uri))
-    logger.debug("Script: {}".format(settings.file_config))
-    ret = settings.resolver.resolve(uri)
-
-    ret.write_script(settings.file_config, settings.file_launch)
+    settings.write_script(uri, launch_script=True, launch=launch)
 
 
 @cli.command()
@@ -144,17 +159,28 @@ def dump(settings, uri, env, env_config, report_type, flat):
 
 @cli.command()
 @click.argument("uri")
+@click.option(
+    "-l",
+    "--launch",
+    default=None,
+    help="Run this alias after activating. This leaves the new shell activated.",
+)
 @click.pass_obj
-def activate(settings, uri):
+def activate(settings, uri, launch):
     """Resolves the setup and updates in the current shell.
 
     In powershell and bash you must use the source dot: ". hab activate ..."
     """
-    logger.info("Context: {}".format(uri))
-    logger.debug("Script: {}".format(settings.file_config))
-    ret = settings.resolver.resolve(uri)
+    settings.write_script(uri, launch=launch)
 
-    ret.write_script(settings.file_config)
+
+@cli.command()
+@click.argument("uri")
+@click.argument("alias")
+@click.pass_obj
+def launch(settings, uri, alias):
+    """Configure and launch an alias without modifying the current shell."""
+    settings.write_script(uri, launch_script=True, launch=alias, exit=True)
 
 
 if __name__ == "__main__":

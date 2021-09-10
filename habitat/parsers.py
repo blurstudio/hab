@@ -528,6 +528,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret["prefix"] = "@ECHO OFF\n"
             ret["prompt"] = 'set "PROMPT=[{uri}] $P$G"\n'
             ret["launch"] = 'cmd.exe /k "{path}"\n'
+            # You can't directly call a doskey alias in a batch script
+            ret["run_alias"] = '"{value}"\n'
         elif ext == ".ps1":
             ret["alias_setter"] = "function {key}() {{ {value} $args }}\n"
             ret["comment"] = "# "
@@ -539,6 +541,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret[
                 "launch"
             ] = 'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{path}"\n'
+            # Simply call the alias
+            ret["run_alias"] = "{key}\n"
         elif ext in (".sh", ""):  # Assume no ext is a .sh file
             ret[
                 "alias_setter"
@@ -549,6 +553,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             # For now just tack the habitat uri onto the prompt
             ret["prompt"] = 'export PS1="[{uri}] $PS1"\n'
             ret["launch"] = "bash --init-file {path}\n"
+            # Simply call the alias
+            ret["run_alias"] = "{key}\n"
 
         return ret
 
@@ -606,7 +612,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             version = Version(version)
         self._version = version
 
-    def write_script(self, config_script, launch_script=None):
+    def write_script(self, config_script, launch_script=None, launch=None, exit=False):
         """Write the configuration to a script file to be run by terminal."""
         _, ext = os.path.splitext(config_script)
         shell = self.shell_formats(ext)
@@ -640,6 +646,20 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                             key=alias, value=self.shell_escape(ext, self.aliases[alias])
                         )
                     )
+
+            # If launch was passed, call the requested command at the end of the script
+            if launch:
+                launch_info = dict(key=launch, value=self.aliases.get(launch, ""))
+                fle.write("\n")
+                fle.write("{}Run the requested command\n".format(shell["comment"]))
+                fle.write(shell["run_alias"].format(**launch_info))
+
+            # When using `hab launch`, we need to exit the shell that launch_script is
+            # going to create when the alias exits.
+            if exit and launch_script:
+                fle.write("\n")
+                fle.write("{}\n".format(shell.get("exit", "exit")))
+
             if shell["postfix"]:
                 fle.write(shell["postfix"])
 
