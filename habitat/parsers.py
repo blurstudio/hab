@@ -79,7 +79,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     # A instance of this class is used to build a parent anytree item if no
     # configuration was processed yet to fill in that node. This is set to the
     # Placeholder class after it is defined below. This allows the
-    # ApplicationVersion class to use Application as its placeholder
+    # DistroVersion class to use Distro as its placeholder
     _placeholder = None
 
     def __init__(self, forest, resolver, filename=None, parent=None, root_paths=None):
@@ -259,7 +259,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def distros(self, distros):
         # Ensure the contents are converted to Requirement objects
         if distros:
-            # Applications can define distros as lists, convert to a dict
+            # Distros can define distros as lists, convert to a dict
             if isinstance(distros, list):
                 distros = {k: None for k in distros}
 
@@ -669,7 +669,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 fle.write(shell["launch"].format(path=paths[0]))
 
 
-class Application(HabitatBase):
+class Distro(HabitatBase):
     def latest_version(self, specifier):
         """Returns the newest version available matching the specifier"""
         versions = self.matching_versions(specifier)
@@ -696,16 +696,16 @@ class Application(HabitatBase):
 
     @property
     def versions(self):
-        """A dict of available application versions"""
+        """A dict of available distro versions"""
         return {c.version: c for c in self.children}
 
 
-class ApplicationVersion(HabitatBase):
+class DistroVersion(HabitatBase):
     _context_method = "name"
-    _placeholder = Application
+    _placeholder = Distro
 
     def _init_variables(self):
-        super(ApplicationVersion, self)._init_variables()
+        super(DistroVersion, self)._init_variables()
         self.aliases = NotSet
 
     @HabitatProperty
@@ -717,7 +717,7 @@ class ApplicationVersion(HabitatBase):
         self._aliases = aliases
 
     def load(self, filename):
-        # Fill in the ApplicationVersion specific settings before calling super
+        # Fill in the DistroVersion specific settings before calling super
         data = self._load(filename)
         self.aliases = data.get("aliases", NotSet)
 
@@ -759,16 +759,16 @@ class ApplicationVersion(HabitatBase):
                     )
 
         # The name should be the version == specifier.
-        self.application_name = data.get("name")
-        self.name = u"{}=={}".format(self.application_name, self.version)
+        self.distro_name = data.get("name")
+        self.name = u"{}=={}".format(self.distro_name, self.version)
 
-        data = super(ApplicationVersion, self).load(filename, data=data)
+        data = super(DistroVersion, self).load(filename, data=data)
 
         return data
 
     @HabitatProperty
     def version(self):
-        return super(ApplicationVersion, self).version
+        return super(DistroVersion, self).version
 
     @version.setter
     def version(self, version):

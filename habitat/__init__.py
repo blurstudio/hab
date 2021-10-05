@@ -3,7 +3,7 @@ import anytree
 import glob
 import logging
 import os
-from .parsers import Config, HabitatBase, ApplicationVersion
+from .parsers import Config, HabitatBase, DistroVersion
 from .solvers import Solver
 from packaging.requirements import Requirement
 from future.utils import string_types
@@ -151,7 +151,7 @@ class Resolver(object):
         return "\n".join(ret)
 
     def find_distro(self, requirement):
-        """Returns the ApplicationVersion matching the requirement or None"""
+        """Returns the DistroVersion matching the requirement or None"""
         if not isinstance(requirement, Requirement):
             requirement = Requirement(requirement)
 
@@ -172,7 +172,7 @@ class Resolver(object):
             forest = {}
         for dirname in distro_paths:
             for path in sorted(glob.glob(os.path.join(dirname, "*", ".habitat.json"))):
-                ApplicationVersion(forest, self, path, root_paths=set((dirname,)))
+                DistroVersion(forest, self, path, root_paths=set((dirname,)))
         return forest
 
     def resolve(self, uri):

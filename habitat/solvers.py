@@ -61,7 +61,7 @@ class Solver(object):
             requirements (list): The requirements to process and store in resolved.
             resolved (dict): This dictionary is used to store the final resolved
                 requirements matching the requested requirements.
-            processed (set, optional): A set of `habitat.parsers.ApplicationVersion`
+            processed (set, optional): A set of `habitat.parsers.DistroVersion`
                 objects that have already been resolved. This prevents re-processing
                 the same version over and over.
 
@@ -98,10 +98,8 @@ class Solver(object):
                 # Check if updated requirements have forced us to re-evaluate
                 # our requirements.
                 for v in processed:
-                    if v.application_name == version.application_name:
-                        invalid = Requirement(
-                            "{}!={}".format(v.application_name, v.version)
-                        )
+                    if v.distro_name == version.distro_name:
+                        invalid = Requirement("{}!={}".format(v.distro_name, v.version))
                         self._append_requirement(self.invalid, invalid)
                         raise ValueError(
                             "Removing invalid version {}".format(version.name)
@@ -119,7 +117,7 @@ class Solver(object):
             requirements (list): The requirements to process and store in resolved.
             resolved (dict): This dictionary is used to store the final resolved
                 requirements matching the requested requirements.
-            processed (set, optional): A set of `habitat.parsers.ApplicationVersion`
+            processed (set, optional): A set of `habitat.parsers.DistroVersion`
                 objects that have already been resolved. This prevents re-processing
                 the same version over and over.
 

@@ -77,8 +77,9 @@ distro version in a git repo.
 
 ### Distro
 
-A distro defines a application or plugin that has multiple versions. It is mostly used
-to define aliases and environment variables. It can also define additional requirements.
+A distro defines a application, distribution or plugin that has multiple versions. It
+is mostly used to define aliases and environment variables. It can also define
+additional requirements.
 
 A recommended released distro folder structure: `[name]\[version]\.habitat.json`.
 The `[name]` folder is referenced by one of the disto_path globs. This makes it easy
@@ -294,7 +295,7 @@ using os specific configurations.
 
 The `distos` key in distro and config definitions is used to define the distro version
 requirements. When a config is processed the distro requirements are evaluated recursively
-to include the requirements of the latest ApplicationVersion matching the specifier.
+to include the requirements of the latest DistroVersion matching the specifier.
 This uses the python packaging module to resolve version specifiers so you can use the
 same configuration syntax you would use in a pip requirements file.
 
@@ -369,7 +370,7 @@ so suggestions are welcome.
 * **forest:** A dictionary map of Configs or Distros. These are stored on Resolver._configs and Resolver._distros.
 * **HabitatBase.context:** The resolved URI parents of the current HabitatBase object. This does not include the name of the object, just its parents. `project_a/Sc001` would resolve into context: `["project_a"]` and name: `"Sc001"`.
 * **HabitatBase.distros:** A map of `packaging.requirements.Requirement` objects defining what distros to load
-* **HabitatBase.environment:** The final resolved set of environment variables that this config should load or application should add to the config.
+* **HabitatBase.environment:** The final resolved set of environment variables that this config should load or distro should add to the config.
 * **HabitatBase.environment_config:** A dict of instructions for how to build environment variables. If a value should be prepended or appended or set. environment is build from these sets of instructions.
 * **HabitatBase.format_environment_value:** Uses str.format with a built set of kwargs to fill in. For example, replaces {dot} with HabitatBase.dirname replicating `.` in file paths. Also used on aliases.
 * **HabitatBase.name:** The name of the config or distro.
@@ -378,9 +379,9 @@ so suggestions are welcome.
 * **HabitatBase.uri:** The URI a config is for.
 * **HabitatBase.write_script:** Writes a config and optionally a launcher script to configure a terminal to match the resolved configuration.
 * **HabitatBase.alias:** The name of a alias to create in the terminal and the command to associate with the terminal.
-* **Application: Subclass of HabitatBase:** The container for ApplicationVersion objects. One per DCC or plugin exists in the distro forest. This probably should be renamed to Distro.
-* **ApplicationVersion: Subclass of HabitatBase:** A specific version of the given application, its requirements, aliases, and environment variables. This probably should be renamed to DistroVersion.
-* **Config: Subclass of HabitatBase:** All configs are resolved into these objects. The configuration for a given URI that defines what environment variables and Applications need to be loaded if this config is chosen.
+* **Distro: Subclass of HabitatBase:** The container for DistroVersion objects. One per DCC or plugin exists in the distro forest.
+* **DistroVersion: Subclass of HabitatBase:** A specific version of the given distro, its requirements, aliases, and environment variables.
+* **Config: Subclass of HabitatBase:** All configs are resolved into these objects. The configuration for a given URI that defines what environment variables and distros need to be loaded if this config is chosen.
 * **FlatConfig: Subclass of Config:** A fully resolved and flattened Config object. Any values NotSet on the Config this is built from, are attempted to be set from the parents of that Config. If still not found, it will attempt to find the value from a matching config on the Default tree instead.
 * **Placeholder: Subclass of HabitatBase:** Used as the parent of a config if no parent config was found.
 * **hab env:** Creates a new terminal in an existing terminal with all environment variables, aliases and the prompt configured. You can exit the terminal to get back to the previous settings.

@@ -1,6 +1,6 @@
 import anytree
 from habitat.errors import DuplicateJsonError
-from habitat.parsers import ApplicationVersion, Config, NotSet
+from habitat.parsers import DistroVersion, Config, NotSet
 import json
 import os
 from packaging.version import Version
@@ -10,10 +10,10 @@ import sys
 from tabulate import tabulate
 
 
-def test_application_parse(config_root, resolver):
-    """Check that a application json can be parsed correctly"""
+def test_distro_parse(config_root, resolver):
+    """Check that a distro json can be parsed correctly"""
     forest = {}
-    app = ApplicationVersion(forest, resolver)
+    app = DistroVersion(forest, resolver)
     path = os.path.join(
         config_root, "distros", "all_settings", "0.1.0.dev1", ".habitat.json"
     )
@@ -29,37 +29,37 @@ def test_application_parse(config_root, resolver):
 
     # Verify that if the json file doesn't have "version" defined it uses the
     # parent directory as its version.
-    app = ApplicationVersion(forest, resolver)
+    app = DistroVersion(forest, resolver)
     path = os.path.join(config_root, "distros", "maya", "2020.0", ".habitat.json")
     app.load(path)
     check = json.load(open(path))
 
     # tests\distros\maya\2020.0\.habitat.json does not have "version"
-    # defined. This allows us to test that ApplicationVersion will pull the
+    # defined. This allows us to test that DistroVersion will pull the
     # version number from the parent directory not the json file.
     assert "version" not in check
     assert app.version == Version("2020.0")
 
 
-def test_application_version_resolve(config_root, resolver, helpers):
-    """Check the various methods for ApplicationVersion.version to be populated."""
+def test_distro_version_resolve(config_root, resolver, helpers):
+    """Check the various methods for DistroVersion.version to be populated."""
 
     # Test that `.habitat_version.txt` is respected if it exists.
     forest = {}
-    app = ApplicationVersion(forest, resolver)
+    app = DistroVersion(forest, resolver)
     path = os.path.join(config_root, "distros_version", "txt_file", ".habitat.json")
     app.load(path)
     assert app.version == Version("1.7")
 
     # Test that an error is raised if the version could not be determined
     path = os.path.join(config_root, "distros_version", "not_scm", ".habitat.json")
-    app = ApplicationVersion(forest, resolver)
+    app = DistroVersion(forest, resolver)
     with pytest.raises(LookupError) as excinfo:
         app.load(path)
     assert str(excinfo.value).startswith("Habitat was unable to determine")
 
     # Test that setuptools_scm is able to resolve the version.
-    app = ApplicationVersion(forest, resolver)
+    app = DistroVersion(forest, resolver)
     with helpers.reset_environ():
         # This env var forces setuptools_scm to this version so we don't have to
         # create a git repo to test that get_version is called correctly.
@@ -68,7 +68,7 @@ def test_application_version_resolve(config_root, resolver, helpers):
     assert app.version == Version("1.9")
 
 
-def test_application_version(resolver):
+def test_distro_version(resolver):
     """Verify that we find the expected version for a given requirement."""
     maya = resolver.distros["maya2020"]
 
@@ -172,7 +172,7 @@ def test_config_parenting(config_root, resolver):
 
 
 def test_metaclass():
-    assert ApplicationVersion._properties == set(
+    assert DistroVersion._properties == set(
         ["name", "environment_config", "requires", "aliases", "distros", "version"]
     )
     assert Config._properties == set(
