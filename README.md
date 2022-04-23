@@ -95,7 +95,7 @@ Example .habitat.json:
     "version": "2020.1",
     "environment": {
         "append": {
-            "MAYA_MODULE_PATH": "{dot}"
+            "MAYA_MODULE_PATH": "{relative_root}"
         }
     },
     "aliases": {
@@ -194,7 +194,7 @@ use `default`.
 The configuration environment variables and aliases can be formatted using str.format syntax.
 
 Currently supported variables:
-* `{dot}`: The directory name of the .json config file. Think of this as the relative path
+* `{relative_root}`: The directory name of the .json config file. Think of this as the relative path
 `.` when using the command line, but this is a clear indication that it needs to be
 replaced with the dirname and not left alone.
 
@@ -231,10 +231,10 @@ to the resolved environment. This is stored in `HabitatBase.environment_config`.
             "UNSET_VARIABLE"
         ], 
         "set": {
-            "MAYA_MODULE_PATH": "{dot}"
+            "MAYA_MODULE_PATH": "{relative_root}"
         }, 
         "append": {
-            "MAYA_MODULE_PATH": "{dot}/append",
+            "MAYA_MODULE_PATH": "{relative_root}/append",
         }, 
         "prepend": {
             "MAYA_MODULE_PATH": "prepend_value"
@@ -372,7 +372,7 @@ so suggestions are welcome.
 * **HabitatBase.distros:** A map of `packaging.requirements.Requirement` objects defining what distros to load
 * **HabitatBase.environment:** The final resolved set of environment variables that this config should load or distro should add to the config.
 * **HabitatBase.environment_config:** A dict of instructions for how to build environment variables. If a value should be prepended or appended or set. environment is build from these sets of instructions.
-* **HabitatBase.format_environment_value:** Uses str.format with a built set of kwargs to fill in. For example, replaces {dot} with HabitatBase.dirname replicating `.` in file paths. Also used on aliases.
+* **HabitatBase.format_environment_value:** Uses str.format with a built set of kwargs to fill in. For example, replaces {relative_root} with HabitatBase.dirname replicating `.` in file paths. Also used on aliases.
 * **HabitatBase.name:** The name of the config or distro.
 * **HabitatBase.reduced:** Turns a Config instance into a FlatConfig that is fully resolved including any inherited values from higher in the config.
 * **HabitatBase.requires:** A simple string list of the resolved requirements this config requires.

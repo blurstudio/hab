@@ -248,12 +248,12 @@ def test_environment(resolver):
     assert cfg.environment["MAYA_MODULE_PATH"] == "MMP_Set"
     assert cfg.environment["PREPEND_VARIABLE"] == "prepend_value"
 
-    check = "{dot}/prepend{pathsep}{dot}/set{pathsep}{dot}/append".format(
-        dot=cfg.dirname.replace("\\", "/"), pathsep=os.path.pathsep
+    check = "{relative_root}/prepend{pathsep}{relative_root}/set{pathsep}{relative_root}/append".format(
+        relative_root=cfg.dirname.replace("\\", "/"), pathsep=os.path.pathsep
     )
     assert cfg.environment["RELATIVE_VARIABLE"] == check
-    assert cfg.environment["SET_RELATIVE"] == "{dot}".format(
-        dot=cfg.dirname.replace("\\", "/")
+    assert cfg.environment["SET_RELATIVE"] == "{relative_root}".format(
+        relative_root=cfg.dirname.replace("\\", "/")
     )
     assert cfg.environment["SET_VARIABLE"] == "set_value"
     assert cfg.environment["UNSET_VARIABLE"] == ""
@@ -326,7 +326,7 @@ def test_write_script_bat(resolver, tmpdir):
 
     assert 'set "PROMPT=[not_set/child] $P$G"' in config_text
     assert 'set "TEST=case"' in config_text
-    assert r'doskey maya="{}" $*'.format(alias) in config_text
+    assert r'C:\Windows\System32\doskey.exe maya="{}" $*'.format(alias) in config_text
 
 
 def test_write_script_ps1(resolver, tmpdir):

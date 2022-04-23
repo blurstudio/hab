@@ -247,7 +247,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     @property
     def dirname(self):
         """The directory name of `self.filename`. This value is used to by
-        `self.format_environment_value` to fill the "dot" variable.
+        `self.format_environment_value` to fill the "relative_root" variable.
         """
         return self._dirname
 
@@ -394,13 +394,13 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             value (str): The string to format
 
         Format Keys:
-            dot: Add the dirname of self.filename or a empty string. Equivalent
+            relative_root: Add the dirname of self.filename or a empty string. Equivalent
                 of using the `.` object for file paths. This removes the
                 ambiguity of if a `.` should be treated as a relative file path
-                or a literal dot. Houdini doesn't support the native slash direction
-                on windows, so backslashes are replaced with forward slashes.
+                or a literal relative_root. Houdini doesn't support the native slash
+                direction on windows, so backslashes are replaced with forward slashes.
         """
-        return value.format(dot=self.dirname.replace("\\", "/"))
+        return value.format(relative_root=self.dirname.replace("\\", "/"))
 
     @property
     def fullpath(self):
@@ -520,7 +520,9 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             "prefix": "",
         }
         if ext in (".bat", ".cmd"):
-            ret["alias_setter"] = 'C:\\Windows\\System32\\doskey.exe {key}="{value}" $*\n'
+            ret[
+                "alias_setter"
+            ] = 'C:\\Windows\\System32\\doskey.exe {key}="{value}" $*\n'
             ret["comment"] = "REM "
             ret["env_setter"] = 'set "{key}={value}"\n'
             ret["env_unsetter"] = 'set "{key}="\n'
