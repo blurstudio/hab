@@ -1,7 +1,7 @@
 from __future__ import print_function
 import anytree
 import distutils.spawn
-from .errors import DuplicateJsonError
+from .errors import DuplicateJsonError, _IgnoredVersionError
 from future.utils import with_metaclass
 import json
 import logging
@@ -520,7 +520,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             "prefix": "",
         }
         if ext in (".bat", ".cmd"):
-            ret["alias_setter"] = 'doskey {key}="{value}" $*\n'
+            ret["alias_setter"] = 'C:\\Windows\\System32\\doskey.exe {key}="{value}" $*\n'
             ret["comment"] = "REM "
             ret["env_setter"] = 'set "{key}={value}"\n'
             ret["env_unsetter"] = 'set "{key}="\n'
@@ -745,6 +745,13 @@ class DistroVersion(HabitatBase):
                         root=self.dirname, version_scheme="release-branch-semver"
                     )
                 except LookupError:
+                    if os.path.basename(self.dirname) in self.resolver.ignored:
+                        # This object is not added to the forest until super is called
+                        raise _IgnoredVersionError(
+                            'Skipping "{}" its dirname is in the ignored list.'.format(
+                                filename
+                            )
+                        )
                     raise LookupError(
                         'Habitat was unable to determine the version for "{filename}".\n'
                         "The version is defined in one of several ways checked in this order:\n"

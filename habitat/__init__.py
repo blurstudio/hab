@@ -3,6 +3,7 @@ import anytree
 import glob
 import logging
 import os
+from .errors import _IgnoredVersionError
 from .parsers import Config, HabitatBase, DistroVersion
 from .solvers import Solver
 from packaging.requirements import Requirement
@@ -40,6 +41,8 @@ class Resolver(object):
         logger.debug("distro_paths: {}".format(self.distro_paths))
         self._configs = None
         self._distros = None
+        # TODO: Add a way to customize this in the config
+        self.ignored = ("release", "pre")
 
     def closest_config(self, path, default=False):
         """Returns the most specific leaf or the tree root matching path. Ignoring any
@@ -172,7 +175,10 @@ class Resolver(object):
             forest = {}
         for dirname in distro_paths:
             for path in sorted(glob.glob(os.path.join(dirname, "*", ".habitat.json"))):
-                DistroVersion(forest, self, path, root_paths=set((dirname,)))
+                try:
+                    DistroVersion(forest, self, path, root_paths=set((dirname,)))
+                except _IgnoredVersionError as error:
+                    logger.debug(str(error))
         return forest
 
     def resolve(self, uri):
