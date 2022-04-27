@@ -1,6 +1,5 @@
 from __future__ import print_function
 import anytree
-import distutils.spawn
 from .errors import DuplicateJsonError, _IgnoredVersionError
 from future.utils import with_metaclass
 import json
@@ -263,7 +262,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             if isinstance(distros, list):
                 distros = {k: None for k in distros}
 
-            for d in distros.keys():
+            for d in list(distros.keys()):
                 if not isinstance(d, Requirement):
                     # Replace the existing requirement string with a requirement object
                     distros[Requirement(d)] = distros[d]
@@ -400,7 +399,11 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 or a literal relative_root. Houdini doesn't support the native slash
                 direction on windows, so backslashes are replaced with forward slashes.
         """
-        return value.format(relative_root=self.dirname.replace("\\", "/"))
+        kwargs = dict(relative_root=self.dirname.replace("\\", "/"))
+        if isinstance(value, list):
+            # Format the individual items if a list of args is used.
+            return [v.format(**kwargs) for v in value]
+        return value.format(**kwargs)
 
     @property
     def fullpath(self):
@@ -487,30 +490,22 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def shell_escape(cls, ext, value):
         """Apply any shell specific formatting like escape characters."""
         if ext == ".ps1":
-            return value.replace(" ", "` ")
+            if isinstance(value, list):
+                value = ' '.join([v.replace(" ", "` ") for v in value])
+            else:
+                return value.replace(" ", "` ")
         if ext in (".sh", ""):
-            return value.replace(" ", "\\ ")
+            # wrapping items in quotes takes care of escaping file paths
+            if isinstance(value, list):
+                value = subprocess.list2cmdline(value)
+            else:
+                return '"{}"'.format(value)
+        if ext in (".bat", ".cmd"):
+            if isinstance(value, list):
+                value = subprocess.list2cmdline(value)
+            else:
+                return '"{}"'.format(value)
         return value
-
-    @classmethod
-    def cygpath(cls, paths):
-        """Convert file paths from windows to cygwin/mingw file paths.
-        If on win32 and can find the cygpath exe, calls it with subprocess to convert
-        the provided paths to work in cygwin.
-
-        Args:
-            paths (list): A list of windows file paths to convert to unix paths.
-
-        Returns:
-            list: The possibly converted file paths.
-        """
-        if paths:
-            if sys.platform == "win32" and distutils.spawn.find_executable("cygpath"):
-                cmd = ["cygpath", "-ua"]
-                cmd.extend(paths)
-                paths = subprocess.check_output(cmd).decode()
-                return paths.split("\n")
-        return paths
 
     @classmethod
     def shell_formats(cls, ext):
@@ -520,9 +515,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             "prefix": "",
         }
         if ext in (".bat", ".cmd"):
-            ret[
-                "alias_setter"
-            ] = 'C:\\Windows\\System32\\doskey.exe {key}="{value}" $*\n'
+            ret["alias_setter"] = 'C:\\Windows\\System32\\doskey.exe {key}={value} $*\n'
             ret["comment"] = "REM "
             ret["env_setter"] = 'set "{key}={value}"\n'
             ret["env_unsetter"] = 'set "{key}="\n'
@@ -554,7 +547,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret["env_unsetter"] = "unset {key}\n"
             # For now just tack the habitat uri onto the prompt
             ret["prompt"] = 'export PS1="[{uri}] $PS1"\n'
-            ret["launch"] = "bash --init-file {path}\n"
+            ret["launch"] = 'bash --init-file "{path}"\n'
             # Simply call the alias
             ret["run_alias"] = "{key}\n"
 
@@ -667,8 +660,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
         if launch_script:
             with open(launch_script, "w") as fle:
-                paths = self.cygpath([config_script])
-                fle.write(shell["launch"].format(path=paths[0]))
+                fle.write(shell["launch"].format(path=config_script))
 
 
 class Distro(HabitatBase):
@@ -854,11 +846,8 @@ class FlatConfig(Config):
         ret = {}
         for version in self.versions:
             if version.aliases:
-                # cygpath currently requires a subprocess call, but we can pass multiple
-                # paths to it to process all of them at once. If using windows and
-                # cygpath is found, use it to translate the paths so they work
                 aliases_def = version.aliases.get(self._platform, [])
-                aliases = self.cygpath([a[1] for a in aliases_def])
+                aliases = [a[1] for a in aliases_def]
 
                 for i, alias in enumerate(aliases_def):
                     ret[alias[0]] = version.format_environment_value(aliases[i])

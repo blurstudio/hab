@@ -5,7 +5,15 @@
     "aliases": {
         "windows": [
             ["maya", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"],
-            ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"]
+            ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"],
+            [
+                "pip",
+                [
+                    "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe",
+                    "-m",
+                    "pip"
+                ]
+            ]
         ],
         "linux": [
             ["maya", "/usr/local/bin/maya"]

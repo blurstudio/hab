@@ -318,15 +318,22 @@ def test_write_script_bat(resolver, tmpdir):
     launch_text = open(str(file_launch)).read()
 
     # Ensure this test passes if run with cygwin or command prompt/powershell on windows
-    alias = cfg.cygpath([r"C:\Program Files\Autodesk\Maya2020\bin\maya.exe"])[0]
-    file_config = cfg.cygpath([str(file_config)])[0]
-    file_launch = cfg.cygpath([str(file_launch)])[0]
+    alias = "C:\\Program Files\\Autodesk\\Maya2020\\bin"
 
     assert 'cmd.exe /k "{}"\n'.format(file_config) == launch_text
 
     assert 'set "PROMPT=[not_set/child] $P$G"' in config_text
     assert 'set "TEST=case"' in config_text
-    assert r'C:\Windows\System32\doskey.exe maya="{}" $*'.format(alias) in config_text
+    # Check that simple aliases are generated
+    assert (
+        r'C:\Windows\System32\doskey.exe maya="{}\maya.exe" $*'.format(alias)
+        in config_text
+    )
+    # Check that list aliases are generated
+    assert (
+        r'C:\Windows\System32\doskey.exe pip="{}\mayapy.exe" -m pip $*'.format(alias)
+        in config_text
+    )
 
 
 def test_write_script_ps1(resolver, tmpdir):
@@ -341,10 +348,8 @@ def test_write_script_ps1(resolver, tmpdir):
     launch_text = open(str(file_launch)).read()
 
     # Ensure this test passes if run with cygwin or command prompt/powershell on windows
-    alias = cfg.cygpath([r"C:\Program Files\Autodesk\Maya2020\bin\maya.exe"])[0]
+    alias = "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"
     alias = cfg.shell_escape(".ps1", alias)
-    file_config = cfg.cygpath([str(file_config)])[0]
-    file_launch = cfg.cygpath([str(file_launch)])[0]
 
     assert (
         'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{}"\n'.format(
@@ -354,7 +359,11 @@ def test_write_script_ps1(resolver, tmpdir):
     )
     assert "function PROMPT {'[not_set/child] ' + $(Get-Location) + '>'}" in config_text
     assert '$env:TEST = "case"' in config_text
+    # Check that simple aliases are generated
     assert r"function maya() {{ {} $args }}".format(alias) in config_text
+    # Check that list aliases are generated
+    alias = os.path.join(os.path.dirname(alias), "mayapy.exe")
+    assert r"function pip() {{ {} -m pip $args }}".format(alias) in config_text
 
 
 def test_write_script_sh(resolver, tmpdir):
@@ -366,16 +375,15 @@ def test_write_script_sh(resolver, tmpdir):
     config_text = open(str(file_config)).read()
     launch_text = open(str(file_launch)).read()
 
-    # Ensure this test passes if run with cygwin or command prompt/powershell on windows
-    file_config = cfg.cygpath([str(file_config)])[0]
-    file_launch = cfg.cygpath([str(file_launch)])[0]
-
-    assert "bash --init-file {}\n".format(file_config) == launch_text
+    assert 'bash --init-file "{}"\n'.format(file_config) == launch_text
     assert 'export PS1="[not_set/child] $PS1"' in config_text
     assert 'export TEST="case"' in config_text
-    # Check that aliases were defined
+    # Check that simple aliases are generated
     assert r"function maya() {" in config_text
     assert r' "$@"; };export -f maya;' in config_text
+    # Check that list aliases are generated
+    assert r'function pip() { "' in config_text
+    assert r'" -m pip "$@"; };export -f pip;' in config_text
 
 
 @pytest.mark.parametrize(
