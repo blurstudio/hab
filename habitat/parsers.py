@@ -36,25 +36,53 @@ class NotSet(object):
 NotSet = NotSet()
 
 
-class HabitatProperty(property):
+class _HabitatProperty(property):
     """The @property decorator that can be type checked by the `HabitatMeta` metaclass
 
     Any properties using this decorator will have their name added to `_properties`.
+    Don't use this class directly, use the habitat_property decorator instead.
     """
+
+    def __init__(self, *args, **kwargs):
+        super(_HabitatProperty, self).__init__(*args, **kwargs)
+        # Copy from the class, and store it on the instance. This makes it so we
+        # can use isinstance checks against this class.
+        cls = type(self)
+        self.group = cls.group
+        self.verbosity = cls.verbosity
+
+
+def habitat_property(verbosity=0, group=1):
+    """Decorate this function as a property and configure how it shows up in the dump.
+
+    Args:
+        verbosity (int, optional): Specify the minimum verbosity required to show.
+        group (int, optional): Controls how dump sorts the results. The sort uses
+            (group, name) as its sort key, so common group values are sorted
+            alphabetically. This should rarely be used and only 0 or 1 should be used
+            to reduce the complexity of finding the property you are looking for.
+    """
+    # Store the requested values to the class so __init__ can copy them into its
+    # instance when initialized by the decoration process.
+    _HabitatProperty.group = group
+    _HabitatProperty.verbosity = verbosity
+    return _HabitatProperty
 
 
 class HabitatMeta(type):
-    """Scans for HabitatProperties and adds their name to the `_properties` set."""
+    """Scans for HabitatProperties and adds their name to the `_properties` dict."""
 
     def __new__(cls, name, bases, dct):
-        desc = set()
+        desc = {}
+        # Include any _properties that are added by base classes we are inheriting.
         for base in bases:
             if hasattr(base, "_properties"):
                 desc.update(base._properties)
 
+        # Add any new _properties defined on this class
         for k, v in dct.items():
-            if isinstance(v, HabitatProperty):
-                desc.add(k)
+            if isinstance(v, _HabitatProperty):
+                desc[k] = v
         dct["_properties"] = desc
         return type.__new__(cls, name, bases, dct)
 
@@ -250,7 +278,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """
         return self._dirname
 
-    @HabitatProperty
+    @habitat_property(verbosity=3)
     def distros(self):
         return self._distros
 
@@ -269,7 +297,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                     del distros[d]
         self._distros = distros
 
-    def dump(self, environment=True, environment_config=False):
+    def dump(self, environment=True, environment_config=False, verbosity=0):
         """Return a string of the properties and their values.
 
         Args:
@@ -281,23 +309,34 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """
         ret = []
         # Update what properties are shown in the dump
-        props = set(self._properties)
+        props = self._properties.copy()
         for k, v in (
             ("environment", environment),
             ("environment_config", environment_config),
         ):
-            if v:
-                props.add(k)
-            else:
-                props.discard(k)
+            if not v:
+                del props[k]
 
-        for prop in sorted(props):
+        for prop in sorted(props, key=lambda p: (props[p].group, p)):
+            # Ignore any props with higher verbosity than requested
+            if verbosity < props[prop].verbosity:
+                continue
+
             value = getattr(self, prop)
             # Custom formatting of values for readability
             if value is NotSet:
                 value = "<NotSet>"
             if prop == "versions":
-                value = sorted([v.name for v in value])
+                if verbosity > 2:
+                    # Include the definition of the version's path for debugging
+                    value = [
+                        (v.name, v.filename)
+                        for v in sorted(value, key=lambda i: i.name.lower())
+                    ]
+                    value = tabulate.tabulate(value, tablefmt="plain")
+                else:
+                    value = sorted([v.name for v in value], key=lambda i: i.lower())
+                    value = "\n".join(value)
             if prop == "environment" and value:
                 # Format path environment variables so they are easy to read
                 # and take up more vertical space than horizontal space
@@ -310,6 +349,22 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                         val = " " * len(val)
                     rows.append("{}\n".format(os.pathsep).join(row))
                 value = "\n".join(rows)
+            if prop == "aliases":
+                if verbosity < 3:
+                    value = sorted(value.keys())
+                    rows = []
+                    row = ""
+                    for v in value:
+                        if len(row) > 50:
+                            rows.append(row)
+                            row = ""
+                        if row:
+                            row = ", ".join((row, v))
+                        else:
+                            row = v
+                    if row:
+                        rows.append(row)
+                    value = "\n".join(rows)
 
             if isinstance(value, (list, dict)):
                 # Format long data types into multiple rows for readability
@@ -327,7 +382,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         cls = type(self)
         return "Dump of {}('{}')\n{}".format(cls.__name__, self.fullpath, ret)
 
-    @property
+    @habitat_property(verbosity=2)
     def environment(self):
         """A resolved set of environment variables that should be applied to
         configure an environment. Any values containing a empty string indicate
@@ -342,7 +397,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
         return self._environment
 
-    @HabitatProperty
+    @habitat_property(verbosity=2)
     def environment_config(self):
         """A dictionary of operations to perform on environment variables.
 
@@ -463,7 +518,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
         return data
 
-    @HabitatProperty
+    @habitat_property(verbosity=1, group=0)
     def name(self):
         return self._name
 
@@ -475,7 +530,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """Returns a new instance with the final settings applied respecting inheritance"""
         return FlatConfig(self, resolver, uri=uri)
 
-    @HabitatProperty
+    @habitat_property(verbosity=3)
     def requires(self):
         if self.distros is NotSet:
             return []
@@ -702,7 +757,7 @@ class DistroVersion(HabitatBase):
         super(DistroVersion, self)._init_variables()
         self.aliases = NotSet
 
-    @HabitatProperty
+    @habitat_property()
     def aliases(self):
         return self._aliases
 
@@ -767,7 +822,7 @@ class DistroVersion(HabitatBase):
 
         return data
 
-    @HabitatProperty
+    @habitat_property()
     def version(self):
         return super(DistroVersion, self).version
 
@@ -784,7 +839,7 @@ class Config(HabitatBase):
         super(Config, self)._init_variables()
         self.inherits = NotSet
 
-    @HabitatProperty
+    @habitat_property(verbosity=2)
     def inherits(self):
         return self._inherits
 
@@ -797,7 +852,7 @@ class Config(HabitatBase):
         self.inherits = data.get("inherits", NotSet)
         return data
 
-    @HabitatProperty
+    @habitat_property(verbosity=1, group=0)
     def uri(self):
         # Mark uri as a HabitatProperty so it is included in _properties
         return super(Config, self).uri
@@ -841,7 +896,7 @@ class FlatConfig(Config):
 
         return self._missing_values
 
-    @HabitatProperty
+    @habitat_property()
     def aliases(self):
         ret = {}
         for version in self.versions:
@@ -873,7 +928,7 @@ class FlatConfig(Config):
     def fullpath(self):
         return self.separator.join([name for name in self.context] + [self.name])
 
-    @HabitatProperty
+    @habitat_property(verbosity=1)
     def versions(self):
         if self._distros is NotSet:
             return []

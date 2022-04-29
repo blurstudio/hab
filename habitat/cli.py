@@ -140,7 +140,14 @@ def env(settings, uri, launch):
     default=True,
     help="Flatten the resolved object",
 )
-def dump(settings, uri, env, env_config, report_type, flat):
+@click.option(
+    "-v",
+    "--verbose",
+    "verbosity",
+    count=True,
+    help="Show increasingly detailed output. Can be used up to 3 times.",
+)
+def dump(settings, uri, env, env_config, report_type, flat, verbosity):
     """Resolves and prints the requested setup."""
     logger.info("Context: {}".format(uri))
     if report_type in ("forest", "f"):
@@ -154,7 +161,11 @@ def dump(settings, uri, env, env_config, report_type, flat):
         else:
             ret = settings.resolver.closest_config(uri)
 
-        click.echo(ret.dump(environment=env, environment_config=env_config))
+        click.echo(
+            ret.dump(
+                environment=env, environment_config=env_config, verbosity=verbosity
+            )
+        )
 
 
 @cli.command()

@@ -16,7 +16,15 @@
             ]
         ],
         "linux": [
-            ["maya", "/usr/local/bin/maya"]
+            ["maya", "/usr/local/bin/maya"],
+            [
+                "pip",
+                [
+                    "/usr/local/bin/mayapy",
+                    "-m",
+                    "pip"
+                ]
+            ]
         ]
     }
 }

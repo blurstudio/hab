@@ -2,6 +2,7 @@ import anytree
 from habitat.errors import DuplicateJsonError
 from habitat.parsers import DistroVersion, Config, NotSet
 import json
+import ntpath
 import os
 from packaging.version import Version
 import pytest
@@ -172,24 +173,35 @@ def test_config_parenting(config_root, resolver):
 
 
 def test_metaclass():
-    assert DistroVersion._properties == set(
-        ["name", "environment_config", "requires", "aliases", "distros", "version"]
+    assert set(DistroVersion._properties.keys()) == set(
+        [
+            "aliases",
+            "distros",
+            "environment",
+            "environment_config",
+            "name",
+            "requires",
+            "version",
+        ]
     )
-    assert Config._properties == set(
-        ["name", "environment_config", "requires", "inherits", "distros", "uri"]
+    assert set(Config._properties.keys()) == set(
+        [
+            "distros",
+            "environment",
+            "environment_config",
+            "inherits",
+            "name",
+            "requires",
+            "uri",
+        ]
     )
 
 
 def test_dump(resolver):
     # Build the test data so we can generate the output to check
     # Note: using `repr([u"` so this test passes in python 2 and 3
-    pre = [["distros", "<NotSet>"]]
-    post = [
-        ["inherits", "True"],
-        ["name", "child"],
-        ["requires", []],
-        ["uri", "not_set/child"],
-    ]
+    pre = [["name", "child"], ["uri", "not_set/child"]]
+    post = [["inherits", "True"]]
     env = [["environment", "TEST: case"], ["", "UNSET_VARIABLE:"]]
     if sys.version_info[0] == 2:
         check = "{u'set': {u'TEST': u'case'}, u'unset': [u'UNSET_VARIABLE']}"
@@ -201,19 +213,19 @@ def test_dump(resolver):
     header = "Dump of {}('{}')\n{{}}".format(type(cfg).__name__, cfg.fullpath)
 
     # Check that both environments can be hidden
-    result = cfg.dump(environment=False, environment_config=False)
+    result = cfg.dump(environment=False, environment_config=False, verbosity=2)
     assert result == header.format(tabulate(pre + post))
 
     # Check that both environments can be shown
-    result = cfg.dump(environment=True, environment_config=True)
+    result = cfg.dump(environment=True, environment_config=True, verbosity=2)
     assert result == header.format(tabulate(pre + env + env_config + post))
 
     # Check that only environment can be shown
-    result = cfg.dump(environment=True, environment_config=False)
+    result = cfg.dump(environment=True, environment_config=False, verbosity=2)
     assert result == header.format(tabulate(pre + env + post))
 
     # Check that only environment_config can be shown
-    result = cfg.dump(environment=False, environment_config=True)
+    result = cfg.dump(environment=False, environment_config=True, verbosity=2)
     assert result == header.format(tabulate(pre + env_config + post))
 
 
@@ -221,9 +233,23 @@ def test_dump_flat(resolver):
     """Test additional dump settings for FlatConfig objects"""
     cfg = resolver.resolve("not_set/child")
     # Check that dump formats versions nicely
+    check = re.compile(
+        r'versions\s+(?P<ver>maya2020==2020\.1)\s*(?P<file>[\w:\\.\/-]+\.json)?'
+    )
+    # Versions are not shown with verbosity >= 1
     result = cfg.dump()
-    check = "versions     {!r}".format([u"maya2020==2020.1"])
-    assert check in result
+    assert not check.search(result)
+
+    # Verbosity 2 shows just the version requirement
+    result = cfg.dump(verbosity=2)
+    match = check.search(result)
+    assert match.group('file') is None
+    assert match.group('ver') == u"maya2020==2020.1"
+
+    # Verbosity 3 also shows the json file name
+    result = cfg.dump(verbosity=3)
+    match = check.search(result)
+    assert match.group('file') is not None
 
 
 def test_environment(resolver):
@@ -362,7 +388,7 @@ def test_write_script_ps1(resolver, tmpdir):
     # Check that simple aliases are generated
     assert r"function maya() {{ {} $args }}".format(alias) in config_text
     # Check that list aliases are generated
-    alias = os.path.join(os.path.dirname(alias), "mayapy.exe")
+    alias = ntpath.join(ntpath.dirname(alias), "mayapy.exe")
     assert r"function pip() {{ {} -m pip $args }}".format(alias) in config_text
 
 
@@ -382,8 +408,8 @@ def test_write_script_sh(resolver, tmpdir):
     assert r"function maya() {" in config_text
     assert r' "$@"; };export -f maya;' in config_text
     # Check that list aliases are generated
-    assert r'function pip() { "' in config_text
-    assert r'" -m pip "$@"; };export -f pip;' in config_text
+    assert r'function pip() { ' in config_text
+    assert r' -m pip "$@"; };export -f pip;' in config_text
 
 
 @pytest.mark.parametrize(
