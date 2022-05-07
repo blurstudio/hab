@@ -137,7 +137,6 @@ def test_reduced(resolver):
     cfg = resolver.closest_config("not_set")
     assert_maya_distros(cfg)
     assert cfg.environment_config == NotSet
-    assert cfg.requires == ["maya2020"]
     assert cfg.inherits is False
     assert cfg.name == "not_set"
 
@@ -149,7 +148,6 @@ def test_reduced(resolver):
         u"set": {u"TEST": u"case"},
         u"unset": [u"UNSET_VARIABLE"],
     }
-    assert cfg.requires == []
     assert cfg.inherits is True
     assert cfg.name == "child"
 
@@ -162,7 +160,6 @@ def test_reduced(resolver):
         u"set": {u"TEST": u"case"},
         u"unset": [u"UNSET_VARIABLE"],
     }
-    assert reduced.requires == ["maya2020"]
     assert reduced.inherits is True
     assert reduced.name == "child"
     assert reduced.uri == "not_set/child"

@@ -115,7 +115,6 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         self._filename = None
         self._dirname = None
         self._platform_override = None
-        self._requires = None
         self._uri = NotSet
         self.parent = parent
         self.root_paths = set()
@@ -140,7 +139,6 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         self.distros = NotSet
         self.environment_config = NotSet
         self.name = NotSet
-        # self.requires = NotSet
         self.version = NotSet
 
     @property
@@ -529,17 +527,6 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def reduced(self, resolver=None, uri=None):
         """Returns a new instance with the final settings applied respecting inheritance"""
         return FlatConfig(self, resolver, uri=uri)
-
-    @habitat_property(verbosity=3)
-    def requires(self):
-        if self.distros is NotSet:
-            return []
-
-        if self._requires is None:
-            requires = self.resolver.resolve_requirements(self.distros)
-            self._requires = sorted([str(r) for r in requires.values()])
-
-        return self._requires
 
     @classmethod
     def shell_escape(cls, ext, value):

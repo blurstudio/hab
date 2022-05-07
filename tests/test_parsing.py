@@ -180,7 +180,6 @@ def test_metaclass():
             "environment",
             "environment_config",
             "name",
-            "requires",
             "version",
         ]
     )
@@ -191,7 +190,6 @@ def test_metaclass():
             "environment_config",
             "inherits",
             "name",
-            "requires",
             "uri",
         ]
     )
