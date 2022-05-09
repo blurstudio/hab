@@ -50,10 +50,17 @@ class _HabitatProperty(property):
         # can use isinstance checks against this class.
         cls = type(self)
         self.group = cls.group
+        self.process_order = cls.process_order
         self.verbosity = cls.verbosity
 
+    def sort_key(self):
+        """Used to provide consistent and controlled when dynamically processing
+        _HabitatProperties.
+        """
+        return (self.process_order, self.fget.__name__)
 
-def habitat_property(verbosity=0, group=1):
+
+def habitat_property(verbosity=0, group=1, process_order=100):
     """Decorate this function as a property and configure how it shows up in the dump.
 
     Args:
@@ -62,10 +69,15 @@ def habitat_property(verbosity=0, group=1):
             (group, name) as its sort key, so common group values are sorted
             alphabetically. This should rarely be used and only 0 or 1 should be used
             to reduce the complexity of finding the property you are looking for.
+        process_order (int, optional): Fine control over the order properties are
+            processed in. The sort uses (process_order, name) as its sort key, so
+            common process_order values are sorted alphabetically. This should only
+            be needed in specific cases. This is used by ``_HabitatProperty.sort_key``.
     """
     # Store the requested values to the class so __init__ can copy them into its
     # instance when initialized by the decoration process.
     _HabitatProperty.group = group
+    _HabitatProperty.process_order = process_order
     _HabitatProperty.verbosity = verbosity
     return _HabitatProperty
 
@@ -277,7 +289,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """
         return self._dirname
 
-    @habitat_property(verbosity=3)
+    # Note: 'distros' needs to be processed before 'environment'
+    @habitat_property(verbosity=3, process_order=50)
     def distros(self):
         return self._distros
 
@@ -373,7 +386,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         cls = type(self)
         return "Dump of {}('{}')\n{}".format(cls.__name__, self.fullpath, ret)
 
-    @habitat_property(verbosity=2)
+    # Note: 'distros' needs to be processed before 'environment'
+    @habitat_property(verbosity=2, process_order=80)
     def environment(self):
         """A resolved set of environment variables that should be applied to
         configure an environment. Any values containing a empty string indicate
@@ -852,7 +866,10 @@ class FlatConfig(Config):
     def _collect_values(self, node, default=False):
         logger.debug("Loading node: {} inherits: {}".format(node.name, node.inherits))
         self._missing_values = False
-        for attrname in self._properties:
+        # Use sort_key to ensure the properties are processed in the correct order
+        for attrname in sorted(
+            self._properties, key=lambda i: self._properties[i].sort_key()
+        ):
             if attrname == "uri":
                 # TODO: Add detection of setters to HabitatProperty and don't set values without setters
                 # There is no setter for uri, setting it now will cause errors in testing
