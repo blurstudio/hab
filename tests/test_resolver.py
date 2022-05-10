@@ -297,3 +297,22 @@ def test_resolve_requirements_errors(resolver):
     # TODO: Use a custom exception not Exception
     with pytest.raises(Exception):
         resolver.resolve_requirements(requirements)
+
+
+def test_forced_requirements(resolver, helpers):
+    requirements = {
+        "the_dcc_plugin_b": Requirement("the_dcc_plugin_b"),
+    }
+    resolved = resolver.resolve_requirements(requirements)
+    helpers.assert_requirements_equal(resolved, ['the_dcc_plugin_b'])
+
+    # Check that forced_requirement's are included in the resolved requirements
+    resolver_forced = Resolver(
+        config_paths=resolver.config_paths,
+        distro_paths=resolver.distro_paths,
+        forced_requirements={'the_dcc_plugin_c': Requirement('the_dcc_plugin_c')},
+    )
+    resolved = resolver_forced.resolve_requirements(requirements)
+    helpers.assert_requirements_equal(
+        resolved, ['the_dcc_plugin_b', 'the_dcc_plugin_c']
+    )

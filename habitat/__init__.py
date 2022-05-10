@@ -23,10 +23,24 @@ class Resolver(object):
             If not provided the `HAB_DISTRO_PATHS` environment variable is used.
         prereleases (bool, optional): When resolving distro versions, should
             pre-releases be included in the latest version.
+        forced_requirements (list, optional): A list of additional version requirements
+            to respect even if they are not specified in a config. This is provided for
+            ease of habitat package development and should not be used in production.
     """
 
-    def __init__(self, config_paths=None, distro_paths=None, prereleases=False):
+    def __init__(
+        self,
+        config_paths=None,
+        distro_paths=None,
+        prereleases=False,
+        forced_requirements=None,
+    ):
         self.prereleases = prereleases
+        if forced_requirements:
+            self.forced_requirements = Solver.simplify_requirements(forced_requirements)
+        else:
+            self.forced_requirements = {}
+
         self.config_paths = (
             config_paths
             if config_paths
@@ -195,6 +209,18 @@ class Resolver(object):
             MaxRedirectError: Redirect limit reached, unable to resolve the requested
                 requirements.
         """
+
+        if self.forced_requirements:
+            # Allow developers to force requirements when testing, but warn the user
+            # to discourage abuse of this development feature.
+            logger.warning(
+                "Requirements forced: {}".format(
+                    [str(v) for v in self.forced_requirements.values()]
+                )
+            )
+            requirements = requirements.copy()
+            for item in self.forced_requirements.values():
+                Solver.append_requirement(requirements, item)
 
         solver = Solver(requirements, self)
         return solver.resolve()

@@ -19,6 +19,7 @@ class SharedSettings(object):
         file_config=None,
         file_launch=None,
         pre=False,
+        forced_requirements=None,
     ):
         self.verbosity = verbosity
         self.file_config = os.path.abspath(file_config or ".")
@@ -27,12 +28,16 @@ class SharedSettings(object):
         self.distro_paths = distros
         self._resolver = None
         self.prereleases = pre
+        self.forced_requirements = forced_requirements
 
     @property
     def resolver(self):
         if self._resolver is None:
             self._resolver = Resolver(
-                self.config_paths, self.distro_paths, prereleases=self.prereleases
+                self.config_paths,
+                self.distro_paths,
+                prereleases=self.prereleases,
+                forced_requirements=self.forced_requirements,
             )
         return self._resolver
 
@@ -90,9 +95,18 @@ class SharedSettings(object):
     default=True,
     help="Include pre-releases when finding the latest distro version.",
 )
+@click.option(
+    "-r",
+    "--requirement",
+    multiple=True,
+    help="Specify an additional requirement to resolve. Using this may lead to "
+    "configuring your environment incorrectly, use with caution.",
+)
 @click.pass_context
-def cli(ctx, configs, distros, verbosity, file_config, file_launch, pre):
-    ctx.obj = SharedSettings(configs, distros, verbosity, file_config, file_launch, pre)
+def cli(ctx, configs, distros, verbosity, file_config, file_launch, pre, requirement):
+    ctx.obj = SharedSettings(
+        configs, distros, verbosity, file_config, file_launch, pre, requirement
+    )
     if verbosity > 2:
         verbosity = 2
     level = [logging.WARNING, logging.INFO, logging.DEBUG][verbosity]
