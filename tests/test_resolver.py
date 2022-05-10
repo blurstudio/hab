@@ -1,11 +1,14 @@
 import anytree
+import os
+import pytest
+
+from collections import OrderedDict
+from packaging.requirements import Requirement
+
 from habitat import Resolver
 from habitat.errors import MaxRedirectError
 from habitat.parsers import NotSet
 from habitat.solvers import Solver
-from packaging.requirements import Requirement
-import os
-import pytest
 
 
 def test_environment_variables(config_root, helpers):
@@ -126,16 +129,11 @@ def test_dump_forest(resolver):
     assert result == check
 
 
-def test_reduced(resolver):
+def test_reduced(resolver, helpers):
     """Check that NotSet is used if no value is provided."""
-
-    def assert_maya_distros(cfg):
-        assert len(cfg.distros) == 1
-        assert str(list(cfg.distros.keys())[0]) == "maya2020"
-        assert cfg.distros[list(cfg.distros.keys())[0]] == []
-
     cfg = resolver.closest_config("not_set")
-    assert_maya_distros(cfg)
+    check = ["maya2020"]
+    helpers.assert_requirements_equal(cfg.distros, check)
     assert cfg.environment_config == NotSet
     assert cfg.inherits is False
     assert cfg.name == "not_set"
@@ -154,7 +152,7 @@ def test_reduced(resolver):
     # Verify that a flattened config properly inherits values
     reduced = cfg.reduced(resolver)
     # Inherited from the parent
-    assert_maya_distros(reduced)
+    helpers.assert_requirements_equal(reduced.distros, check)
     # Values defined on the child are preserved
     assert reduced.environment_config == {
         u"set": {u"TEST": u"case"},
@@ -176,7 +174,7 @@ def test_reduced(resolver):
 
 def test_resolve_requirements_simple(resolver):
     requirements = {
-        Requirement("the_dcc"): None,
+        "the_dcc": Requirement("the_dcc"),
     }
 
     # A simple resolve with no recalculations
@@ -221,10 +219,12 @@ def test_solver_errors(resolver):
     # Note: To have a stable test, the order of requirements matters. So this needs to
     # use a list or OrderedDict to guarantee that the_dcc==1.2 requirements are
     # processed before the_dcc_plugin_b which specifies the_dcc<1.2 forcing a redirect.
-    requirements = [
-        Requirement("the_dcc"),
-        Requirement("the_dcc_plugin_b==0.9"),
-    ]
+    requirements = OrderedDict(
+        (
+            ("the_dcc", Requirement("the_dcc")),
+            ("the_dcc_plugin_b", Requirement("the_dcc_plugin_b==0.9")),
+        )
+    )
 
     solver = Solver(requirements, resolver)
     solver.max_redirects = 0
@@ -238,10 +238,13 @@ def test_resolve_requirements_recalculate(resolver):
     """
 
     # Resolve requires re-calculating
-    requirements = [
-        Requirement("the_dcc"),
-        Requirement("the_dcc_plugin_b==0.9"),
-    ]
+    # Note: To have a stable test, the order of requirements matters. Use an OrderedDict
+    requirements = OrderedDict(
+        (
+            ("the_dcc", Requirement("the_dcc")),
+            ("the_dcc_plugin_b", Requirement("the_dcc_plugin_b==0.9")),
+        )
+    )
 
     # Use the underlying Solver so we have access to debug resolve_requirements obscures
     solver = Solver(requirements, resolver)

@@ -77,24 +77,17 @@ def test_distro_version(resolver):
     assert maya.latest_version("maya2020<2020.1").name == "maya2020==2020.0"
 
 
-def test_config_parse(config_root, resolver):
+def test_config_parse(config_root, resolver, helpers):
     """Check that a config json can be parsed correctly"""
     forest = {}
     config = Config(forest, resolver)
     path = os.path.join(config_root, "configs", "default", "default.json")
     config.load(path)
 
-    check = json.load(open(path))
-
-    assert check["name"] == config.name
-    assert check["context"] == config.context
-    assert check["inherits"] == config.inherits
+    check = ["maya2020", "tikal", "brSkinBrush", "animBot", "houdini18.5", "hsite"]
 
     # We can't do a simple comparison of Requirement keys so check that these resolved
-    assert len(check["distros"]) == len(config.distros)
-    for k in config.distros:
-        assert k.name in check["distros"]
-        assert check["distros"][k.name] == config.distros[k]
+    helpers.assert_requirements_equal(config.distros, check)
 
     # Check that the forest was populated correctly
     assert set(forest.keys()) == set(["default"])

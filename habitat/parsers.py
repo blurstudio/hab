@@ -1,6 +1,7 @@
 from __future__ import print_function
 import anytree
 from .errors import DuplicateJsonError, _IgnoredVersionError
+from .solvers import Solver
 from future.utils import with_metaclass
 import json
 import logging
@@ -284,15 +285,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     def distros(self, distros):
         # Ensure the contents are converted to Requirement objects
         if distros:
-            # Distros can define distros as lists, convert to a dict
-            if isinstance(distros, list):
-                distros = {k: None for k in distros}
-
-            for d in list(distros.keys()):
-                if not isinstance(d, Requirement):
-                    # Replace the existing requirement string with a requirement object
-                    distros[Requirement(d)] = distros[d]
-                    del distros[d]
+            distros = Solver.simplify_requirements(distros)
         self._distros = distros
 
     def dump(self, environment=True, environment_config=False, verbosity=0):

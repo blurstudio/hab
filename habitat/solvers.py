@@ -28,7 +28,7 @@ class Solver(object):
         self.redirects_required = 0
 
     @classmethod
-    def _append_requirement(cls, requirements, req):
+    def append_requirement(cls, requirements, req):
         """Combines any existing Requirement specifier with the new specifier.
 
         Args:
@@ -39,9 +39,6 @@ class Solver(object):
         Returns:
             The updated Requirement object that is also stored in requirements.
         """
-        if not isinstance(req, Requirement):
-            req = Requirement(req)  # pragma: no cover
-
         name = req.name
         if name in requirements:
             requirements[name].specifier &= req.specifier
@@ -80,9 +77,9 @@ class Solver(object):
             resolved = {}
 
         logger.debug("Requirements: {}".format(requirements))
-        for req in requirements:
+        for req in requirements.values():
             # Update the requirement to match all current requirements
-            req = self._append_requirement(resolved, req)
+            req = self.append_requirement(resolved, req)
             name = req.name
             if name in self.invalid:
                 # TODO: build the correct not specifier
@@ -100,7 +97,7 @@ class Solver(object):
                 for v in processed:
                     if v.distro_name == version.distro_name:
                         invalid = Requirement("{}!={}".format(v.distro_name, v.version))
-                        self._append_requirement(self.invalid, invalid)
+                        self.append_requirement(self.invalid, invalid)
                         raise ValueError(
                             "Removing invalid version {}".format(version.name)
                         )
@@ -143,3 +140,51 @@ class Solver(object):
                     raise MaxRedirectError(
                         "Redirect limit of {} reached".format(self.max_redirects)
                     )
+
+    @classmethod
+    def simplify_requirements(cls, requirements):
+        """Convert various requirement formats to the expected dict format.
+
+        Ultimately only str or Requirement objects can be passed to this function, but
+        it can flatten lists, tuples and dictionaries into a single dictionary where
+        the key is the simple requirement name and the value is a Requirement object.
+
+        if requirements is an dictionary, both the key and value are added to the
+        requirements. The value can be a list of additional requirements to be included.
+
+        If a requirement is defined more than once, append_requirement will be called
+        to merge the specifiers together into a single requirement per name.
+
+        Returns:
+            dict: A dictionary with requirement names as keys and
+                ``packaging.requirements.Requirement`` objects with all requested
+                specifiers included.
+        """
+        ret = requirements
+
+        if isinstance(requirements, (list, tuple)):
+            ret = {}
+            for req in requirements:
+                if not isinstance(req, Requirement):
+                    req = Requirement(req)
+                cls.append_requirement(ret, req)
+
+        elif isinstance(requirements, dict):
+            ret = {}
+            for key, value in requirements.items():
+                if isinstance(value, list):
+                    # If value is a list, add all of its values
+                    for val in cls.simplify_requirements(value).values():
+                        cls.append_requirement(ret, val)
+                elif value:
+                    if not isinstance(value, Requirement):
+                        value = Requirement(value)
+                    cls.append_requirement(ret, value)
+
+                # Add the key as a requirement even if an value was specified
+                if key:
+                    if not isinstance(key, Requirement):
+                        key = Requirement(key)
+                    cls.append_requirement(ret, key)
+
+        return ret
