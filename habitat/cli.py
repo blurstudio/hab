@@ -41,7 +41,9 @@ class SharedSettings(object):
             )
         return self._resolver
 
-    def write_script(self, uri, launch_script=False, launch=None, exit=False):
+    def write_script(
+        self, uri, launch_script=False, launch=None, exit=False, args=None
+    ):
         """Generate the script the calling shell scripts expect to setup the environment"""
         logger.info("Context: {}".format(uri))
         logger.debug("Script: {}".format(self.file_config))
@@ -51,8 +53,14 @@ class SharedSettings(object):
             file_launch = self.file_launch
             logger.debug("Launch script: {}".format(file_launch))
 
+        if args:
+            # convert to list, subprocess.list2cmdline does not like tuples
+            args = list(args)
+
         ret = self.resolver.resolve(uri)
-        ret.write_script(self.file_config, file_launch, launch=launch, exit=exit)
+        ret.write_script(
+            self.file_config, file_launch, launch=launch, exit=exit, args=args
+        )
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -199,13 +207,25 @@ def activate(settings, uri, launch):
     settings.write_script(uri, launch=launch)
 
 
-@cli.command()
+@cli.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+    )
+)
 @click.argument("uri")
 @click.argument("alias")
+# Pass all remaining arguments to the requested alias
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_obj
-def launch(settings, uri, alias):
-    """Configure and launch an alias without modifying the current shell."""
-    settings.write_script(uri, launch_script=True, launch=alias, exit=True)
+def launch(settings, uri, alias, args):
+    """Configure and launch an alias without modifying the current shell.
+    The first argument is a URI, The second argument is the ALIAS to launch. Any
+    additional arguments are passed as launch arguments to the alias. Note, if using
+    bash on windows you may need to pass file paths correctly for bash as any quotes
+    used may not make it to the alias launch arguments.
+    (ie: '/c/Program\\ Files').
+    """
+    settings.write_script(uri, launch_script=True, launch=alias, exit=True, args=args)
 
 
 if __name__ == "__main__":

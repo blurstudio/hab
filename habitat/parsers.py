@@ -573,7 +573,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret["prompt"] = 'set "PROMPT=[{uri}] $P$G"\n'
             ret["launch"] = 'cmd.exe /k "{path}"\n'
             # You can't directly call a doskey alias in a batch script
-            ret["run_alias"] = '"{value}"\n'
+            ret["run_alias"] = '"{value}"{args}\n'
         elif ext == ".ps1":
             ret["alias_setter"] = "function {key}() {{ {value} $args }}\n"
             ret["comment"] = "# "
@@ -586,7 +586,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 "launch"
             ] = 'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{path}"\n'
             # Simply call the alias
-            ret["run_alias"] = "{key}\n"
+            ret["run_alias"] = "{key}{args}\n"
         elif ext in (".sh", ""):  # Assume no ext is a .sh file
             ret[
                 "alias_setter"
@@ -598,7 +598,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret["prompt"] = 'export PS1="[{uri}] $PS1"\n'
             ret["launch"] = 'bash --init-file "{path}"\n'
             # Simply call the alias
-            ret["run_alias"] = "{key}\n"
+            ret["run_alias"] = "{key}{args}\n"
 
         return ret
 
@@ -656,7 +656,9 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             version = Version(version)
         self._version = version
 
-    def write_script(self, config_script, launch_script=None, launch=None, exit=False):
+    def write_script(
+        self, config_script, launch_script=None, launch=None, exit=False, args=None
+    ):
         """Write the configuration to a script file to be run by terminal."""
         _, ext = os.path.splitext(config_script)
         shell = self.shell_formats(ext)
@@ -693,7 +695,17 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
             # If launch was passed, call the requested command at the end of the script
             if launch:
-                launch_info = dict(key=launch, value=self.aliases.get(launch, ""))
+                # Write additional args into the launch command. This may not properly
+                # add quotes around windows file paths if writing a shell script.
+                # At this point we have lost the original double quote the user used.
+                if isinstance(args, list):
+                    args = ' {}'.format(self.shell_escape(ext, args))
+                else:
+                    args = ''
+
+                launch_info = dict(
+                    key=launch, value=self.aliases.get(launch, ""), args=args
+                )
                 fle.write("\n")
                 fle.write("{}Run the requested command\n".format(shell["comment"]))
                 fle.write(shell["run_alias"].format(**launch_info))
