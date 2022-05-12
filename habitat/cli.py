@@ -107,8 +107,8 @@ class SharedSettings(object):
     "-r",
     "--requirement",
     multiple=True,
-    help="Specify an additional requirement to resolve. Using this may lead to "
-    "configuring your environment incorrectly, use with caution.",
+    help="Forces this distro requirement ignoring normally resolved requirements. Using "
+    "this may lead to configuring your environment incorrectly, use with caution.",
 )
 @click.pass_context
 def cli(ctx, configs, distros, verbosity, file_config, file_launch, pre, requirement):

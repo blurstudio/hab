@@ -210,17 +210,5 @@ class Resolver(object):
                 requirements.
         """
 
-        if self.forced_requirements:
-            # Allow developers to force requirements when testing, but warn the user
-            # to discourage abuse of this development feature.
-            logger.warning(
-                "Requirements forced: {}".format(
-                    [str(v) for v in self.forced_requirements.values()]
-                )
-            )
-            requirements = requirements.copy()
-            for item in self.forced_requirements.values():
-                Solver.append_requirement(requirements, item)
-
-        solver = Solver(requirements, self)
+        solver = Solver(requirements, self, forced=self.forced_requirements)
         return solver.resolve()

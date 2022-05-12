@@ -35,7 +35,16 @@ class Helpers(object):
         Raises:
             AssertionError: If the provided req and check don't exactly match.
         """
-        assert len(req) == len(check)
+        try:
+            assert len(req) == len(check)
+        except AssertionError:
+            # Provide additional information to help debug a failing test. The simple
+            # len assert doesn't make it easy to debug a failing test
+            print(" Requirement dict ".center(50, '-'))
+            print(req)
+            print(" Check ".center(50, '-'))
+            print(check)
+            raise
         for chk in check:
             chk = Requirement(chk)
             assert Helpers.cmp_requirement(req[chk.name], chk)

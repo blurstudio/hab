@@ -2,4 +2,5 @@
 omit =
     */site-packages/*
     */.tox/*
+    tests/*
 show_missing = true

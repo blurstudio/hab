@@ -299,20 +299,40 @@ def test_resolve_requirements_errors(resolver):
         resolver.resolve_requirements(requirements)
 
 
-def test_forced_requirements(resolver, helpers):
+@pytest.mark.parametrize(
+    "forced,check",
+    (
+        # No forced items
+        (None, ['the_dcc_plugin_a', 'the_dcc_plugin_d', 'the_dcc_plugin_e<1.0,<2.0']),
+        # Force
+        (
+            {
+                # Adds a completely new requirement not specified in the config
+                'the_dcc_plugin_c': Requirement('the_dcc_plugin_c'),
+                # Forces the requirement to a invalid version for the config
+                'the_dcc_plugin_e': Requirement('the_dcc_plugin_e==1.1'),
+            },
+            [
+                'the_dcc_plugin_a',
+                'the_dcc_plugin_c',
+                'the_dcc_plugin_d',
+                'the_dcc_plugin_e==1.1',
+            ],
+        ),
+    ),
+)
+def test_forced_requirements(resolver, helpers, forced, check):
     requirements = {
-        "the_dcc_plugin_b": Requirement("the_dcc_plugin_b"),
+        # plugin_a adds an extra dependency outside of the requiremets or forced
+        "the_dcc_plugin_a": Requirement("the_dcc_plugin_a"),
+        "the_dcc_plugin_e": Requirement("the_dcc_plugin_e<1.0"),
     }
-    resolved = resolver.resolve_requirements(requirements)
-    helpers.assert_requirements_equal(resolved, ['the_dcc_plugin_b'])
 
     # Check that forced_requirement's are included in the resolved requirements
     resolver_forced = Resolver(
         config_paths=resolver.config_paths,
         distro_paths=resolver.distro_paths,
-        forced_requirements={'the_dcc_plugin_c': Requirement('the_dcc_plugin_c')},
+        forced_requirements=forced,
     )
     resolved = resolver_forced.resolve_requirements(requirements)
-    helpers.assert_requirements_equal(
-        resolved, ['the_dcc_plugin_b', 'the_dcc_plugin_c']
-    )
+    helpers.assert_requirements_equal(resolved, check)

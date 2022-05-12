@@ -14,13 +14,17 @@ class Solver(object):
     Args:
         requirements (list): The requirements to process and store in resolved.
         resolver (habitat.Resolver): The Resolver used to define all distros and versions.
+        forced (dict, optional): Forces this distro requirement replacing any resolved
+            requirements. Using this may lead to configuring your environment
+            incorrectly, use with caution.
 
     Attributes:
         invalid (dict, optional): If a recursive requirement makes a already resolved
             version invalid, that version is added to this list as an exclusive exclude.
     """
 
-    def __init__(self, requirements, resolver):
+    def __init__(self, requirements, resolver, forced=None):
+        self.forced = forced if forced else {}
         self.invalid = {}
         self.max_redirects = 2
         self.requirements = requirements
@@ -51,6 +55,7 @@ class Solver(object):
         requirements,
         resolved=None,
         processed=None,
+        reported=None,
     ):
         """Recursively solve the provided requirements into a final list of requirements.
 
@@ -73,14 +78,36 @@ class Solver(object):
         # Set the default value for mutable objects
         if processed is None:
             processed = set()
+        if reported is None:
+            reported = set()
         if resolved is None:
             resolved = {}
 
-        logger.debug("Requirements: {}".format(requirements))
+        # Make sure we process the forced requirements
+        if self.forced:
+            # Note: Make sure to preserve the order of requirements, ie OrderedDict.
+            # This is mostly to ensure that tests for solver errors are not flaky.
+            requirements = requirements.copy()
+            requirements.update(self.forced)
+        logger.debug("Requirements: {}".format(requirements.values()))
+
         for req in requirements.values():
+            name = req.name
+            if name in self.forced:
+                if name in reported:
+                    # Once we have processed this requirement, there is no need to
+                    # re-process it, or log the warning again.
+                    continue
+                # If a distro requirement is forced, ignore the requested
+                # requirement and instead resolve the forced requirement.
+                req = self.forced[name]
+                # This option should only be used for development and testing
+                # always show a warning if its used.
+                logger.warning("Forced Requirement: {}".format(req))
+                reported.add(name)
+
             # Update the requirement to match all current requirements
             req = self.append_requirement(resolved, req)
-            name = req.name
             if name in self.invalid:
                 # TODO: build the correct not specifier
                 invalid = self.invalid[name]
@@ -103,7 +130,7 @@ class Solver(object):
                         )
 
                 processed.add(version)
-                self._resolve(version.distros, resolved, processed)
+                self._resolve(version.distros, resolved, processed, reported)
 
         return resolved
 
