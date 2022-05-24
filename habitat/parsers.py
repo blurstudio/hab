@@ -11,7 +11,6 @@ from packaging.specifiers import SpecifierSet
 from packaging.version import Version, InvalidVersion
 from pprint import pformat
 import sys
-import six
 import subprocess
 import tabulate
 
@@ -479,18 +478,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             except ValueError as e:
                 # Include the filename in the traceback to make debugging easier
                 msg = '{} Filename: "{}"'.format(e, filename)
-                # Workaround some inconsistencies between python 2 and 3 json implementations.
-                # Python 3 uses JsonDecodeError that requires two extra arguments.
-                try:
-                    args = (msg, e.doc, e.pos)
-                except AttributeError:
-                    args = (msg,)
-
-                six.reraise(
-                    type(e),
-                    type(e)(*args),
-                    sys.exc_info()[2],
-                )
+                raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2])
         return data
 
     def load(self, filename, data=None):

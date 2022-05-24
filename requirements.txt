@@ -4,5 +4,4 @@ future>=0.18.2
 packaging>=20.0
 setuptools_scm[toml]>=4,<6;python_version<"3.5"
 setuptools_scm[toml]>=4;python_version>="3.5"
-six>=1.0.0
 tabulate

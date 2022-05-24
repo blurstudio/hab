@@ -7,7 +7,6 @@ import os
 from packaging.version import Version
 import pytest
 import re
-import sys
 from tabulate import tabulate
 
 
@@ -194,10 +193,7 @@ def test_dump(resolver):
     pre = [["name", "child"], ["uri", "not_set/child"]]
     post = [["inherits", "True"]]
     env = [["environment", "TEST: case"], ["", "UNSET_VARIABLE:"]]
-    if sys.version_info[0] == 2:
-        check = "{u'set': {u'TEST': u'case'}, u'unset': [u'UNSET_VARIABLE']}"
-    else:
-        check = "{'set': {'TEST': 'case'}, 'unset': ['UNSET_VARIABLE']}"
+    check = "{'set': {'TEST': 'case'}, 'unset': ['UNSET_VARIABLE']}"
 
     env_config = [["environment_config", check]]
     cfg = resolver.closest_config("not_set/child")
