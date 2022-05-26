@@ -1,0 +1,14 @@
+{
+    "append": {
+        "config_paths": [
+            "{relative_root}/configs/*"
+        ],
+        "distro_paths": [
+            "{relative_root}/distros/*"
+        ]
+    },
+    "set": {
+        "generic_value": false,
+        "filename": "site_main.json"
+    }
+}
