@@ -7,6 +7,7 @@ import os
 from . import utils
 from .errors import _IgnoredVersionError
 from .parsers import Config, HabitatBase, DistroVersion
+from .site import Site
 from .solvers import Solver
 from packaging.requirements import Requirement
 from future.utils import string_types

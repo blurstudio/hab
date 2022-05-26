@@ -12,7 +12,6 @@ from pathlib import Path
 from pprint import pformat
 
 from . import HabitatMeta, NotSet, habitat_property
-from .. import json
 from .. import utils
 from ..errors import DuplicateJsonError
 from ..site import MergeDict
@@ -404,14 +403,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         """Sets self.filename and parses the json file returning the data."""
         self.filename = Path(filename)
         logger.debug('Loading "{}"'.format(filename))
-        with self.filename.open() as fle:
-            try:
-                data = json.load(fle)
-            except ValueError as e:
-                # Include the filename in the traceback to make debugging easier
-                msg = '{} Filename: "{}"'.format(e, self.filename)
-                raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2])
-        return data
+        return utils.load_json_file(self.filename)
 
     def load(self, filename, data=None):
         """Load this objects configuration from the given json filename.

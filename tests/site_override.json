@@ -1,0 +1,12 @@
+{
+    "append": {
+        "distro_paths": [
+            "{relative_root}/duplicates/distros_1/*"
+        ]
+    },
+    "set": {
+        "generic_value": true,
+        "override": "site_override.json",
+        "filename": "site_override.json"
+    }
+}

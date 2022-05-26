@@ -1,25 +1,49 @@
-import logging
 import os
-import sys
 from collections import UserDict
 from pathlib import Path
 
-# from . import HabitatMeta, NotSet, habitat_property
-from . import json
+from . import utils
 from .merge_dict import MergeDict
-
-logger = logging.getLogger(__name__)
 
 
 class Site(UserDict):
+    """Provides site configuration to habitat.
+
+    This dictionary is updated with the contents of each json file stored in paths
+    See `habitat.MergeDict` for details.
+
+    Args:
+        paths (list, optional): A list of paths to json files defining how
+            site should be setup. If not specified, the ``HAB_PATHS`` environment
+            variable is used.
+    """
+
+    """Provides some default values that are always configured but can be updated."""
+    _default_data = {
+        "config_paths": [],
+        "distro_paths": [],
+        "ignored_distros": ["release", "pre"],
+    }
+
     def __init__(self, paths=None):
-        self.data = {}
+        self.data = self._default_data.copy()
 
         if not paths:
             paths = os.getenv("HAB_PATHS", "").split(os.pathsep)
         self.paths = [Path(p) for p in paths if p]
 
         self.load()
+
+    def _check_reserved_keys(self, data):
+        """Validate that data won't override any of the core methods and attributes
+        of this class. For example, check that we never replace load, load_file, etc.
+        """
+        for keys in data.values():
+            problems = [key for key in keys if key in self._reserved_keys]
+            if problems:
+                raise ValueError(
+                    f"These keys can not be used for site config: {', '.join(problems)}"
+                )
 
     def load(self):
         """Iterates over each file in self.path. Replacing the value of each key.
@@ -29,20 +53,20 @@ class Site(UserDict):
             self.load_file(path)
 
     def load_file(self, filename):
-        logger.debug('Loading "{}"'.format(filename))
-        with filename.open() as fle:
-            try:
-                data = json.load(fle)
-            except ValueError as e:
-                # Include the filename in the traceback to make debugging easier
-                msg = '{} Filename: "{}"'.format(e, filename)
-                raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2])
+        """Load an individual file path and merge its contents onto self.
+
+        Args:
+            filename (pathlib.Path): The json file to parse.
+        """
+        data = utils.load_json_file(filename)
 
         merger = MergeDict(relative_root=filename.parent)
+        merger.validator = self._check_reserved_keys
         merger.update(self, data)
 
     @property
     def paths(self):
+        """A list of ``pathlib.Path``'s processed by load."""
         return self._paths
 
     @paths.setter
@@ -52,49 +76,3 @@ class Site(UserDict):
 
 # Don't allow configurations to overwrite these values.
 Site._reserved_keys = set(dir(Site))
-
-
-# class Site(object, metaclass=HabitatMeta):
-#     def __init__(self, paths=None):
-#         self.paths = paths if paths else os.getenv("HAB_PATHS", "").split(os.pathsep)
-#         self._config_paths = []
-#         self._distro_paths = []
-
-#         self.load()
-
-#     def load(self):
-#         for path in self.paths:
-#             self.load_file(path)
-
-#     def load_file(self, filename):
-#         logger.debug('Loading "{}"'.format(filename))
-#         with open(filename, "r") as fle:
-#             try:
-#                 data = json.load(fle)
-#                 # TODO: update __dict__ with the contents of this value instead?
-#             except ValueError as e:
-#                 # Include the filename in the traceback to make debugging easier
-#                 msg = '{} Filename: "{}"'.format(e, filename)
-#                 raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2])
-
-#         for prop in self._properties:
-#             value = data.get(prop, NotSet)
-#             logger.debug(f'Setting "{prop}" to {value}')
-#             if value is not NotSet:
-#                 setattr(self, prop, value)
-
-#     @habitat_property()
-#     def config_paths(self):
-#         return self._config_paths
-
-#     @config_paths.setter
-#     def config_paths(self, paths):
-#         self._config_paths = paths
-
-#     @habitat_property()
-#     def distro_paths(self):
-#         return self._distro_paths
-
-#     @distro_paths.setter
-#     def distro_paths(self, paths):
-#         self._distro_paths = paths

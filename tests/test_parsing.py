@@ -299,10 +299,24 @@ def test_invalid_config(config_root, resolver):
     """Check that if an invalid json file is processed, its filename is included in
     the traceback"""
     path = config_root / "invalid.json"
-    check = re.escape(r' Filename: "{}"'.format(path))
 
-    with pytest.raises(ValueError, match=check):
+    # Resolve if we are using pyjson5 or the native json class
+    native_json = False
+    try:
+        from pyjson5 import Json5Exception as _JsonException
+    except ImportError:
+        native_json = True
+        from builtins import ValueError as _JsonException
+
+    with pytest.raises(_JsonException) as excinfo:
         Config({}, resolver, filename=path)
+
+    if native_json:
+        # If built-in json was used, check that filename was appended to the message
+        assert f'Filename("{path}")' in str(excinfo.value)
+    else:
+        # If pyjson5 was used, check that the filename was added to the result dict
+        assert excinfo.value.result['filename'] == str(path)
 
 
 def test_misc_coverage(resolver):
@@ -313,12 +327,20 @@ def test_misc_coverage(resolver):
     cfg = Config({}, resolver)
     cfg.filename = ""
     # both of these values should be set to ``Path(os.devnull)``
-    assert str(cfg.filename) == "nul"
-    assert str(cfg.dirname) == "nul"
+    assert str(cfg.filename) in ("nul", "/dev/null")
+    assert str(cfg.dirname) in ("nul", "/dev/null")
 
     # String values are cast to the correct type
     cfg.version = "1.0"
     assert cfg.version == Version("1.0")
+
+    # Loading a directory raises a FileNotFoundError
+    with pytest.raises(FileNotFoundError):
+        cfg.load('.')
+
+    # Loading a non-existent file path raises a FileNotFoundError
+    with pytest.raises(FileNotFoundError):
+        cfg.load('invalid_path.json')
 
 
 def test_write_script_bat(resolver, tmpdir):
