@@ -118,8 +118,8 @@ def test_config_parenting(config_root, resolver):
         root_paths=root_paths,
     )
     check = [
-        "habitat.parsers.Placeholder('project_a')",
-        "habitat.parsers.Placeholder('project_a/Sc001')",
+        "habitat.parsers.placeholder.Placeholder('project_a')",
+        "habitat.parsers.placeholder.Placeholder('project_a/Sc001')",
         "habitat.parsers.config.Config('project_a/Sc001/Animation')",
     ]
     assert check == repr_list(forest["project_a"])
@@ -257,20 +257,25 @@ def test_environment(resolver):
     # Check environment variable resolving
     cfg = resolver.closest_config("not_set/env1")
 
-    assert cfg.environment["APPEND_VARIABLE"] == "append_value"
-    assert cfg.environment["MAYA_MODULE_PATH"] == "MMP_Set"
-    assert cfg.environment["PREPEND_VARIABLE"] == "prepend_value"
+    assert cfg.environment["APPEND_VARIABLE"] == ["append_value"]
+    assert cfg.environment["MAYA_MODULE_PATH"] == ["MMP_Set"]
+    assert cfg.environment["PREPEND_VARIABLE"] == ["prepend_value"]
 
-    check = "{relative_root}/prepend{pathsep}{relative_root}/set{pathsep}{relative_root}/append".format(
-        relative_root=cfg.dirname.replace("\\", "/"), pathsep=os.path.pathsep
-    )
+    check = [
+        "{relative_root}/prepend",
+        "{relative_root}/set",
+        "{relative_root}/append",
+    ]
+    relative_root = cfg.dirname.replace("\\", "/")
+    check = [c.format(relative_root=relative_root) for c in check]
+
     assert cfg.environment["RELATIVE_VARIABLE"] == check
-    assert cfg.environment["SET_RELATIVE"] == "{relative_root}".format(
-        relative_root=cfg.dirname.replace("\\", "/")
-    )
-    assert cfg.environment["SET_VARIABLE"] == "set_value"
-    assert cfg.environment["UNSET_VARIABLE"] == ""
-    assert cfg.environment["UNSET_VARIABLE_1"] == ""
+    assert cfg.environment["SET_RELATIVE"] == [
+        "{relative_root}".format(relative_root=relative_root)
+    ]
+    assert cfg.environment["SET_VARIABLE"] == ["set_value"]
+    assert cfg.environment["UNSET_VARIABLE"] is None
+    assert cfg.environment["UNSET_VARIABLE_1"] is None
 
     # Check `cfg.environment is NotSet` resolves correctly
     cfg = resolver.closest_config("not_set")
@@ -278,14 +283,14 @@ def test_environment(resolver):
 
     # Ensure our tests cover the early out if the config is missing append/prepend
     cfg = resolver.closest_config("not_set/child")
-    assert cfg.environment == {"TEST": "case", u"UNSET_VARIABLE": ""}
+    assert cfg.environment == {"TEST": ["case"], u"UNSET_VARIABLE": None}
 
 
 def test_flat_config(resolver):
     ret = resolver.resolve("not_set/child")
-    assert ret.environment == {"TEST": "case", u"UNSET_VARIABLE": ""}
-    assert ret.environment == {"TEST": "case", u"UNSET_VARIABLE": ""}
-    assert ret.environment == {"TEST": "case", u"UNSET_VARIABLE": ""}
+    assert ret.environment == {"TEST": ["case"], u"UNSET_VARIABLE": None}
+    assert ret.environment == {"TEST": ["case"], u"UNSET_VARIABLE": None}
+    assert ret.environment == {"TEST": ["case"], u"UNSET_VARIABLE": None}
 
     # Check for edge case where self._environment was reset if the config didn't define
     # environment, but the attached distros did.

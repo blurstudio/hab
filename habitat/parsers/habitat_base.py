@@ -13,6 +13,7 @@ from pprint import pformat
 from . import HabitatMeta, NotSet, habitat_property
 from .. import json
 from ..errors import DuplicateJsonError
+from ..site import MergeDict
 from ..solvers import Solver
 
 
@@ -267,7 +268,12 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 for key in sorted(value):
                     val = "{}: ".format(key)
                     row = []
-                    for v in value[key].split(os.pathsep):
+                    temp = value[key]
+                    if isinstance(temp, str):
+                        temp = [temp]
+                    if temp is None:
+                        temp = [""]
+                    for v in temp:
                         row.append("{}{}".format(val, v))
                         val = " " * len(val)
                     rows.append("{}\n".format(os.pathsep).join(row))
@@ -514,40 +520,14 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     def update_environment(self, environment_config, obj=None):
         """Check and update environment with the provided environment config."""
+
         if obj is None:
             obj = self
 
-        # If os_specific is specified, we are defining environment variables per-os
-        # not globally. Lookup the current os's configuration.
-        if environment_config.get("os_specific", False):
-            environment_config = environment_config.get(self._platform, {})
-
-        self.check_environment(environment_config)
-
-        if "unset" in environment_config:
-            # When applying the env vars later None will trigger removing the env var.
-            # The other operations may end up replacing this value.
-            self._environment.update({key: "" for key in environment_config["unset"]})
-        # set, prepend, append are all treated as set operations, this lets us override
-        # existing user and system variable values without them causing issues.
-        if "set" in environment_config:
-            for key, value in environment_config["set"].items():
-                self._environment[key] = obj.format_environment_value(value)
-        for operation in ("prepend", "append"):
-            if operation not in environment_config:
-                continue
-            for key, value in environment_config[operation].items():
-                existing = self._environment.get(key, "")
-                if existing:
-                    if operation == "prepend":
-                        value = [value, existing]
-                    else:
-                        value = [existing, value]
-                else:
-                    value = [value]
-                self._environment[key] = obj.format_environment_value(
-                    os.pathsep.join(value)
-                )
+        merger = MergeDict(relative_root=self.dirname.replace("\\", "/"))
+        merger.formatter = obj.format_environment_value
+        merger.validator = self.check_environment
+        merger.update(self._environment, environment_config)
 
     @property
     def uri(self):
@@ -585,7 +565,9 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 fle.write("{}Setting environment variables:\n".format(shell["comment"]))
                 for key, value in self.environment.items():
                     setter = shell["env_setter"]
-                    if not value:
+                    if value:
+                        value = os.pathsep.join(value)
+                    else:
                         setter = shell["env_unsetter"]
                     fle.write(setter.format(key=key, value=value))
 
