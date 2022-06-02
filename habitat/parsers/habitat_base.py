@@ -8,10 +8,12 @@ import tabulate
 
 from future.utils import with_metaclass
 from packaging.version import Version
+from pathlib import Path
 from pprint import pformat
 
 from . import HabitatMeta, NotSet, habitat_property
 from .. import json
+from .. import utils
 from ..errors import DuplicateJsonError
 from ..site import MergeDict
 from ..solvers import Solver
@@ -364,12 +366,16 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @filename.setter
     def filename(self, filename):
-        self._filename = filename
+        """A path like object. If a empty string is provided, ``Path(os.devnull)``
+        will be used to prevent using an relative path.
+        """
         # Cache the dirname so we only need to look it up once
-        if filename:
-            self._dirname = os.path.dirname(filename)
+        if not filename:
+            self._filename = Path(os.devnull)
+            self._dirname = Path(os.devnull)
         else:
-            self._dirname = ""
+            self._filename = Path(filename)
+            self._dirname = self._filename.parent
 
     def format_environment_value(self, value):
         """Apply standard formatting to environment variable values.
@@ -384,7 +390,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 or a literal relative_root. Houdini doesn't support the native slash
                 direction on windows, so backslashes are replaced with forward slashes.
         """
-        kwargs = dict(relative_root=self.dirname.replace("\\", "/"))
+        kwargs = dict(relative_root=utils.path_forward_slash(self.dirname))
         if isinstance(value, list):
             # Format the individual items if a list of args is used.
             return [v.format(**kwargs) for v in value]
@@ -396,14 +402,14 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     def _load(self, filename):
         """Sets self.filename and parses the json file returning the data."""
-        self.filename = filename
+        self.filename = Path(filename)
         logger.debug('Loading "{}"'.format(filename))
-        with open(filename, "r") as fle:
+        with self.filename.open() as fle:
             try:
                 data = json.load(fle)
             except ValueError as e:
                 # Include the filename in the traceback to make debugging easier
-                msg = '{} Filename: "{}"'.format(e, filename)
+                msg = '{} Filename: "{}"'.format(e, self.filename)
                 raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2])
         return data
 
@@ -524,7 +530,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         if obj is None:
             obj = self
 
-        merger = MergeDict(relative_root=self.dirname.replace("\\", "/"))
+        merger = MergeDict(relative_root=self.dirname)
         merger.formatter = obj.format_environment_value
         merger.validator = self.check_environment
         merger.update(self._environment, environment_config)
@@ -550,10 +556,11 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         self, config_script, launch_script=None, launch=None, exit=False, args=None
     ):
         """Write the configuration to a script file to be run by terminal."""
-        _, ext = os.path.splitext(config_script)
+        config_script = Path(config_script)
+        ext = config_script.suffix
         shell = self.shell_formats(ext)
 
-        with open(config_script, "w") as fle:
+        with config_script.open("w") as fle:
             if shell["prefix"]:
                 fle.write(shell["prefix"])
             # Create a custom prompt
@@ -566,7 +573,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 for key, value in self.environment.items():
                     setter = shell["env_setter"]
                     if value:
-                        value = os.pathsep.join(value)
+                        value = utils.collapse_paths(value)
                     else:
                         setter = shell["env_unsetter"]
                     fle.write(setter.format(key=key, value=value))
@@ -612,5 +619,5 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 fle.write(shell["postfix"])
 
         if launch_script:
-            with open(launch_script, "w") as fle:
+            with Path(launch_script).open("w") as fle:
                 fle.write(shell["launch"].format(path=config_script))

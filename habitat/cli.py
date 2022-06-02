@@ -1,7 +1,7 @@
 import click
 from . import Resolver
 import logging
-import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +22,8 @@ class SharedSettings(object):
         forced_requirements=None,
     ):
         self.verbosity = verbosity
-        self.file_config = os.path.abspath(file_config or ".")
-        self.file_launch = os.path.abspath(file_launch or ".")
+        self.file_config = Path(file_config or ".").resolve()
+        self.file_launch = Path(file_launch or ".").resolve()
         self.config_paths = configs
         self.distro_paths = distros
         self._resolver = None

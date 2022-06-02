@@ -1,4 +1,5 @@
 import anytree
+from habitat import utils
 from habitat.errors import DuplicateJsonError
 from habitat.parsers import DistroVersion, Config, NotSet
 import json
@@ -14,11 +15,9 @@ def test_distro_parse(config_root, resolver):
     """Check that a distro json can be parsed correctly"""
     forest = {}
     app = DistroVersion(forest, resolver)
-    path = os.path.join(
-        config_root, "distros", "all_settings", "0.1.0.dev1", ".habitat.json"
-    )
+    path = config_root / "distros" / "all_settings" / "0.1.0.dev1" / ".habitat.json"
     app.load(path)
-    check = json.load(open(path))
+    check = json.load(path.open())
 
     assert "{name}=={version}".format(**check) == app.name
     assert Version(check["version"]) == app.version
@@ -30,9 +29,9 @@ def test_distro_parse(config_root, resolver):
     # Verify that if the json file doesn't have "version" defined it uses the
     # parent directory as its version.
     app = DistroVersion(forest, resolver)
-    path = os.path.join(config_root, "distros", "maya", "2020.0", ".habitat.json")
+    path = config_root / "distros" / "maya" / "2020.0" / ".habitat.json"
     app.load(path)
-    check = json.load(open(path))
+    check = json.load(path.open())
 
     # tests\distros\maya\2020.0\.habitat.json does not have "version"
     # defined. This allows us to test that DistroVersion will pull the
@@ -47,12 +46,12 @@ def test_distro_version_resolve(config_root, resolver, helpers):
     # Test that `.habitat_version.txt` is respected if it exists.
     forest = {}
     app = DistroVersion(forest, resolver)
-    path = os.path.join(config_root, "distros_version", "txt_file", ".habitat.json")
+    path = config_root / "distros_version" / "txt_file" / ".habitat.json"
     app.load(path)
     assert app.version == Version("1.7")
 
     # Test that an error is raised if the version could not be determined
-    path = os.path.join(config_root, "distros_version", "not_scm", ".habitat.json")
+    path = config_root / "distros_version" / "not_scm" / ".habitat.json"
     app = DistroVersion(forest, resolver)
     with pytest.raises(LookupError) as excinfo:
         app.load(path)
@@ -80,7 +79,7 @@ def test_config_parse(config_root, resolver, helpers):
     """Check that a config json can be parsed correctly"""
     forest = {}
     config = Config(forest, resolver)
-    path = os.path.join(config_root, "configs", "default", "default.json")
+    path = config_root / "configs" / "default" / "default.json"
     config.load(path)
 
     check = ["maya2020", "tikal", "brSkinBrush", "animBot", "houdini18.5", "hsite"]
@@ -104,7 +103,7 @@ def test_config_parenting(config_root, resolver):
     forest = {}
     root_paths = set((config_root,))
     # Ensure the forest has multiple trees when processing
-    shared_path = os.path.join(config_root, "configs", "default", "default.json")
+    shared_path = config_root / "configs" / "default" / "default.json"
     Config(forest, resolver, filename=shared_path, root_paths=root_paths)
 
     # Load the tree structure from child to parent to test that the placeholder system
@@ -112,9 +111,10 @@ def test_config_parenting(config_root, resolver):
     Config(
         forest,
         resolver,
-        filename=os.path.join(
-            config_root, "configs", "project_a", "project_a_Sc001_animation.json"
-        ),
+        filename=config_root
+        / "configs"
+        / "project_a"
+        / "project_a_Sc001_animation.json",
         root_paths=root_paths,
     )
     check = [
@@ -125,9 +125,7 @@ def test_config_parenting(config_root, resolver):
     assert check == repr_list(forest["project_a"])
 
     # Check that a middle plcaeholder was replaced
-    mid_level_path = os.path.join(
-        config_root, "configs", "project_a", "project_a_Sc001.json"
-    )
+    mid_level_path = config_root / "configs" / "project_a" / "project_a_Sc001.json"
     Config(forest, resolver, filename=mid_level_path, root_paths=root_paths)
     check[1] = "habitat.parsers.config.Config('project_a/Sc001')"
     assert check == repr_list(forest["project_a"])
@@ -136,16 +134,14 @@ def test_config_parenting(config_root, resolver):
     Config(
         forest,
         resolver,
-        filename=os.path.join(
-            config_root, "configs", "project_a", "project_a_Sc001_rigging.json"
-        ),
+        filename=config_root / "configs" / "project_a" / "project_a_Sc001_rigging.json",
         root_paths=root_paths,
     )
     check.append("habitat.parsers.config.Config('project_a/Sc001/Rigging')")
     assert check == repr_list(forest["project_a"])
 
     # Check that a root item is replaced
-    top_level_path = os.path.join(config_root, "configs", "project_a", "project_a.json")
+    top_level_path = config_root / "configs" / "project_a" / "project_a.json"
     Config(forest, resolver, filename=top_level_path, root_paths=root_paths)
     check[0] = "habitat.parsers.config.Config('project_a')"
     assert check == repr_list(forest["project_a"])
@@ -266,7 +262,7 @@ def test_environment(resolver):
         "{relative_root}/set",
         "{relative_root}/append",
     ]
-    relative_root = cfg.dirname.replace("\\", "/")
+    relative_root = utils.path_forward_slash(cfg.dirname)
     check = [c.format(relative_root=relative_root) for c in check]
 
     assert cfg.environment["RELATIVE_VARIABLE"] == check
@@ -302,7 +298,7 @@ def test_flat_config(resolver):
 def test_invalid_config(config_root, resolver):
     """Check that if an invalid json file is processed, its filename is included in
     the traceback"""
-    path = os.path.join(config_root, "invalid.json")
+    path = config_root / "invalid.json"
     check = re.escape(r' Filename: "{}"'.format(path))
 
     with pytest.raises(ValueError, match=check):
@@ -316,8 +312,9 @@ def test_misc_coverage(resolver):
     # Check that dirname is modified when setting a blank filename
     cfg = Config({}, resolver)
     cfg.filename = ""
-    assert cfg.filename == ""
-    assert cfg.dirname == ""
+    # both of these values should be set to ``Path(os.devnull)``
+    assert str(cfg.filename) == "nul"
+    assert str(cfg.dirname) == "nul"
 
     # String values are cast to the correct type
     cfg.version = "1.0"
@@ -332,8 +329,8 @@ def test_write_script_bat(resolver, tmpdir):
     cfg._platform_override = "windows"
     cfg.write_script(str(file_config), str(file_launch))
 
-    config_text = open(str(file_config)).read()
-    launch_text = open(str(file_launch)).read()
+    config_text = file_config.open().read()
+    launch_text = file_launch.open().read()
 
     # Ensure this test passes if run with cygwin or command prompt/powershell on windows
     alias = "C:\\Program Files\\Autodesk\\Maya2020\\bin"
@@ -362,8 +359,8 @@ def test_write_script_ps1(resolver, tmpdir):
     cfg._platform_override = "windows"
     cfg.write_script(str(file_config), str(file_launch))
 
-    config_text = open(str(file_config)).read()
-    launch_text = open(str(file_launch)).read()
+    config_text = file_config.open().read()
+    launch_text = file_launch.open().read()
 
     # Ensure this test passes if run with cygwin or command prompt/powershell on windows
     alias = "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"
@@ -390,8 +387,8 @@ def test_write_script_sh(resolver, tmpdir):
     file_launch = tmpdir.join("launch")
     cfg.write_script(str(file_config), str(file_launch))
 
-    config_text = open(str(file_config)).read()
-    launch_text = open(str(file_launch)).read()
+    config_text = file_config.open().read()
+    launch_text = file_launch.open().read()
 
     assert 'bash --init-file "{}"\n'.format(file_config) == launch_text
     assert 'export PS1="[not_set/child] $PS1"' in config_text
@@ -425,21 +422,17 @@ def test_duplicated_configs(config_root, resolver, dirname, uri):
     original = resolver.config_paths
     config_paths = list(original)
     # Check that config_paths raise exceptions correctly
-    config_paths.insert(
-        0, os.path.join(config_root, "duplicates", "{}_1".format(dirname))
-    )
+    config_paths.insert(0, config_root / "duplicates" / f"{dirname}_1")
     resolver.config_paths = config_paths
 
     # Check that the first config in config_paths was used
     cfg = resolver.resolve(uri)
-    assert "{}_1".format(dirname) in cfg.filename
+    assert f"{dirname}_1" in str(cfg.filename)
 
     # Check that an exception is raised if there are duplicate definitions from
     # the same config_paths directory.
     config_paths = list(original)
-    config_paths.insert(
-        0, os.path.join(config_root, "duplicates", "{}_2".format(dirname))
-    )
+    config_paths.insert(0, config_root / "duplicates" / f"{dirname}_2")
     resolver.config_paths = config_paths
     with pytest.raises(DuplicateJsonError):
         resolver.resolve(uri)
@@ -460,17 +453,17 @@ def test_duplicated_distros(config_root, resolver):
 
     # Check that the first config in distro_paths was used
     distro_paths = list(original)
-    distro_paths.insert(0, os.path.join(config_root, "duplicates", "distros_1", "*"))
+    distro_paths.insert(0, config_root / "duplicates" / "distros_1" / "*")
     resolver.distro_paths = distro_paths
 
     dcc = resolver.find_distro("the_dcc==1.2")
     assert dcc.name == "the_dcc==1.2"
-    assert "distros_1" in dcc.filename
+    assert "distros_1" in str(dcc.filename)
 
     # Check that an exception is raised if there are duplicate definitions from
     # the same distro_paths directory.
     distro_paths = list(original)
-    distro_paths.insert(0, os.path.join(config_root, "duplicates", "distros_2", "*"))
+    distro_paths.insert(0, config_root / "duplicates" / "distros_2" / "*")
     resolver.distro_paths = distro_paths
 
     with pytest.raises(DuplicateJsonError):

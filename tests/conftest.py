@@ -2,20 +2,21 @@ import os
 import pytest
 
 from contextlib import contextmanager
+from pathlib import Path
 from habitat import Resolver
 from packaging.requirements import Requirement
 
 
 @pytest.fixture
 def config_root():
-    return os.path.dirname(__file__)
+    return Path(__file__).parent
 
 
 @pytest.fixture
 def resolver(config_root):
     """Return a standard testing resolver"""
-    config_paths = (os.path.join(config_root, "configs", "*"),)
-    distro_paths = (os.path.join(config_root, "distros", "*"),)
+    config_paths = (config_root / "configs" / "*",)
+    distro_paths = (config_root / "distros" / "*",)
     return Resolver(config_paths=config_paths, distro_paths=distro_paths)
 
 
