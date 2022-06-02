@@ -30,7 +30,7 @@ class Site(UserDict):
 
     def load_file(self, filename):
         logger.debug('Loading "{}"'.format(filename))
-        with open(filename, "r") as fle:
+        with filename.open() as fle:
             try:
                 data = json.load(fle)
             except ValueError as e:

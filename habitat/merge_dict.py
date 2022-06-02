@@ -1,4 +1,5 @@
 import os
+from . import utils
 
 
 class MergeDict(object):
@@ -16,6 +17,17 @@ class MergeDict(object):
             # return [v.format(**self.format_kwargs) for v in value]
             return [self.default_format(v) for v in value]
         return value.format(**self.format_kwargs)
+
+    @property
+    def format_kwargs(self):
+        return self._format_kwargs
+
+    @format_kwargs.setter
+    def format_kwargs(self, value):
+        self._format_kwargs = value
+        self._format_kwargs_cleaned = {
+            k: utils.path_forward_slash(v) for k, v in value.items()
+        }
 
     def join(self, a, b):
         """Join the two inputs into a flat list. If an input is a string it

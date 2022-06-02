@@ -5,7 +5,7 @@ import pytest
 from collections import OrderedDict
 from packaging.requirements import Requirement
 
-from habitat import Resolver
+from habitat import Resolver, utils
 from habitat.errors import MaxRedirectError
 from habitat.parsers import NotSet
 from habitat.solvers import Solver
@@ -13,16 +13,16 @@ from habitat.solvers import Solver
 
 def test_environment_variables(config_root, helpers):
     """Check that Resolver's init respects the environment variables it uses."""
-    config_paths_env = ["a/config/path", "b/config/path"]
-    distro_paths_env = ["a/distro/path", "b/distro/path"]
-    config_paths_direct = ["z/config/path", "zz/config/path"]
-    distro_paths_direct = ["z/distro/path", "zz/distro/path"]
+    config_paths_env = utils.expand_paths(["a/config/path", "b/config/path"])
+    distro_paths_env = utils.expand_paths(["a/distro/path", "b/distro/path"])
+    config_paths_direct = utils.expand_paths(["z/config/path", "zz/config/path"])
+    distro_paths_direct = utils.expand_paths(["z/distro/path", "zz/distro/path"])
 
     # backup the environment variables so we can restore them
     with helpers.reset_environ():
         # Set the config environment variables
-        os.environ["HAB_CONFIG_PATHS"] = os.pathsep.join(config_paths_env)
-        os.environ["HAB_DISTRO_PATHS"] = os.pathsep.join(distro_paths_env)
+        os.environ["HAB_CONFIG_PATHS"] = utils.collapse_paths(config_paths_env)
+        os.environ["HAB_DISTRO_PATHS"] = utils.collapse_paths(distro_paths_env)
 
         # configured by the environment
         resolver_env = Resolver()
@@ -41,8 +41,8 @@ def test_environment_variables(config_root, helpers):
 
     # Check that we properly split string paths into a lists if provided
     resolver_env = Resolver(
-        config_paths=os.pathsep.join(config_paths_env),
-        distro_paths=os.pathsep.join(distro_paths_env),
+        config_paths=utils.collapse_paths(config_paths_env),
+        distro_paths=utils.collapse_paths(distro_paths_env),
     )
     assert resolver_env.config_paths == config_paths_env
     assert resolver_env.distro_paths == distro_paths_env

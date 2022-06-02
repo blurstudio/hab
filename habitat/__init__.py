@@ -3,12 +3,13 @@ import anytree
 import glob
 import logging
 import os
+
+from . import utils
 from .errors import _IgnoredVersionError
 from .parsers import Config, HabitatBase, DistroVersion
 from .solvers import Solver
 from packaging.requirements import Requirement
 from future.utils import string_types
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +45,12 @@ class Resolver(object):
         self.config_paths = (
             config_paths
             if config_paths
-            else os.getenv("HAB_CONFIG_PATHS", "").split(os.pathsep)
+            else utils.expand_paths(os.getenv("HAB_CONFIG_PATHS", ""))
         )
         self.distro_paths = (
             distro_paths
             if distro_paths
-            else os.getenv("HAB_DISTRO_PATHS", "").split(os.pathsep)
+            else utils.expand_paths(os.getenv("HAB_DISTRO_PATHS", ""))
         )
         logger.debug("config_paths: {}".format(self.config_paths))
         logger.debug("distro_paths: {}".format(self.distro_paths))
@@ -121,7 +122,7 @@ class Resolver(object):
     def config_paths(self, paths):
         # Convert string paths into a list
         if isinstance(paths, string_types):
-            paths = paths.split(os.pathsep)
+            paths = utils.expand_paths(paths)
 
         self._config_paths = paths
         # Reset _configs so we re-generate them the next time they are requested
@@ -142,7 +143,7 @@ class Resolver(object):
     def distro_paths(self, paths):
         # Convert string paths into a list
         if isinstance(paths, string_types):
-            paths = paths.split(os.pathsep)
+            paths = utils.expand_paths(paths)
 
         self._distro_paths = paths
         # Reset _distros so we re-generate them the next time they are requested
@@ -180,7 +181,7 @@ class Resolver(object):
         if forest is None:
             forest = {}
         for dirname in config_paths:
-            for path in sorted(glob.glob(os.path.join(dirname, "*.json"))):
+            for path in sorted(glob.glob(str(dirname / "*.json"))):
                 Config(forest, self, path, root_paths=set((dirname,)))
         return forest
 
@@ -188,7 +189,7 @@ class Resolver(object):
         if forest is None:
             forest = {}
         for dirname in distro_paths:
-            for path in sorted(glob.glob(os.path.join(dirname, "*", ".habitat.json"))):
+            for path in sorted(glob.glob(str(dirname / "*" / ".habitat.json"))):
                 try:
                     DistroVersion(forest, self, path, root_paths=set((dirname,)))
                 except _IgnoredVersionError as error:

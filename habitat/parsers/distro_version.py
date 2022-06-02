@@ -1,5 +1,3 @@
-import os
-
 from . import HabitatBase, Distro, NotSet, habitat_property
 from ..errors import _IgnoredVersionError
 from packaging.version import Version, InvalidVersion
@@ -27,18 +25,17 @@ class DistroVersion(HabitatBase):
         self.aliases = data.get("aliases", NotSet)
 
         # The version can be stored in several ways to make deployment and dev easier
+        version_txt = self.dirname / ".habitat_version.txt"
         if "version" in data:
             self.version = data["version"]
-        elif os.path.exists(os.path.join(self.dirname, ".habitat_version.txt")):
-            self.version = (
-                open(os.path.join(self.dirname, ".habitat_version.txt")).read().strip()
-            )
+        elif version_txt.exists():
+            self.version = version_txt.open().read().strip()
         else:
             # If version is not defined in json data extract it from the parent
             # directory name. This allows for simpler distribution without needing
             # to modify version controlled files.
             try:
-                self.version = os.path.basename(self.dirname)
+                self.version = self.dirname.name
             except InvalidVersion:
                 """The parent directory was not a valid version, attempt to get a
                 version using setuptools_scm.
@@ -50,7 +47,7 @@ class DistroVersion(HabitatBase):
                         root=self.dirname, version_scheme="release-branch-semver"
                     )
                 except LookupError:
-                    if os.path.basename(self.dirname) in self.resolver.ignored:
+                    if self.dirname.name in self.resolver.ignored:
                         # This object is not added to the forest until super is called
                         raise _IgnoredVersionError(
                             'Skipping "{}" its dirname is in the ignored list.'.format(
