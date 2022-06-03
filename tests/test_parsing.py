@@ -120,7 +120,7 @@ def test_config_parenting(config_root, resolver):
     check = [
         "habitat.parsers.Placeholder('project_a')",
         "habitat.parsers.Placeholder('project_a/Sc001')",
-        "habitat.parsers.Config('project_a/Sc001/Animation')",
+        "habitat.parsers.config.Config('project_a/Sc001/Animation')",
     ]
     assert check == repr_list(forest["project_a"])
 
@@ -129,7 +129,7 @@ def test_config_parenting(config_root, resolver):
         config_root, "configs", "project_a", "project_a_Sc001.json"
     )
     Config(forest, resolver, filename=mid_level_path, root_paths=root_paths)
-    check[1] = "habitat.parsers.Config('project_a/Sc001')"
+    check[1] = "habitat.parsers.config.Config('project_a/Sc001')"
     assert check == repr_list(forest["project_a"])
 
     # Check that a middle Config object is used not replaced
@@ -141,13 +141,13 @@ def test_config_parenting(config_root, resolver):
         ),
         root_paths=root_paths,
     )
-    check.append("habitat.parsers.Config('project_a/Sc001/Rigging')")
+    check.append("habitat.parsers.config.Config('project_a/Sc001/Rigging')")
     assert check == repr_list(forest["project_a"])
 
     # Check that a root item is replaced
     top_level_path = os.path.join(config_root, "configs", "project_a", "project_a.json")
     Config(forest, resolver, filename=top_level_path, root_paths=root_paths)
-    check[0] = "habitat.parsers.Config('project_a')"
+    check[0] = "habitat.parsers.config.Config('project_a')"
     assert check == repr_list(forest["project_a"])
 
     # Verify that the correct exceptions are raised if root duplicates are loaded
@@ -161,7 +161,7 @@ def test_config_parenting(config_root, resolver):
     assert check == repr_list(forest["project_a"])
 
     # Check that the forest didn't loose the default tree
-    assert ["habitat.parsers.Config('default')"] == repr_list(forest["default"])
+    assert ["habitat.parsers.config.Config('default')"] == repr_list(forest["default"])
 
 
 def test_metaclass():
