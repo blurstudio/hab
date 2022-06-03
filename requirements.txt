@@ -1,7 +1,6 @@
 anytree
 click>=7.1.2
+colorama
 future>=0.18.2
 packaging>=20.0
-setuptools_scm[toml]>=4,<6;python_version<"3.5"
-setuptools_scm[toml]>=4;python_version>="3.5"
-tabulate
+setuptools_scm[toml]>=4
