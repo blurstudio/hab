@@ -4,12 +4,11 @@ import logging
 import os
 import subprocess
 import sys
-import tabulate
 
+import colorama
 from future.utils import with_metaclass
 from packaging.version import Version
 from pathlib import Path
-from pprint import pformat
 
 from . import HabitatMeta, NotSet, habitat_property
 from .. import utils
@@ -222,7 +221,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             distros = Solver.simplify_requirements(distros)
         self._distros = distros
 
-    def dump(self, environment=True, environment_config=False, verbosity=0):
+    def dump(self, environment=True, environment_config=False, verbosity=0, color=None):
         """Return a string of the properties and their values.
 
         Args:
@@ -232,6 +231,9 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         Returns:
             str: The configuration converted to a string
         """
+        if color is None:  # pragma: no cover
+            color = self.resolver.site.get('colorize', True)
+
         ret = []
         # Update what properties are shown in the dump
         props = self._properties.copy()
@@ -248,69 +250,42 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
                 continue
 
             value = getattr(self, prop)
-            # Custom formatting of values for readability
-            if value is NotSet:
-                value = "<NotSet>"
-            if prop == "versions":
-                if verbosity > 2:
+            flat_list = False
+            if prop == "aliases" and verbosity < 3:
+                value = value.keys()
+                flat_list = True
+            elif prop == "versions":
+                if verbosity < 3:
+                    # Only show the names of the versions
+                    value = sorted([v.name for v in value], key=lambda i: i.lower())
+                else:
                     # Include the definition of the version's path for debugging
+                    if color:  # pragma: no cover
+                        fmt = f"{colorama.Fore.GREEN}{{}}{colorama.Style.RESET_ALL}:  {{}}"
+                    else:
+                        fmt = "{}:  {}"
                     value = [
-                        (v.name, v.filename)
+                        fmt.format(v.name, v.filename)
                         for v in sorted(value, key=lambda i: i.name.lower())
                     ]
-                    value = tabulate.tabulate(value, tablefmt="plain")
-                else:
-                    value = sorted([v.name for v in value], key=lambda i: i.lower())
-                    value = "\n".join(value)
-            if prop == "environment" and value:
-                # Format path environment variables so they are easy to read
-                # and take up more vertical space than horizontal space
-                rows = []
-                for key in sorted(value):
-                    val = "{}: ".format(key)
-                    row = []
-                    temp = value[key]
-                    if isinstance(temp, str):
-                        temp = [temp]
-                    if temp is None:
-                        temp = [""]
-                    for v in temp:
-                        row.append("{}{}".format(val, v))
-                        val = " " * len(val)
-                    rows.append("{}\n".format(os.pathsep).join(row))
-                value = "\n".join(rows)
-            if prop == "aliases":
-                if verbosity < 3:
-                    value = sorted(value.keys())
-                    rows = []
-                    row = ""
-                    for v in value:
-                        if len(row) > 50:
-                            rows.append(row)
-                            row = ""
-                        if row:
-                            row = ", ".join((row, v))
-                        else:
-                            row = v
-                    if row:
-                        rows.append(row)
-                    value = "\n".join(rows)
 
-            if isinstance(value, (list, dict)):
-                # Format long data types into multiple rows for readability
-                lines = pformat(value)
-                for line in lines.split("\n"):
-                    ret.append((prop, line))
-                    # Clear the prop name so we only add it once on the left
-                    prop = ""
-            else:
-                ret.append((prop, value))
+            ret.append(
+                utils.dump_object(
+                    value, label=f'{prop}:  ', flat_list=flat_list, color=color
+                )
+            )
 
-        ret = tabulate.tabulate(ret)
-
-        # Build a header for the details table
-        cls = type(self)
-        return "Dump of {}('{}')\n{}".format(cls.__name__, self.fullpath, ret)
+        ret = '\n'.join(ret)
+        name = type(self).__name__
+        if color:  # pragma: no cover
+            # Only colorize the uri name not the entire title line
+            title = (
+                f"Dump of {name}({colorama.Fore.GREEN}'"
+                f"{self.fullpath}'{colorama.Style.RESET_ALL})"
+            )
+        else:
+            title = f"Dump of {name}('{self.fullpath}')"
+        return utils.dump_title(title, ret, color=False)
 
     # Note: 'distros' needs to be processed before 'environment'
     @habitat_property(verbosity=2, process_order=80)

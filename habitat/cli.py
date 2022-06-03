@@ -142,7 +142,7 @@ def env(settings, uri, launch):
     "-t",
     "--type",
     "report_type",
-    type=click.Choice(["config", "c", "forest", "f"]),
+    type=click.Choice(["config", "c", "forest", "f", "site", "s"]),
     default="config",
     help="Type of report.",
 )
@@ -166,6 +166,8 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity):
         click.echo(settings.resolver.dump_forest(settings.resolver.configs))
         click.echo(" Distros ".center(50, "-"))
         click.echo(settings.resolver.dump_forest(settings.resolver.distros))
+    elif report_type in ("site", "s"):
+        click.echo(settings.resolver.site.dump())
     else:
         if flat:
             ret = settings.resolver.resolve(uri)

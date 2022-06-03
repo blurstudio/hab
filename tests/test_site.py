@@ -1,3 +1,4 @@
+import colorama
 import pytest
 from habitat import Site, utils
 
@@ -49,9 +50,30 @@ def test_path_in_raise(config_root):
     assert "missing_file.json" in str(excinfo.value)
 
 
-def test_reserved_keys(config_root):
+def test_dump(config_root):
+    """utils.dump_object are checked pretty well in test_parsing, here we test
+    the colorization settings and ensuring that the desired results are listed
+    """
+    checks = (
+        '{green}Dump of Site{reset}\n',
+        '{green}ignored_distros:  {reset}release, pre',
+    )
+
     paths = [config_root / "site_main.json"]
-    Site._reserved_keys.add('filename')
-    with pytest.raises(ValueError) as excinfo:
-        Site(paths)
-    assert str(excinfo.value) == "These keys can not be used for site config: filename"
+    site = Site(paths)
+    assert site.get("colorize") is None
+
+    result = site.dump()
+    for check in checks:
+        assert (
+            check.format(green=colorama.Fore.GREEN, reset=colorama.Style.RESET_ALL)
+            in result
+        )
+
+    paths = [config_root / "site_override.json"]
+    site = Site(paths)
+    assert site.get("colorize") is False
+
+    result = site.dump()
+    for check in checks:
+        assert check.format(green="", reset="") in result

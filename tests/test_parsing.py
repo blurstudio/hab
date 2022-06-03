@@ -7,7 +7,6 @@ import ntpath
 from packaging.version import Version
 import pytest
 import re
-from tabulate import tabulate
 
 
 def test_distro_parse(config_root, resolver):
@@ -185,30 +184,66 @@ def test_metaclass():
 def test_dump(resolver):
     # Build the test data so we can generate the output to check
     # Note: using `repr([u"` so this test passes in python 2 and 3
-    pre = [["name", "child"], ["uri", "not_set/child"]]
-    post = [["inherits", "True"]]
-    env = [["environment", "TEST: case"], ["", "UNSET_VARIABLE:"]]
-    check = "{'set': {'TEST': 'case'}, 'unset': ['UNSET_VARIABLE']}"
+    pre = ["name:  child", "uri:  not_set/child"]
+    post = ["inherits:  True"]
+    env = ["environment:  UNSET_VARIABLE:  None", "              TEST:  case"]
 
-    env_config = [["environment_config", check]]
+    env_config = [
+        "environment_config:  unset:  UNSET_VARIABLE",
+        "                     set:  TEST:  case",
+    ]
     cfg = resolver.closest_config("not_set/child")
-    header = "Dump of {}('{}')\n{{}}".format(type(cfg).__name__, cfg.fullpath)
+    header = f"Dump of {type(cfg).__name__}('{cfg.fullpath}')"
 
     # Check that both environments can be hidden
-    result = cfg.dump(environment=False, environment_config=False, verbosity=2)
-    assert result == header.format(tabulate(pre + post))
+    result = cfg.dump(
+        environment=False, environment_config=False, verbosity=2, color=False
+    )
+    line = "-" * len(header)
+    check = [f'{header}\n{line}']
+    check.extend(pre)
+    check.extend(post)
+    check.append(line)
+    check = '\n'.join(check)
+    assert result == check
 
     # Check that both environments can be shown
-    result = cfg.dump(environment=True, environment_config=True, verbosity=2)
-    assert result == header.format(tabulate(pre + env + env_config + post))
+    result = cfg.dump(
+        environment=True, environment_config=True, verbosity=2, color=False
+    )
+    line = "-" * len(env_config[0])
+    check = [f'{header}\n{line}']
+    check.extend(pre)
+    check.extend(env)
+    check.extend(env_config)
+    check.extend(post)
+    check.append(line)
+    check = '\n'.join(check)
+    assert result == check
 
     # Check that only environment can be shown
-    result = cfg.dump(environment=True, environment_config=False, verbosity=2)
-    assert result == header.format(tabulate(pre + env + post))
-
+    result = cfg.dump(
+        environment=True, environment_config=False, verbosity=2, color=False
+    )
+    line = "-" * len(env[0])
+    check = [f'{header}\n{line}']
+    check.extend(pre)
+    check.extend(env)
+    check.extend(post)
+    check.append(line)
+    check = '\n'.join(check)
     # Check that only environment_config can be shown
-    result = cfg.dump(environment=False, environment_config=True, verbosity=2)
-    assert result == header.format(tabulate(pre + env_config + post))
+    result = cfg.dump(
+        environment=False, environment_config=True, verbosity=2, color=False
+    )
+    line = "-" * len(env_config[0])
+    check = [f'{header}\n{line}']
+    check.extend(pre)
+    check.extend(env_config)
+    check.extend(post)
+    check.append(line)
+    check = '\n'.join(check)
+    assert result == check
 
 
 def test_dump_flat(resolver):
@@ -216,20 +251,20 @@ def test_dump_flat(resolver):
     cfg = resolver.resolve("not_set/child")
     # Check that dump formats versions nicely
     check = re.compile(
-        r'versions\s+(?P<ver>maya2020==2020\.1)\s*(?P<file>[\w:\\.\/-]+\.json)?'
+        r'versions:  (?P<ver>maya2020==2020\.1)(?P<file>:  [\w:\\.\/-]+\.json)?'
     )
     # Versions are not shown with verbosity >= 1
-    result = cfg.dump()
+    result = cfg.dump(color=False)
     assert not check.search(result)
 
     # Verbosity 2 shows just the version requirement
-    result = cfg.dump(verbosity=2)
+    result = cfg.dump(verbosity=2, color=False)
     match = check.search(result)
     assert match.group('file') is None
     assert match.group('ver') == u"maya2020==2020.1"
 
     # Verbosity 3 also shows the json file name
-    result = cfg.dump(verbosity=3)
+    result = cfg.dump(verbosity=3, color=False)
     match = check.search(result)
     assert match.group('file') is not None
 

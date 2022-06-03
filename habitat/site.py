@@ -34,16 +34,26 @@ class Site(UserDict):
 
         self.load()
 
-    def _check_reserved_keys(self, data):
-        """Validate that data won't override any of the core methods and attributes
-        of this class. For example, check that we never replace load, load_file, etc.
+    def dump(self, color=None):
+        """Return a string of the properties and their values.
+
+        Args:
+            environment (bool, optional): Show the environment value.
+            environment_config (bool, optional): Show the environment_config value.
+
+        Returns:
+            str: The configuration converted to a string
         """
-        for keys in data.values():
-            problems = [key for key in keys if key in self._reserved_keys]
-            if problems:
-                raise ValueError(
-                    f"These keys can not be used for site config: {', '.join(problems)}"
-                )
+        if color is None:
+            color = self.get('colorize', True)
+
+        # Include the paths used to configure this site object
+        site_ret = utils.dump_object(
+            {'HAB_PATHS': [str(p) for p in self.paths]}, color=color
+        )
+        # Include all of the resolved site configurations
+        ret = utils.dump_object(self, color=color)
+        return utils.dump_title('Dump of Site', f'{site_ret}\n{ret}', color=color)
 
     def load(self):
         """Iterates over each file in self.path. Replacing the value of each key.
@@ -61,7 +71,6 @@ class Site(UserDict):
         data = utils.load_json_file(filename)
 
         merger = MergeDict(relative_root=filename.parent)
-        merger.validator = self._check_reserved_keys
         merger.update(self, data)
 
     @property
@@ -72,7 +81,3 @@ class Site(UserDict):
     @paths.setter
     def paths(self, paths):
         self._paths = paths
-
-
-# Don't allow configurations to overwrite these values.
-Site._reserved_keys = set(dir(Site))

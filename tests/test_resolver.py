@@ -1,8 +1,10 @@
 import anytree
+import os
 import pytest
 
 from collections import OrderedDict
 from packaging.requirements import Requirement
+from pathlib import Path
 
 from habitat import Resolver, Site, utils
 from habitat.errors import MaxRedirectError
@@ -328,3 +330,23 @@ def test_forced_requirements(resolver, helpers, forced, check):
     )
     resolved = resolver_forced.resolve_requirements(requirements)
     helpers.assert_requirements_equal(resolved, check)
+
+
+@pytest.mark.parametrize(
+    'value,check',
+    (
+        ('test_string', [Path('test_string')]),
+        (f'one{os.pathsep}two', [Path('one'), Path('two')]),
+    ),
+)
+def test_path_expansion(resolver, value, check):
+    # Both of these properties end up calling utils.expand_path, so
+    # this doubles as a test for that edge case.
+    resolver.config_paths = value
+    assert resolver.config_paths == check
+
+    resolver.distro_paths = value
+    assert resolver.distro_paths == check
+
+    # Check that collapse_paths also works as expected
+    assert utils.collapse_paths('test_string') == str('test_string')
