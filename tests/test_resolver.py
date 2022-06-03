@@ -1,35 +1,31 @@
 import anytree
-import os
 import pytest
 
 from collections import OrderedDict
 from packaging.requirements import Requirement
 
-from habitat import Resolver, utils
+from habitat import Resolver, Site, utils
 from habitat.errors import MaxRedirectError
 from habitat.parsers import NotSet
 from habitat.solvers import Solver
 
 
-def test_environment_variables(config_root, helpers):
+def test_environment_variables(config_root, helpers, monkeypatch):
     """Check that Resolver's init respects the environment variables it uses."""
     config_paths_env = utils.expand_paths(["a/config/path", "b/config/path"])
     distro_paths_env = utils.expand_paths(["a/distro/path", "b/distro/path"])
     config_paths_direct = utils.expand_paths(["z/config/path", "zz/config/path"])
     distro_paths_direct = utils.expand_paths(["z/distro/path", "zz/distro/path"])
 
-    # backup the environment variables so we can restore them
-    with helpers.reset_environ():
-        # Set the config environment variables
-        os.environ["HAB_CONFIG_PATHS"] = utils.collapse_paths(config_paths_env)
-        os.environ["HAB_DISTRO_PATHS"] = utils.collapse_paths(distro_paths_env)
+    # Set the config environment variables
+    monkeypatch.setenv(
+        "HAB_PATHS", utils.collapse_paths([config_root / "site_env.json"])
+    )
 
-        # configured by the environment
-        resolver_env = Resolver()
-        # configured by passed arguments
-        resolver_direct = Resolver(
-            config_paths=config_paths_direct, distro_paths=distro_paths_direct
-        )
+    # configured by the environment
+    resolver_env = Resolver()
+    # configured by passed arguments
+    resolver_direct = Resolver(site=Site([config_root / "site_env_direct.json"]))
 
     # Check the environment configured resolver
     assert resolver_env.config_paths == config_paths_env
@@ -40,16 +36,13 @@ def test_environment_variables(config_root, helpers):
     assert resolver_direct.distro_paths == distro_paths_direct
 
     # Check that we properly split string paths into a lists if provided
-    resolver_env = Resolver(
-        config_paths=utils.collapse_paths(config_paths_env),
-        distro_paths=utils.collapse_paths(distro_paths_env),
-    )
+    resolver_env = Resolver(site=Site([config_root / "site_env.json"]))
     assert resolver_env.config_paths == config_paths_env
     assert resolver_env.distro_paths == distro_paths_env
 
 
 def test_config(resolver):
-    """Spot check a few of the parsed configs to enesure config works."""
+    """Spot check a few of the parsed configs to ensure config works."""
     any_resolver = anytree.Resolver()
     default = resolver.configs["default"]
     assert default.name == "default"
@@ -330,8 +323,7 @@ def test_forced_requirements(resolver, helpers, forced, check):
 
     # Check that forced_requirement's are included in the resolved requirements
     resolver_forced = Resolver(
-        config_paths=resolver.config_paths,
-        distro_paths=resolver.distro_paths,
+        site=resolver.site,
         forced_requirements=forced,
     )
     resolved = resolver_forced.resolve_requirements(requirements)

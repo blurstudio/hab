@@ -1,0 +1,12 @@
+{
+    "append": {
+        "config_paths": [
+            "z/config/path",
+            "zz/config/path"
+        ],
+        "distro_paths": [
+            "z/distro/path",
+            "zz/distro/path"
+        ]
+    }
+}

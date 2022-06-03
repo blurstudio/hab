@@ -4,7 +4,6 @@ from habitat.errors import DuplicateJsonError
 from habitat.parsers import DistroVersion, Config, NotSet
 import json
 import ntpath
-import os
 from packaging.version import Version
 import pytest
 import re
@@ -40,7 +39,7 @@ def test_distro_parse(config_root, resolver):
     assert app.version == Version("2020.0")
 
 
-def test_distro_version_resolve(config_root, resolver, helpers):
+def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch):
     """Check the various methods for DistroVersion.version to be populated."""
 
     # Test that `.habitat_version.txt` is respected if it exists.
@@ -59,11 +58,11 @@ def test_distro_version_resolve(config_root, resolver, helpers):
 
     # Test that setuptools_scm is able to resolve the version.
     app = DistroVersion(forest, resolver)
-    with helpers.reset_environ():
-        # This env var forces setuptools_scm to this version so we don't have to
-        # create a git repo to test that get_version is called correctly.
-        os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "1.9"
-        app.load(path)
+    # This env var forces setuptools_scm to this version so we don't have to
+    # create a git repo to test that get_version is called correctly.
+    monkeypatch.setenv("SETUPTOOLS_SCM_PRETEND_VERSION", "1.9")
+
+    app.load(path)
     assert app.version == Version("1.9")
 
 
