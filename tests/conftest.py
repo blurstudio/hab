@@ -3,7 +3,7 @@ import pytest
 
 from contextlib import contextmanager
 from pathlib import Path
-from habitat import Resolver
+from habitat import Resolver, Site
 from packaging.requirements import Requirement
 
 
@@ -15,9 +15,8 @@ def config_root():
 @pytest.fixture
 def resolver(config_root):
     """Return a standard testing resolver"""
-    config_paths = (config_root / "configs" / "*",)
-    distro_paths = (config_root / "distros" / "*",)
-    return Resolver(config_paths=config_paths, distro_paths=distro_paths)
+    site = Site([config_root / "site_main.json"])
+    return Resolver(site=site)
 
 
 class Helpers(object):

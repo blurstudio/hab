@@ -2,7 +2,6 @@ from __future__ import print_function
 import anytree
 import glob
 import logging
-import os
 
 from . import utils
 from .errors import _IgnoredVersionError
@@ -10,7 +9,6 @@ from .parsers import Config, HabitatBase, DistroVersion
 from .site import Site
 from .solvers import Solver
 from packaging.requirements import Requirement
-from future.utils import string_types
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +17,11 @@ class Resolver(object):
     """Used to resolve a habitat environment setup and apply it to the current environment.
 
     Args:
-        config_paths (list, optional): List of glob paths where configs are discovered.
-            If not provided the `HAB_CONFIG_PATHS` environment variable is used.
-        distro_paths (list, optional): List of glob paths where distros are discovered.
-            If not provided the `HAB_DISTRO_PATHS` environment variable is used.
+        site (habitat.Site, optional): The site configuration. if not provided, uses
+            the ``HAB_PATHS`` environment variable to load the configuration.
         prereleases (bool, optional): When resolving distro versions, should
-            pre-releases be included in the latest version.
+            pre-releases be included in the latest version. If not specified uses the
+            value specified in site for the ``"prereleases"`` value.
         forced_requirements (list, optional): A list of additional version requirements
             to respect even if they are not specified in a config. This is provided for
             ease of habitat package development and should not be used in production.
@@ -32,33 +29,31 @@ class Resolver(object):
 
     def __init__(
         self,
-        config_paths=None,
-        distro_paths=None,
-        prereleases=False,
+        site=None,
+        prereleases=None,
         forced_requirements=None,
     ):
+        if site is None:
+            site = Site()
+        self.site = site
+
+        if prereleases is None:
+            prereleases = self.site.get('prereleases', False)
         self.prereleases = prereleases
+
         if forced_requirements:
             self.forced_requirements = Solver.simplify_requirements(forced_requirements)
         else:
             self.forced_requirements = {}
 
-        self.config_paths = (
-            config_paths
-            if config_paths
-            else utils.expand_paths(os.getenv("HAB_CONFIG_PATHS", ""))
-        )
-        self.distro_paths = (
-            distro_paths
-            if distro_paths
-            else utils.expand_paths(os.getenv("HAB_DISTRO_PATHS", ""))
-        )
+        self.config_paths = utils.expand_paths(self.site.get('config_paths', []))
+        self.distro_paths = utils.expand_paths(self.site.get('distro_paths', []))
         logger.debug("config_paths: {}".format(self.config_paths))
         logger.debug("distro_paths: {}".format(self.distro_paths))
+
         self._configs = None
         self._distros = None
-        # TODO: Add a way to customize this in the config
-        self.ignored = ("release", "pre")
+        self.ignored = self.site['ignored_distros']
 
     def closest_config(self, path, default=False):
         """Returns the most specific leaf or the tree root matching path. Ignoring any
@@ -122,7 +117,7 @@ class Resolver(object):
     @config_paths.setter
     def config_paths(self, paths):
         # Convert string paths into a list
-        if isinstance(paths, string_types):
+        if isinstance(paths, str):
             paths = utils.expand_paths(paths)
 
         self._config_paths = paths
@@ -143,7 +138,7 @@ class Resolver(object):
     @distro_paths.setter
     def distro_paths(self, paths):
         # Convert string paths into a list
-        if isinstance(paths, string_types):
+        if isinstance(paths, str):
             paths = utils.expand_paths(paths)
 
         self._distro_paths = paths

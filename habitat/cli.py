@@ -1,5 +1,5 @@
 import click
-from . import Resolver
+from . import Resolver, Site
 import logging
 from pathlib import Path
 
@@ -13,29 +13,26 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 class SharedSettings(object):
     def __init__(
         self,
-        configs=None,
-        distros=None,
+        site_paths=None,
         verbosity=0,
         file_config=None,
         file_launch=None,
-        pre=False,
+        pre=None,
         forced_requirements=None,
     ):
         self.verbosity = verbosity
         self.file_config = Path(file_config or ".").resolve()
         self.file_launch = Path(file_launch or ".").resolve()
-        self.config_paths = configs
-        self.distro_paths = distros
         self._resolver = None
         self.prereleases = pre
         self.forced_requirements = forced_requirements
+        self.site = Site([Path(p) for p in site_paths])
 
     @property
     def resolver(self):
         if self._resolver is None:
             self._resolver = Resolver(
-                self.config_paths,
-                self.distro_paths,
+                site=self.site,
                 prereleases=self.prereleases,
                 forced_requirements=self.forced_requirements,
             )
@@ -65,20 +62,12 @@ class SharedSettings(object):
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "-c",
-    "--configs",
+    "--site",
+    "site_paths",
     multiple=True,
-    type=click.Path(file_okay=False, resolve_path=True),
-    help="glob paths to find configuration. Uses the env var `HAB_CONFIG_PATHS` "
-    "if not passed.",
-)
-@click.option(
-    "-d",
-    "--distros",
-    multiple=True,
-    type=click.Path(file_okay=False, resolve_path=True),
-    help="glob paths to find distro configuration. Uses the env var `HAB_DISTRO_PATHS` "
-    "if not passed.",
+    type=click.Path(file_okay=True, resolve_path=True),
+    help="One or more site json files to load settings from. Uses the env var "
+    "`HAB_PATHS` if not passed.",
 )
 @click.option(
     "-v",
@@ -100,7 +89,7 @@ class SharedSettings(object):
 )
 @click.option(
     "--pre/--no-pre",
-    default=True,
+    default=None,
     help="Include pre-releases when finding the latest distro version.",
 )
 @click.option(
@@ -111,9 +100,9 @@ class SharedSettings(object):
     "this may lead to configuring your environment incorrectly, use with caution.",
 )
 @click.pass_context
-def cli(ctx, configs, distros, verbosity, file_config, file_launch, pre, requirement):
+def cli(ctx, site_paths, verbosity, file_config, file_launch, pre, requirement):
     ctx.obj = SharedSettings(
-        configs, distros, verbosity, file_config, file_launch, pre, requirement
+        site_paths, verbosity, file_config, file_launch, pre, requirement
     )
     if verbosity > 2:
         verbosity = 2
