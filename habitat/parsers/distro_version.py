@@ -4,6 +4,9 @@ from packaging.version import Version, InvalidVersion
 
 
 class DistroVersion(HabitatBase):
+    """A specific version of the loaded `Distro`'s. Including its requirements,
+    aliases and environment variables."""
+
     _context_method = "name"
     _placeholder = Distro
 
@@ -13,6 +16,8 @@ class DistroVersion(HabitatBase):
 
     @habitat_property()
     def aliases(self):
+        """List of the names and commands that need created to launch desired
+        applications."""
         return self._aliases
 
     @aliases.setter

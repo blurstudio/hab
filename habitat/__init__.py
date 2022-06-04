@@ -147,6 +147,7 @@ class Resolver(object):
 
     @property
     def distros(self):
+        """A list of all of the requested distros to resolve."""
         if self._distros is None:
             self._distros = self.parse_distros(self.distro_paths)
         return self._distros
@@ -193,6 +194,7 @@ class Resolver(object):
         return forest
 
     def resolve(self, uri):
+        """Find the closest configuration and reduce it into its final form."""
         context = self.closest_config(uri)
         return context.reduced(self, uri=uri)
 

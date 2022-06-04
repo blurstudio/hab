@@ -2,6 +2,10 @@ from . import HabitatBase, NotSet, habitat_property
 
 
 class Config(HabitatBase):
+    """The configuration for a given URI that defines required distros and environment
+    variables need to be loaded if this config is chosen. This does not resolve `NotSet`
+    values, see `FlatConfig` for the final resolved values that are actually applied."""
+
     def _init_variables(self):
         super(Config, self)._init_variables()
         self.inherits = NotSet

@@ -106,7 +106,12 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @property
     def context(self):
-        """A list of parent context strings."""
+        """A list of parent context strings.
+
+        The resolved URI parents of the this object. This does not include the name
+        of the object, only its parents. `project_a/Sc001` would resolve into context:
+        `["project_a"]` and name: `"Sc001"`.
+        """
         return self._context
 
     @context.setter
@@ -212,6 +217,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     # Note: 'distros' needs to be processed before 'environment'
     @habitat_property(verbosity=3, process_order=50)
     def distros(self):
+        """A list of all of the requested distros to resolve."""
         return self._distros
 
     @distros.setter
@@ -412,6 +418,10 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @habitat_property(verbosity=1, group=0)
     def name(self):
+        """The name of this object. See ``.context`` for how this is built into
+        a full URI. `project_a/Sc001` would resolve into context: `["project_a"]`
+        and name: `"Sc001"`.
+        """
         return self._name
 
     @name.setter
@@ -504,6 +514,8 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
     @property
     def uri(self):
+        """The Uniform Resource Identifier for this object. This is a combination of
+        its context and name properties separated by `/`"""
         if self._uri:
             return self._uri
         return self.fullpath
