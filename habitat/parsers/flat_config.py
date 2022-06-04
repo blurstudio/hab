@@ -7,6 +7,11 @@ logger = logging.getLogger(__name__)
 
 
 class FlatConfig(Config):
+    """A fully resolved and flattened Config object. Any values NotSet on the Config
+    this is built from, are attempted to be set from the parents of that Config. If
+    still not found, it will attempt to find the value from a matching config on the
+    Default tree instead."""
+
     def __init__(self, original_node, resolver, uri=NotSet):
         super(FlatConfig, self).__init__(original_node.forest, resolver)
         self.original_node = original_node
@@ -49,6 +54,8 @@ class FlatConfig(Config):
 
     @habitat_property()
     def aliases(self):
+        """List of the names and commands that need created to launch desired
+        applications."""
         ret = {}
         for version in self.versions:
             if version.aliases:

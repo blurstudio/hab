@@ -4,6 +4,8 @@ from packaging.specifiers import SpecifierSet
 
 
 class Distro(HabitatBase):
+    """Container of DistroVersion objects. One per distro exists in a distro forest"""
+
     def latest_version(self, specifier):
         """Returns the newest version available matching the specifier"""
         versions = self.matching_versions(specifier)

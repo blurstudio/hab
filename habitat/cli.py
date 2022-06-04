@@ -67,7 +67,8 @@ class SharedSettings(object):
     multiple=True,
     type=click.Path(file_okay=True, resolve_path=True),
     help="One or more site json files to load settings from. Uses the env var "
-    "`HAB_PATHS` if not passed.",
+    "`HAB_PATHS` if not passed. The values in each file are merged into a single "
+    "dict with the right most value of any given configuration option being used.",
 )
 @click.option(
     "-v",
