@@ -27,7 +27,7 @@ committed to the repo.
 `identifier1/identifier2/...`
 
 You specify a configuration using a simple URI of identifiers separated by a `/`.
-Currently habitat only supports absolute uri's. 
+Currently habitat only supports absolute uri's.
 
 Examples:
 * projectDummy/Sc001/S0001.00
@@ -283,13 +283,13 @@ to the resolved environment. This is stored in `HabitatBase.environment_config`.
     "environment": {
         "unset": [
             "UNSET_VARIABLE"
-        ], 
+        ],
         "set": {
             "MAYA_MODULE_PATH": "{relative_root}"
-        }, 
+        },
         "append": {
             "MAYA_MODULE_PATH": "{relative_root}/append",
-        }, 
+        },
         "prepend": {
             "MAYA_MODULE_PATH": "prepend_value"
         }
@@ -326,7 +326,7 @@ This quote from the Rez documentation explains why:
 If required, you can create OS specific environment variable definitions. To do this,
 you nest the above structure into a dictionary with the correct `windows` or `linux`
 key. You have to add a extra key `os_specific` set to `true` to indicate that you are
-using os specific configurations. 
+using os specific configurations.
 
 ```json
     "environment": {

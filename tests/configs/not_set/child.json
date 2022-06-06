@@ -4,7 +4,7 @@
     "environment": {
         "unset": [
             "UNSET_VARIABLE"
-        ], 
+        ],
         "set": {
             "TEST": "case"
         }
