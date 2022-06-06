@@ -1,31 +1,31 @@
 {
-    "name": "all_settings", 
-    "version": "0.1.0.dev1", 
+    "name": "all_settings",
+    "version": "0.1.0.dev1",
     "environment": {
         "unset": [
             "OTHER"
-        ], 
+        ],
         "set": {
             "TEST": "case"
-        }, 
+        },
         "append": {
             "MAYA_MODULE_PATH": "."
-        }, 
+        },
         "prepend": {
             "TEST_VARIABLE": "prepend_value"
         }
-    }, 
+    },
     "distros": [
         "Maya2020"
-    ], 
+    ],
     "aliases": {
         "windows": [
             [
-                "maya", 
+                "maya",
                 "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"
-            ], 
+            ],
             [
-                "mayapy", 
+                "mayapy",
                 "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"
             ]
         ]

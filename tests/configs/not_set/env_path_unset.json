@@ -5,6 +5,6 @@
         "unset": [
             "PATH"
         ]
-    }, 
+    },
     "inherits": true
 }

@@ -5,6 +5,6 @@
         "set": {
             "PATH": "path_variable"
         }
-    }, 
+    },
     "inherits": true
 }
