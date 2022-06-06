@@ -5,6 +5,14 @@ on: [push, pull_request]
 jobs:
 
   static-analysis:
+    # We want to run on external PRs, but not on our own internal PRs as they'll
+    # be run by the push to the branch. Without this if check, checks are
+    # duplicated since internal PRs match both the push and pull_request events.
+    # https://github.com/psf/black/blob/f51e53726b39a177355a7917c91c56f390dda7ef/.github/workflows/lint.yml#L7-L12
+    if:
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name != github.repository
+
     runs-on: ubuntu-latest
 
     steps:
@@ -29,11 +37,18 @@ jobs:
 
 
   test:
+    # We want to run on external PRs, but not on our own internal PRs as they'll
+    # be run by the push to the branch. Without this if check, checks are
+    # duplicated since internal PRs match both the push and pull_request events.
+    if:
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name != github.repository
+
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python: [3.6, 3.7, 3.8, 3.9]
+        python: ['3.6', '3.7', '3.8', '3.9', '3.10']
 
     steps:
       - name: Checkout code
