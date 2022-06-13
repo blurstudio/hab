@@ -10,7 +10,7 @@ from future.utils import with_metaclass
 from packaging.version import Version
 from pathlib import Path
 
-from . import HabitatMeta, NotSet, habitat_property
+from . import HabMeta, NotSet, hab_property
 from .. import utils
 from ..errors import DuplicateJsonError
 from ..site import MergeDict
@@ -20,18 +20,18 @@ from ..solvers import Solver
 logger = logging.getLogger(__name__)
 
 
-class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
+class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
     """Base class for the various parser classes. Provides most of the functionality
-    to parse a json configuration file and resolve it for use in habitat.
+    to parse a json configuration file and resolve it for use in hab.
 
     Args:
         forest (dict): A dictionary map used to calculate the context when resolving
             this object.
-        resolver (habitat.Resolver): The Resolver used to lookup requirements.
+        resolver (hab.Resolver): The Resolver used to lookup requirements.
         filename (str, optional): Automatically call load on this filename.
-        parent (habitat.parsers.HabitatBase, optional): Parent for this object.
+        parent (hab.parsers.HabBase, optional): Parent for this object.
         root_paths (set, optional): The base glob path being processed to create the
-            HabitatBase objects for this forest. If two
+            HabBase objects for this forest. If two
     """
 
     # Subclasses can change this to control how data is tweaked by the load method.
@@ -43,7 +43,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
     _placeholder = None
 
     def __init__(self, forest, resolver, filename=None, parent=None, root_paths=None):
-        super(HabitatBase, self).__init__()
+        super(HabBase, self).__init__()
         self._environment = None
         self._filename = None
         self._dirname = None
@@ -215,7 +215,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         return self._dirname
 
     # Note: 'distros' needs to be processed before 'environment'
-    @habitat_property(verbosity=3, process_order=50)
+    @hab_property(verbosity=3, process_order=50)
     def distros(self):
         """A list of all of the requested distros to resolve."""
         return self._distros
@@ -294,7 +294,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
         return utils.dump_title(title, ret, color=False)
 
     # Note: 'distros' needs to be processed before 'environment'
-    @habitat_property(verbosity=2, process_order=80)
+    @hab_property(verbosity=2, process_order=80)
     def environment(self):
         """A resolved set of environment variables that should be applied to
         configure an environment. Any values containing a empty string indicate
@@ -309,7 +309,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
         return self._environment
 
-    @habitat_property(verbosity=2)
+    @hab_property(verbosity=2)
     def environment_config(self):
         """A dictionary of operations to perform on environment variables.
 
@@ -416,7 +416,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
 
         return data
 
-    @habitat_property(verbosity=1, group=0)
+    @hab_property(verbosity=1, group=0)
     def name(self):
         """The name of this object. See ``.context`` for how this is built into
         a full URI. `project_a/Sc001` would resolve into context: `["project_a"]`
@@ -493,7 +493,7 @@ class HabitatBase(with_metaclass(HabitatMeta, anytree.NodeMixin)):
             ret["comment"] = "# "
             ret["env_setter"] = 'export {key}="{value}"\n'
             ret["env_unsetter"] = "unset {key}\n"
-            # For now just tack the habitat uri onto the prompt
+            # For now just tack the hab uri onto the prompt
             ret["prompt"] = 'export PS1="[{uri}] $PS1"\n'
             ret["launch"] = 'bash --init-file "{path}"\n'
             # Simply call the alias

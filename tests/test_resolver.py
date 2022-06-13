@@ -6,10 +6,10 @@ from collections import OrderedDict
 from packaging.requirements import Requirement
 from pathlib import Path
 
-from habitat import Resolver, Site, utils
-from habitat.errors import MaxRedirectError
-from habitat.parsers import NotSet
-from habitat.solvers import Solver
+from hab import Resolver, Site, utils
+from hab.errors import MaxRedirectError
+from hab.parsers import NotSet
+from hab.solvers import Solver
 
 
 def test_environment_variables(config_root, helpers, monkeypatch):
@@ -103,22 +103,22 @@ def test_dump_forest(resolver):
     check = "\n".join(
         (
             "default",
-            "    habitat.parsers.config.Config('default')",
-            "    |-- habitat.parsers.config.Config('default/Sc1')",
-            "    +-- habitat.parsers.config.Config('default/Sc11')",
+            "    hab.parsers.config.Config('default')",
+            "    |-- hab.parsers.config.Config('default/Sc1')",
+            "    +-- hab.parsers.config.Config('default/Sc11')",
             "not_set",
-            "    habitat.parsers.config.Config('not_set')",
-            "    |-- habitat.parsers.config.Config('not_set/child')",
-            "    |-- habitat.parsers.config.Config('not_set/env1')",
-            "    |-- habitat.parsers.config.Config('not_set/env_path_set')",
-            "    |-- habitat.parsers.config.Config('not_set/env_path_unset')",
-            "    |-- habitat.parsers.config.Config('not_set/distros')",
-            "    +-- habitat.parsers.config.Config('not_set/no_env')",
+            "    hab.parsers.config.Config('not_set')",
+            "    |-- hab.parsers.config.Config('not_set/child')",
+            "    |-- hab.parsers.config.Config('not_set/env1')",
+            "    |-- hab.parsers.config.Config('not_set/env_path_set')",
+            "    |-- hab.parsers.config.Config('not_set/env_path_unset')",
+            "    |-- hab.parsers.config.Config('not_set/distros')",
+            "    +-- hab.parsers.config.Config('not_set/no_env')",
             "project_a",
-            "    habitat.parsers.config.Config('project_a')",
-            "    +-- habitat.parsers.config.Config('project_a/Sc001')",
-            "        |-- habitat.parsers.config.Config('project_a/Sc001/Animation')",
-            "        +-- habitat.parsers.config.Config('project_a/Sc001/Rigging')",
+            "    hab.parsers.config.Config('project_a')",
+            "    +-- hab.parsers.config.Config('project_a/Sc001')",
+            "        |-- hab.parsers.config.Config('project_a/Sc001/Animation')",
+            "        +-- hab.parsers.config.Config('project_a/Sc001/Rigging')",
         )
     )
     assert result == check

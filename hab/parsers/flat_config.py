@@ -1,6 +1,6 @@
 import logging
 
-from . import NotSet, habitat_property
+from . import NotSet, hab_property
 from .config import Config
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class FlatConfig(Config):
             self._properties, key=lambda i: self._properties[i].sort_key()
         ):
             if attrname == "uri":
-                # TODO: Add detection of setters to HabitatProperty and don't set values without setters
+                # TODO: Add detection of setters to HabProperty and don't set values without setters
                 # There is no setter for uri, setting it now will cause errors in testing
                 continue
             if getattr(self, attrname) != NotSet:
@@ -52,7 +52,7 @@ class FlatConfig(Config):
 
         return self._missing_values
 
-    @habitat_property()
+    @hab_property()
     def aliases(self):
         """List of the names and commands that need created to launch desired
         applications."""
@@ -86,7 +86,7 @@ class FlatConfig(Config):
     def fullpath(self):
         return self.separator.join([name for name in self.context] + [self.name])
 
-    @habitat_property(verbosity=1)
+    @hab_property(verbosity=1)
     def versions(self):
         if self._distros is NotSet:
             return []

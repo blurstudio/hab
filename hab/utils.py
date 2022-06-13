@@ -103,7 +103,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
             lbl = pad
         return "\n".join(rows)
     elif hasattr(obj, 'name'):
-        # Likely HabitatBase objects
+        # Likely HabBase objects
         return f"{label}{obj.name}"
     # Simply convert any other objects to strings
     return f"{label}{obj}"

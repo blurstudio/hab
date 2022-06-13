@@ -13,15 +13,15 @@ class NotSet(object):
 NotSet = NotSet()
 
 
-class _HabitatProperty(property):
-    """The @property decorator that can be type checked by the `HabitatMeta` metaclass
+class _HabProperty(property):
+    """The @property decorator that can be type checked by the `HabMeta` metaclass
 
     Any properties using this decorator will have their name added to `_properties`.
-    Don't use this class directly, use the habitat_property decorator instead.
+    Don't use this class directly, use the hab_property decorator instead.
     """
 
     def __init__(self, *args, **kwargs):
-        super(_HabitatProperty, self).__init__(*args, **kwargs)
+        super(_HabProperty, self).__init__(*args, **kwargs)
         # Copy from the class, and store it on the instance. This makes it so we
         # can use isinstance checks against this class.
         cls = type(self)
@@ -31,12 +31,12 @@ class _HabitatProperty(property):
 
     def sort_key(self):
         """Used to provide consistent and controlled when dynamically processing
-        _HabitatProperties.
+        _HabProperties.
         """
         return (self.process_order, self.fget.__name__)
 
 
-def habitat_property(verbosity=0, group=1, process_order=100):
+def hab_property(verbosity=0, group=1, process_order=100):
     """Decorate this function as a property and configure how it shows up in the dump.
 
     Args:
@@ -48,18 +48,18 @@ def habitat_property(verbosity=0, group=1, process_order=100):
         process_order (int, optional): Fine control over the order properties are
             processed in. The sort uses (process_order, name) as its sort key, so
             common process_order values are sorted alphabetically. This should only
-            be needed in specific cases. This is used by ``_HabitatProperty.sort_key``.
+            be needed in specific cases. This is used by ``_HabProperty.sort_key``.
     """
     # Store the requested values to the class so __init__ can copy them into its
     # instance when initialized by the decoration process.
-    _HabitatProperty.group = group
-    _HabitatProperty.process_order = process_order
-    _HabitatProperty.verbosity = verbosity
-    return _HabitatProperty
+    _HabProperty.group = group
+    _HabProperty.process_order = process_order
+    _HabProperty.verbosity = verbosity
+    return _HabProperty
 
 
-class HabitatMeta(type):
-    """Scans for HabitatProperties and adds their name to the `_properties` dict."""
+class HabMeta(type):
+    """Scans for HabProperties and adds their name to the `_properties` dict."""
 
     def __new__(cls, name, bases, dct):
         desc = {}
@@ -70,7 +70,7 @@ class HabitatMeta(type):
 
         # Add any new _properties defined on this class
         for k, v in dct.items():
-            if isinstance(v, _HabitatProperty):
+            if isinstance(v, _HabProperty):
                 desc[k] = v
         dct["_properties"] = desc
         return type.__new__(cls, name, bases, dct)

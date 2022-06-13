@@ -3,7 +3,7 @@ import pytest
 
 from contextlib import contextmanager
 from pathlib import Path
-from habitat import Resolver, Site
+from hab import Resolver, Site
 from packaging.requirements import Requirement
 
 
@@ -28,7 +28,7 @@ class Helpers(object):
 
         Args:
             req (dict): A Requirement dictionary matching the output of
-                ``habitat.solvers.Solvers.simplify_requirements``.
+                ``hab.solvers.Solvers.simplify_requirements``.
             check (list): A list of requirement strings. This takes a list
                 so writing tests requires less boilerplate.
 

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Habitat needs to modify the existing terminal's environment in some cases.
+# Hab needs to modify the existing terminal's environment in some cases.
 # To do this we can't use a setuptools exe and must use a script the terminal
 # supports. This calls the python module cli passing the arguments to it and
 # ends up calling the script file that code generates if required.
 
 # Generate unique temp file names
-temp_launch_file=$(mktemp --suffix _habitat_launch.sh)
-temp_config_file=$(mktemp --suffix _habitat_config.sh)
+temp_launch_file=$(mktemp --suffix _hab_launch.sh)
+temp_config_file=$(mktemp --suffix _hab_config.sh)
 
 # Remove the files that were created, we don't want them at this point.
 rm -f $temp_launch_file $temp_config_file
@@ -36,7 +36,7 @@ fi
 echo "$py_exe"
 
 # Call our worker python process that may write the temp filename
-$py_exe -m habitat --file-config $temp_config_file --file-launch $temp_launch_file "$@"
+$py_exe -m hab --file-config $temp_config_file --file-launch $temp_launch_file "$@"
 
 # Run the launch or config script if it was created on disk
 if test -f "$temp_launch_file"; then

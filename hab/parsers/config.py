@@ -1,7 +1,7 @@
-from . import HabitatBase, NotSet, habitat_property
+from . import HabBase, NotSet, hab_property
 
 
-class Config(HabitatBase):
+class Config(HabBase):
     """The configuration for a given URI that defines required distros and environment
     variables need to be loaded if this config is chosen. This does not resolve `NotSet`
     values, see `FlatConfig` for the final resolved values that are actually applied."""
@@ -10,7 +10,7 @@ class Config(HabitatBase):
         super(Config, self)._init_variables()
         self.inherits = NotSet
 
-    @habitat_property(verbosity=2)
+    @hab_property(verbosity=2)
     def inherits(self):
         return self._inherits
 
@@ -23,7 +23,7 @@ class Config(HabitatBase):
         self.inherits = data.get("inherits", NotSet)
         return data
 
-    @habitat_property(verbosity=1, group=0)
+    @hab_property(verbosity=1, group=0)
     def uri(self):
-        # Mark uri as a HabitatProperty so it is included in _properties
+        # Mark uri as a HabProperty so it is included in _properties
         return super(Config, self).uri

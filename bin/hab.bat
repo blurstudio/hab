@@ -1,4 +1,4 @@
-:: Habitat needs to modify the existing terminal's environment in some cases.
+:: Hab needs to modify the existing terminal's environment in some cases.
 :: To do this we can't use a setuptools exe and must use a script the terminal
 :: supports. This calls the python module cli passing the arguments to it and
 :: ends up calling the script file that code generates if required.
@@ -7,7 +7,7 @@
 
 :: Generate a unique temp file name
 :uniqLoop
-set "temp_config_file=%tmp%\habitat~%RANDOM%"
+set "temp_config_file=%tmp%\hab~%RANDOM%"
 if exist "%temp_config_file%_config.bat" goto :uniqLoop
 
 :: Create the launch and config filenames we will end up using
@@ -28,7 +28,7 @@ IF DEFINED HAB_PYTHON (
 )
 
 :: Call our worker python process that may write the temp filename
-%py_exe% -m habitat --file-config "%temp_config_file%" --file-launch "%temp_launch_file%" %*
+%py_exe% -m hab --file-config "%temp_config_file%" --file-launch "%temp_launch_file%" %*
 ENDLOCAL
 
 :: Run the launch or config script if it was created on disk

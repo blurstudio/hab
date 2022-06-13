@@ -1,6 +1,6 @@
 import colorama
 import pytest
-from habitat import Site, utils
+from hab import Site, utils
 
 
 def test_environment_variables(config_root, monkeypatch):

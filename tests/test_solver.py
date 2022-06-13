@@ -1,5 +1,5 @@
 import pytest
-from habitat.solvers import Solver
+from hab.solvers import Solver
 from packaging.requirements import Requirement
 
 
