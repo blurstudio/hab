@@ -94,6 +94,18 @@ instead of the official releases. See the [test_resolve_paths](tests/test_site.p
 see an example of [overriding](tests/site_override.json) the
 [main](tests/site_main.json) site settings.
 
+### Python version
+
+Habitat uses shell script files instead of an entry_point executable. This allows it
+to modify the existing shell(see `hab activate`). This has a small drawback of needing
+to know what version of python to call. It relies on the assumption that you are using
+hab with the default python 3 install. For example that you can call `python3 -m hab`
+or `py -3 -m hab` on windows. Here is a breakdown of how the python call is built by
+the scripts:
+
+1. If the `HAB_PYTHON` env var is set, its value is always used.
+2. If a virtualenv is active, the `python` command is used.
+3. Otherwise on linux `python3` is used, and on windows `py -3` is used.
 
 #### Common settings
 

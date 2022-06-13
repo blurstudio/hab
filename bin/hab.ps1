@@ -15,8 +15,22 @@ Remove-Item $temp_launch
 $temp_config=[System.IO.Path]::ChangeExtension($temp_config, "ps1")
 $temp_launch=[System.IO.Path]::ChangeExtension($temp_launch, "ps1")
 
+# Calculate the command to run python with
+if ($env:HAB_PYTHON -ne $null) {
+    # If HAB_PYTHON is specified, use it explicitly
+    $py_exe = $env:HAB_PYTHON
+}
+elseif ($env:VIRTUAL_ENV -ne $null) {
+    # We are inside a virtualenv, so just use the python command
+    $py_exe = "python"
+}
+else {
+    # Use system defined generic python call
+    $py_exe = "py -3"
+}
+
 # Call our worker python process that may write the temp filename
-python -m habitat --file-config $temp_config --file-launch $temp_launch $args
+Invoke-Expression "$py_exe -m habitat --file-config $temp_config --file-launch $temp_launch $args"
 
 # Run the launch or config script if it was created on disk
 if (Test-Path $temp_launch -PathType Leaf)

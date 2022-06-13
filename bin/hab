@@ -15,8 +15,28 @@ rm -f $temp_launch_file $temp_config_file
 # Ensure the tempfiles are remove on exit if they were created
 trap "rm -f $temp_launch_file $temp_config_file" EXIT
 
+# Calculate the command to run python with
+if [[ ! -z "${HAB_PYTHON}" ]]; then
+    # If HAB_PYTHON is specified, use it explicitly
+    py_exe="${HAB_PYTHON}"
+elif [[ -z "${VIRTUAL_ENV}" ]]; then
+    # Otherwise if we are not in a virtualenv use system defined generic
+    # python call for the given os if not inside a virtualenv
+    unameOut="$(uname -s)"
+    case "${unameOut}" in
+        Linux*)     py_exe=python3;;
+        Darwin*)    py_exe=python3;;
+        # Assume other os's are windows
+        *)          py_exe="py -3"
+    esac
+else
+    # We are inside a virtualenv, so just use the python command
+    py_exe="python"
+fi
+echo "$py_exe"
+
 # Call our worker python process that may write the temp filename
-python -m habitat --file-config $temp_config_file --file-launch $temp_launch_file "$@"
+$py_exe -m habitat --file-config $temp_config_file --file-launch $temp_launch_file "$@"
 
 # Run the launch or config script if it was created on disk
 if test -f "$temp_launch_file"; then
