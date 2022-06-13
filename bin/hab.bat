@@ -14,8 +14,22 @@ if exist "%temp_config_file%_config.bat" goto :uniqLoop
 set "temp_launch_file=%temp_config_file%_launch.bat"
 set "temp_config_file=%temp_config_file%_config.bat"
 
+:: Calculate the command to run python with
+SETLOCAL ENABLEEXTENSIONS
+IF DEFINED HAB_PYTHON (
+    :: If HAB_PYTHON is specified, use it explicitly
+    set py_exe=%HAB_PYTHON%
+) ELSE IF DEFINED VIRTUAL_ENV (
+    :: We are inside a virtualenv, so just use the python command
+    set py_exe=python
+) ELSE (
+    :: Use system defined generic python call
+    set "py_exe=py -3"
+)
+
 :: Call our worker python process that may write the temp filename
-python -m habitat --file-config "%temp_config_file%" --file-launch "%temp_launch_file%" %*
+%py_exe% -m habitat --file-config "%temp_config_file%" --file-launch "%temp_launch_file%" %*
+ENDLOCAL
 
 :: Run the launch or config script if it was created on disk
 if exist %temp_launch_file% (
