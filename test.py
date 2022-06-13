@@ -1,9 +1,9 @@
 import logging
-from habitat.site import Site
+from hab.site import Site
 from pprint import pprint
 
 logging.basicConfig()
-logging.getLogger('habitat.parsers.site').setLevel(logging.DEBUG)
+logging.getLogger('hab.parsers.site').setLevel(logging.DEBUG)
 
 sites = [
     r'\\source\source\dev\mikeh\hab_mockup\studio.json',

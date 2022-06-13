@@ -7,10 +7,10 @@ from .merge_dict import MergeDict
 
 
 class Site(UserDict):
-    """Provides site configuration to habitat.
+    """Provides site configuration to hab.
 
     This dictionary is updated with the contents of each json file stored in paths
-    See `habitat.MergeDict` for details.
+    See `hab.MergeDict` for details.
 
     Args:
         paths (list, optional): A list of paths to json files defining how

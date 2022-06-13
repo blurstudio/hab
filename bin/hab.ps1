@@ -1,4 +1,4 @@
-# Habitat needs to modify the existing terminal's environment in some cases.
+# Hab needs to modify the existing terminal's environment in some cases.
 # To do this we can't use a setuptools exe and must use a script the terminal
 # supports. This calls the python module cli passing the arguments to it and
 # ends up calling the script file that code generates if required.
@@ -30,7 +30,7 @@ else {
 }
 
 # Call our worker python process that may write the temp filename
-Invoke-Expression "$py_exe -m habitat --file-config $temp_config --file-launch $temp_launch $args"
+Invoke-Expression "$py_exe -m hab --file-config $temp_config --file-launch $temp_launch $args"
 
 # Run the launch or config script if it was created on disk
 if (Test-Path $temp_launch -PathType Leaf)

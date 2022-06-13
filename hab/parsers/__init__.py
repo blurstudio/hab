@@ -1,7 +1,7 @@
 from __future__ import print_function
 
-from .meta import habitat_property, HabitatMeta, NotSet
-from .habitat_base import HabitatBase
+from .meta import hab_property, HabMeta, NotSet
+from .hab_base import HabBase
 from .placeholder import Placeholder
 from .distro import Distro
 from .distro_version import DistroVersion
@@ -14,9 +14,9 @@ __all__ = [
     'Distro',
     'DistroVersion',
     'FlatConfig',
-    'habitat_property',
-    'HabitatBase',
-    'HabitatMeta',
+    'hab_property',
+    'HabBase',
+    'HabMeta',
     'NotSet',
     'Placeholder',
 ]

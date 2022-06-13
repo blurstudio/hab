@@ -1,7 +1,7 @@
-# Habitat
+# Hab
 
 A launcher that lets you configure software distributions and how they are consumed with
-dependency resolution.
+dependency resolution. It provides a habitat for you to work in.
 
 Features:
 
@@ -11,7 +11,7 @@ generic settings, but override for child URIs.
 * Site configuration, code distributions are separate from URI configurations. All of
 these use a common json schema.
 * Flexible site configuration with a minimum of environment variables.
-* No long running python processes. The habitat cli uses a shell specific script instead
+* No long running python processes. The hab cli uses a shell specific script instead
 of a setuptools exe. This prevents some strange behavior in the shell if the python
 process is killed without exiting the new shell that python launched.
 * Can modify the existing shell similar to how virtualenv's activate script works.
@@ -19,7 +19,7 @@ process is killed without exiting the new shell that python launched.
 to release a unique distro version.
 * Easy developer testing. A developer can additional site configurations for their host.
 A git checkout can be found and the version of a distro can be dynamically generated
-using setuptools_scm, or explicitly set by adding a `.habitat_version.txt` that is not
+using setuptools_scm, or explicitly set by adding a `.hab_version.txt` that is not
 committed to the repo.
 
 ## URI
@@ -27,7 +27,7 @@ committed to the repo.
 `identifier1/identifier2/...`
 
 You specify a configuration using a simple URI of identifiers separated by a `/`.
-Currently habitat only supports absolute uri's.
+Currently hab only supports absolute uri's.
 
 Examples:
 * projectDummy/Sc001/S0001.00
@@ -41,16 +41,16 @@ This also supports inheritance with some special rules, see
 
 ## CLI
 
-Habitat is designed as an api with cli support. The majority of the actual work is
+Hab is designed as an api with cli support. The majority of the actual work is
 done by the api so it can be used with the provided cli, or can be customized by import.
 A gui version of the cli is planned in the future as a second pip package.
 
-1. `hab env`: The env command launches a new shell configured by habitat. You can exit
+1. `hab env`: The env command launches a new shell configured by hab. You can exit
 the shell to return to the original configuration. This is how most users will interact
-with habitat in the command line.
-2. `hab activate`: Updates the current shell with the habitat configuration. This is
+with hab in the command line.
+2. `hab activate`: Updates the current shell with the hab configuration. This is
 similar to activating a virtualenv, but currently there is no way to deactivate. This is
-mostly how scripts can make use of habitat.
+mostly how scripts can make use of hab.
 3. `hab dump`: Formats the resolved configuration and prints it. Used for debugging
 configurations and listing the commands available.
 4. `hab launch`: A shortcut for `hab env --launch [alias]`, but automatically exits the
@@ -65,7 +65,7 @@ $ hab env projectDummy
 $ hab env projectDummy/Thug
 ```
 
-The cli prompt is updated while inside a habitat config is active. It is `[URI] [cwd]`
+The cli prompt is updated while inside a hab config is active. It is `[URI] [cwd]`
 Where URI is the uri requested and cwd is the current working directory.
 
 ## API
@@ -74,17 +74,17 @@ TODO
 
 ## Configuration
 
-Habitat is configured by json files found with glob strings passed to the cli or defined
+Hab is configured by json files found with glob strings passed to the cli or defined
 by an environment variable.
 
 ### Site
 
-Habitat uses the `HAB_PATH` environment variable to point to one or more site
+Hab uses the `HAB_PATH` environment variable to point to one or more site
 configuration files. If the `--site` option is passed to the cli, it is used instead of
 the environment variable.
 
 Each of the file paths specified are read and merged into a single site configuration
-dictionary habitat uses. The values in each file are merged so the value defined in the
+dictionary hab uses. The values in each file are merged so the value defined in the
 right most path any given configuration option being used. See
 [Defining Environments](#defining-environments) for how to structure the json to
 prepend, append, set, unset values.
@@ -96,7 +96,7 @@ see an example of [overriding](tests/site_override.json) the
 
 ### Python version
 
-Habitat uses shell script files instead of an entry_point executable. This allows it
+Hab uses shell script files instead of an entry_point executable. This allows it
 to modify the existing shell(see `hab activate`). This has a small drawback of needing
 to know what version of python to call. It relies on the assumption that you are using
 hab with the default python 3 install. For example that you can call `python3 -m hab`
@@ -136,14 +136,14 @@ A distro defines a application, distribution or plugin that has multiple version
 is mostly used to define aliases and environment variables. It can also define
 additional requirements.
 
-A recommended released distro folder structure: `[name]\[version]\.habitat.json`.
+A recommended released distro folder structure: `[name]\[version]\.hab.json`.
 The `[name]` folder is referenced by one of the disto_path globs. This makes it easy
 to store multiple versions of the distro. Each glob specified by `HAB_DISTRO_PATHS` will
-automatically have `/*/.habitat.json` added to it, so the `.habitat.json` file should
+automatically have `/*/.hab.json` added to it, so the `.hab.json` file should
 be in the root of a version folder. The root of the version folder is likely the root of
 a git repo.
 
-Example .habitat.json:
+Example .hab.json:
 ```json
 {
     "name": "maya2020",
@@ -163,7 +163,7 @@ Example .habitat.json:
 
 ```
 
-In most cases  you will not define version in `.habitat.json`. If not defined, the
+In most cases  you will not define version in `.hab.json`. If not defined, the
 parent folder is used as the version. This makes it easy for automated deployments
 without needing to modify a file checked into version control.
 
@@ -180,13 +180,13 @@ There are a few ways to define a distro version, they are provided to make deplo
 and development testing easy. Here is the 4 ways to define the version of a distro, the
 first one found is used.
 
-1. The version property in `.habitat.json`. This has some drawbacks, `.habitat.json` is
+1. The version property in `.hab.json`. This has some drawbacks, `.hab.json` is
 likely checked into version control so modifying this requires committing changes to
 the repo, or working copy changes you have to maintain.
-2. A `.habitat_version.txt` file next to `.habitat.json`. The drawback to this, is that
+2. A `.hab_version.txt` file next to `.hab.json`. The drawback to this, is that
 it requires some maintenance to update, but allows you work around the issues from # 1
 by not tracking this file in the repo.
-3. `.habitat.json`'s parent directory name. For distribution, this is the preferred
+3. `.hab.json`'s parent directory name. For distribution, this is the preferred
 option. You will end up needing a version folder for each deployed version of a disto
 to allow you to pick the version for a given config, so this lets you specify the
 version simply by copying it to the target location.
@@ -281,7 +281,7 @@ arguments to the alias command you should use a list.
     }
 ```
 
-`HabitatBase.aliases` is reduced to just the current operating system's aliases. Ie if
+`HabBase.aliases` is reduced to just the current operating system's aliases. Ie if
 this is run on windows, you would have access to both the hython and usdview alias, but
 on linux you would only have access to hython.
 
@@ -289,7 +289,7 @@ on linux you would only have access to hython.
 ### Defining Environments
 
 The `environment` key in distro and config definitions is used to configure modifications
-to the resolved environment. This is stored in `HabitatBase.environment_config`.
+to the resolved environment. This is stored in `HabBase.environment_config`.
 
 ```json
     "environment": {
@@ -317,12 +317,12 @@ There are 4 valid top level keys they are processed in this order if used:
 The `unset` key stores a list of environment variable names, the rest store a dictionary
 of environment variable keys and the values to store.
 
-The `HabitatBase.environment` property shows the final resolved
+The `HabBase.environment` property shows the final resolved
 environment variables that will be applied. When using a resolved `FlatConfig` object,
 environment also contains the merger of all environment_config definitions for all
 `distros`.
 These environment variables will be directly set if there is a value, and unset if the
-value is blank. Habitat doesn't inherit the session/system/user environment variable
+value is blank. Hab doesn't inherit the session/system/user environment variable
 values with the exception of the `PATH` variable as this would break the system.
 Like Rez, the first set, prepend or append operation on a variable will replace the
 existing variable value.
@@ -402,7 +402,7 @@ from rez.
 specific URI is requested.
 * **distro:** Defines environment variables and aliases that a specific application or
 plugin requires, and other distros that it depends on.
-* **site:** Apply specific settings to habitat. Where to find distros and configs, etc.
+* **site:** Apply specific settings to hab. Where to find distros and configs, etc.
 * **URI:** A `/` separated list of identifiers used to choose a specific config.
 
 # Future Plans

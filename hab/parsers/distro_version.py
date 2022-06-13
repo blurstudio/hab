@@ -1,9 +1,9 @@
-from . import HabitatBase, Distro, NotSet, habitat_property
+from . import HabBase, Distro, NotSet, hab_property
 from ..errors import _IgnoredVersionError
 from packaging.version import Version, InvalidVersion
 
 
-class DistroVersion(HabitatBase):
+class DistroVersion(HabBase):
     """A specific version of the loaded `Distro`'s. Including its requirements,
     aliases and environment variables."""
 
@@ -14,7 +14,7 @@ class DistroVersion(HabitatBase):
         super(DistroVersion, self)._init_variables()
         self.aliases = NotSet
 
-    @habitat_property()
+    @hab_property()
     def aliases(self):
         """List of the names and commands that need created to launch desired
         applications."""
@@ -30,7 +30,7 @@ class DistroVersion(HabitatBase):
         self.aliases = data.get("aliases", NotSet)
 
         # The version can be stored in several ways to make deployment and dev easier
-        version_txt = self.dirname / ".habitat_version.txt"
+        version_txt = self.dirname / ".hab_version.txt"
         if "version" in data:
             self.version = data["version"]
         elif version_txt.exists():
@@ -60,11 +60,11 @@ class DistroVersion(HabitatBase):
                             )
                         )
                     raise LookupError(
-                        'Habitat was unable to determine the version for "{filename}".\n'
+                        'Hab was unable to determine the version for "{filename}".\n'
                         "The version is defined in one of several ways checked in this order:\n"
-                        "1. The version property in `.habitat.json`.\n"
-                        "2. A `.habitat_version.txt` file next to `.habitat.json`.\n"
-                        "3. `.habitat.json`'s parent directory name.\n"
+                        "1. The version property in `.hab.json`.\n"
+                        "2. A `.hab_version.txt` file next to `.hab.json`.\n"
+                        "3. `.hab.json`'s parent directory name.\n"
                         "4. setuptools_scm can get a version from version control.\n"
                         "The preferred method is #3 for deployed releases. #4 is the "
                         "preferred method for developers working copies.".format(
@@ -80,7 +80,7 @@ class DistroVersion(HabitatBase):
 
         return data
 
-    @habitat_property()
+    @hab_property()
     def version(self):
         return super(DistroVersion, self).version
 

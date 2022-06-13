@@ -8,7 +8,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "habitat/version.txt"
+write_to = "hab/version.txt"
 
 [tool.black]
 skip-string-normalization = true

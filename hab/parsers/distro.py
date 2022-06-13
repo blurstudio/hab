@@ -1,9 +1,9 @@
-from . import HabitatBase
+from . import HabBase
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 
 
-class Distro(HabitatBase):
+class Distro(HabBase):
     """Container of DistroVersion objects. One per distro exists in a distro forest"""
 
     def latest_version(self, specifier):

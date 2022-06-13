@@ -1,7 +1,7 @@
 import anytree
-from habitat import utils
-from habitat.errors import DuplicateJsonError
-from habitat.parsers import DistroVersion, Config, NotSet
+from hab import utils
+from hab.errors import DuplicateJsonError
+from hab.parsers import DistroVersion, Config, NotSet
 import json
 import ntpath
 from packaging.version import Version
@@ -13,7 +13,7 @@ def test_distro_parse(config_root, resolver):
     """Check that a distro json can be parsed correctly"""
     forest = {}
     app = DistroVersion(forest, resolver)
-    path = config_root / "distros" / "all_settings" / "0.1.0.dev1" / ".habitat.json"
+    path = config_root / "distros" / "all_settings" / "0.1.0.dev1" / ".hab.json"
     app.load(path)
     check = json.load(path.open())
 
@@ -27,11 +27,11 @@ def test_distro_parse(config_root, resolver):
     # Verify that if the json file doesn't have "version" defined it uses the
     # parent directory as its version.
     app = DistroVersion(forest, resolver)
-    path = config_root / "distros" / "maya" / "2020.0" / ".habitat.json"
+    path = config_root / "distros" / "maya" / "2020.0" / ".hab.json"
     app.load(path)
     check = json.load(path.open())
 
-    # tests\distros\maya\2020.0\.habitat.json does not have "version"
+    # tests\distros\maya\2020.0\.hab.json does not have "version"
     # defined. This allows us to test that DistroVersion will pull the
     # version number from the parent directory not the json file.
     assert "version" not in check
@@ -41,19 +41,19 @@ def test_distro_parse(config_root, resolver):
 def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch):
     """Check the various methods for DistroVersion.version to be populated."""
 
-    # Test that `.habitat_version.txt` is respected if it exists.
+    # Test that `.hab_version.txt` is respected if it exists.
     forest = {}
     app = DistroVersion(forest, resolver)
-    path = config_root / "distros_version" / "txt_file" / ".habitat.json"
+    path = config_root / "distros_version" / "txt_file" / ".hab.json"
     app.load(path)
     assert app.version == Version("1.7")
 
     # Test that an error is raised if the version could not be determined
-    path = config_root / "distros_version" / "not_scm" / ".habitat.json"
+    path = config_root / "distros_version" / "not_scm" / ".hab.json"
     app = DistroVersion(forest, resolver)
     with pytest.raises(LookupError) as excinfo:
         app.load(path)
-    assert str(excinfo.value).startswith("Habitat was unable to determine")
+    assert str(excinfo.value).startswith("Hab was unable to determine")
 
     # Test that setuptools_scm is able to resolve the version.
     app = DistroVersion(forest, resolver)
@@ -116,16 +116,16 @@ def test_config_parenting(config_root, resolver):
         root_paths=root_paths,
     )
     check = [
-        "habitat.parsers.placeholder.Placeholder('project_a')",
-        "habitat.parsers.placeholder.Placeholder('project_a/Sc001')",
-        "habitat.parsers.config.Config('project_a/Sc001/Animation')",
+        "hab.parsers.placeholder.Placeholder('project_a')",
+        "hab.parsers.placeholder.Placeholder('project_a/Sc001')",
+        "hab.parsers.config.Config('project_a/Sc001/Animation')",
     ]
     assert check == repr_list(forest["project_a"])
 
     # Check that a middle plcaeholder was replaced
     mid_level_path = config_root / "configs" / "project_a" / "project_a_Sc001.json"
     Config(forest, resolver, filename=mid_level_path, root_paths=root_paths)
-    check[1] = "habitat.parsers.config.Config('project_a/Sc001')"
+    check[1] = "hab.parsers.config.Config('project_a/Sc001')"
     assert check == repr_list(forest["project_a"])
 
     # Check that a middle Config object is used not replaced
@@ -135,13 +135,13 @@ def test_config_parenting(config_root, resolver):
         filename=config_root / "configs" / "project_a" / "project_a_Sc001_rigging.json",
         root_paths=root_paths,
     )
-    check.append("habitat.parsers.config.Config('project_a/Sc001/Rigging')")
+    check.append("hab.parsers.config.Config('project_a/Sc001/Rigging')")
     assert check == repr_list(forest["project_a"])
 
     # Check that a root item is replaced
     top_level_path = config_root / "configs" / "project_a" / "project_a.json"
     Config(forest, resolver, filename=top_level_path, root_paths=root_paths)
-    check[0] = "habitat.parsers.config.Config('project_a')"
+    check[0] = "hab.parsers.config.Config('project_a')"
     assert check == repr_list(forest["project_a"])
 
     # Verify that the correct exceptions are raised if root duplicates are loaded
@@ -155,7 +155,7 @@ def test_config_parenting(config_root, resolver):
     assert check == repr_list(forest["project_a"])
 
     # Check that the forest didn't loose the default tree
-    assert ["habitat.parsers.config.Config('default')"] == repr_list(forest["default"])
+    assert ["hab.parsers.config.Config('default')"] == repr_list(forest["default"])
 
 
 def test_metaclass():

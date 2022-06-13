@@ -5,7 +5,7 @@ import logging
 
 from . import utils
 from .errors import _IgnoredVersionError
-from .parsers import Config, HabitatBase, DistroVersion
+from .parsers import Config, HabBase, DistroVersion
 from .site import Site
 from .solvers import Solver
 from packaging.requirements import Requirement
@@ -14,17 +14,17 @@ logger = logging.getLogger(__name__)
 
 
 class Resolver(object):
-    """Used to resolve a habitat environment setup and apply it to the current environment.
+    """Used to resolve a hab environment setup and apply it to the current environment.
 
     Args:
-        site (habitat.Site, optional): The site configuration. if not provided, uses
+        site (hab.Site, optional): The site configuration. if not provided, uses
             the ``HAB_PATHS`` environment variable to load the configuration.
         prereleases (bool, optional): When resolving distro versions, should
             pre-releases be included in the latest version. If not specified uses the
             value specified in site for the ``"prereleases"`` value.
         forced_requirements (list, optional): A list of additional version requirements
             to respect even if they are not specified in a config. This is provided for
-            ease of habitat package development and should not be used in production.
+            ease of hab package development and should not be used in production.
     """
 
     def __init__(
@@ -67,10 +67,10 @@ class Resolver(object):
                 most common characters. Ie if path is `:project_a:Sc001` it would match
                 `:default:Sc0` not `:default:Sc01`.
         """
-        if not path.startswith(HabitatBase.separator):
-            path = "".join((HabitatBase.separator, path))
+        if not path.startswith(HabBase.separator):
+            path = "".join((HabBase.separator, path))
         if default:
-            node_names = path.split(HabitatBase.separator)
+            node_names = path.split(HabBase.separator)
             current = self.configs["default"]
             # Skip the root and project name it won't match default
             for node_name in node_names[2:]:
@@ -87,9 +87,9 @@ class Resolver(object):
             return current
 
         # Handle the non-default lookup
-        splits = path.split(HabitatBase.separator)
+        splits = path.split(HabBase.separator)
         # Find the forest to search for or return the default search
-        root_name = splits[1 if path.startswith(HabitatBase.separator) else 0]
+        root_name = splits[1 if path.startswith(HabBase.separator) else 0]
         if root_name not in self.configs:
             return self.closest_config(path, default=True)
 
@@ -186,7 +186,7 @@ class Resolver(object):
         if forest is None:
             forest = {}
         for dirname in distro_paths:
-            for path in sorted(glob.glob(str(dirname / "*" / ".habitat.json"))):
+            for path in sorted(glob.glob(str(dirname / "*" / ".hab.json"))):
                 try:
                     DistroVersion(forest, self, path, root_paths=set((dirname,)))
                 except _IgnoredVersionError as error:

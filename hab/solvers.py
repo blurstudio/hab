@@ -13,7 +13,7 @@ class Solver(object):
 
     Args:
         requirements (list): The requirements to process and store in resolved.
-        resolver (habitat.Resolver): The Resolver used to define all distros and versions.
+        resolver (hab.Resolver): The Resolver used to define all distros and versions.
         forced (dict, optional): Forces this distro requirement replacing any resolved
             requirements. Using this may lead to configuring your environment
             incorrectly, use with caution.
@@ -63,7 +63,7 @@ class Solver(object):
             requirements (list): The requirements to process and store in resolved.
             resolved (dict): This dictionary is used to store the final resolved
                 requirements matching the requested requirements.
-            processed (set, optional): A set of `habitat.parsers.DistroVersion`
+            processed (set, optional): A set of `hab.parsers.DistroVersion`
                 objects that have already been resolved. This prevents re-processing
                 the same version over and over.
 
@@ -141,7 +141,7 @@ class Solver(object):
             requirements (list): The requirements to process and store in resolved.
             resolved (dict): This dictionary is used to store the final resolved
                 requirements matching the requested requirements.
-            processed (set, optional): A set of `habitat.parsers.DistroVersion`
+            processed (set, optional): A set of `hab.parsers.DistroVersion`
                 objects that have already been resolved. This prevents re-processing
                 the same version over and over.
 
