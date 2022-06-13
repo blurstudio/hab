@@ -11,6 +11,6 @@ build/
 dist/
 htmlcov/
 venv/
-version.txt
+version.py
 *.sublime-project
 *.sublime-workspace
