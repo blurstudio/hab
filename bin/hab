@@ -33,7 +33,6 @@ else
     # We are inside a virtualenv, so just use the python command
     py_exe="python"
 fi
-echo "$py_exe"
 
 # Call our worker python process that may write the temp filename
 $py_exe -m hab --file-config $temp_config_file --file-launch $temp_launch_file "$@"

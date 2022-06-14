@@ -507,6 +507,10 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         if obj is None:
             obj = self
 
+        if environment_config is NotSet:
+            # No environment_config dictionary was set, noting to do
+            return
+
         merger = MergeDict(relative_root=self.dirname)
         merger.formatter = obj.format_environment_value
         merger.validator = self.check_environment
