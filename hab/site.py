@@ -30,7 +30,7 @@ class Site(UserDict):
 
         if not paths:
             paths = os.getenv("HAB_PATHS", "").split(os.pathsep)
-        self.paths = [Path(p) for p in paths if p]
+        self.paths = [Path(os.path.expandvars(p)).expanduser() for p in paths if p]
 
         self.load()
 
