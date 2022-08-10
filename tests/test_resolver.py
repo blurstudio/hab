@@ -137,10 +137,11 @@ def test_reduced(resolver, helpers):
     # Not set on the child so should be NotSet(ie doesn't inherit from parent)
     assert cfg.distros == NotSet
     # Settings defined on the child
-    assert cfg.environment_config == {
-        u"set": {u"TEST": u"case"},
+    config_check = {
+        u"set": {u"TEST": u"case", "FMT_FOR_OS": "a{;}b;c:{PATH!e}{;}d"},
         u"unset": [u"UNSET_VARIABLE"],
     }
+    assert cfg.environment_config == config_check
     assert cfg.inherits is True
     assert cfg.name == "child"
 
@@ -149,10 +150,7 @@ def test_reduced(resolver, helpers):
     # Inherited from the parent
     helpers.assert_requirements_equal(reduced.distros, check)
     # Values defined on the child are preserved
-    assert reduced.environment_config == {
-        u"set": {u"TEST": u"case"},
-        u"unset": [u"UNSET_VARIABLE"],
-    }
+    assert reduced.environment_config == config_check
     assert reduced.inherits is True
     assert reduced.name == "child"
     assert reduced.uri == "not_set/child"

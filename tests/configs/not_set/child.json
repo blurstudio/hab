@@ -6,7 +6,8 @@
             "UNSET_VARIABLE"
         ],
         "set": {
-            "TEST": "case"
+            "TEST": "case",
+            "FMT_FOR_OS": "a{;}b;c:{PATH!e}{;}d"
         }
     },
     "inherits": true

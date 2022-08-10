@@ -11,6 +11,7 @@ from packaging.version import Version
 from pathlib import Path
 
 from . import HabMeta, NotSet, hab_property
+from ..formatter import Formatter
 from .. import utils
 from ..errors import DuplicateJsonError
 from ..site import MergeDict
@@ -357,11 +358,13 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
             self._filename = Path(filename)
             self._dirname = self._filename.parent
 
-    def format_environment_value(self, value):
+    def format_environment_value(self, value, ext=None):
         """Apply standard formatting to environment variable values.
 
         Args:
             value (str): The string to format
+            ext (str, optional): Language passed to ``hab.formatter.Formatter``
+                for special formatters. In most cases this should not be used.
 
         Format Keys:
             relative_root: Add the dirname of self.filename or a empty string. Equivalent
@@ -373,8 +376,8 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         kwargs = dict(relative_root=utils.path_forward_slash(self.dirname))
         if isinstance(value, list):
             # Format the individual items if a list of args is used.
-            return [v.format(**kwargs) for v in value]
-        return value.format(**kwargs)
+            return [Formatter(ext).format(v, **kwargs) for v in value]
+        return Formatter(ext).format(value, **kwargs)
 
     @property
     def fullpath(self):
@@ -557,6 +560,9 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
                     setter = shell["env_setter"]
                     if value:
                         value = utils.collapse_paths(value)
+                        # Process any env conversion keys into the shell specific values.
+                        # For example convert `{PATH!e}` to `$PATH` if this is an.sh file
+                        value = Formatter(ext).format(value, key=key, value=value)
                     else:
                         setter = shell["env_unsetter"]
                     fle.write(setter.format(key=key, value=value))

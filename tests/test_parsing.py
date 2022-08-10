@@ -7,6 +7,7 @@ import ntpath
 from packaging.version import Version
 import pytest
 import re
+import sys
 
 
 def test_distro_parse(config_root, resolver):
@@ -182,15 +183,27 @@ def test_metaclass():
 
 
 def test_dump(resolver):
+    line = "-LINE-"
+
+    def standardize(txt):
+        """Dump adds an arbitrary length border of -'s that makes str comparing
+        hard. Replace it with a constant value."""
+        return re.sub(r"^-+$", line, txt, flags=re.M)
+
     # Build the test data so we can generate the output to check
     # Note: using `repr([u"` so this test passes in python 2 and 3
     pre = ["name:  child", "uri:  not_set/child"]
     post = ["inherits:  True"]
-    env = ["environment:  UNSET_VARIABLE:  None", "              TEST:  case"]
+    env = [
+        "environment:  UNSET_VARIABLE:  None",
+        "              TEST:  case",
+        "              FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
+    ]
 
     env_config = [
         "environment_config:  unset:  UNSET_VARIABLE",
         "                     set:  TEST:  case",
+        "                           FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
     ]
     cfg = resolver.closest_config("not_set/child")
     header = f"Dump of {type(cfg).__name__}('{cfg.fullpath}')"
@@ -199,19 +212,17 @@ def test_dump(resolver):
     result = cfg.dump(
         environment=False, environment_config=False, verbosity=2, color=False
     )
-    line = "-" * len(header)
     check = [f'{header}\n{line}']
     check.extend(pre)
     check.extend(post)
     check.append(line)
     check = '\n'.join(check)
-    assert result == check
+    assert standardize(result) == check
 
     # Check that both environments can be shown
     result = cfg.dump(
         environment=True, environment_config=True, verbosity=2, color=False
     )
-    line = "-" * len(env_config[0])
     check = [f'{header}\n{line}']
     check.extend(pre)
     check.extend(env)
@@ -219,13 +230,12 @@ def test_dump(resolver):
     check.extend(post)
     check.append(line)
     check = '\n'.join(check)
-    assert result == check
+    assert standardize(result) == check
 
     # Check that only environment can be shown
     result = cfg.dump(
         environment=True, environment_config=False, verbosity=2, color=False
     )
-    line = "-" * len(env[0])
     check = [f'{header}\n{line}']
     check.extend(pre)
     check.extend(env)
@@ -236,14 +246,13 @@ def test_dump(resolver):
     result = cfg.dump(
         environment=False, environment_config=True, verbosity=2, color=False
     )
-    line = "-" * len(env_config[0])
     check = [f'{header}\n{line}']
     check.extend(pre)
     check.extend(env_config)
     check.extend(post)
     check.append(line)
     check = '\n'.join(check)
-    assert result == check
+    assert standardize(result) == check
 
 
 def test_dump_flat(resolver):
@@ -313,14 +322,24 @@ def test_environment(resolver):
 
     # Ensure our tests cover the early out if the config is missing append/prepend
     cfg = resolver.closest_config("not_set/child")
-    assert cfg.environment == {"TEST": ["case"], u"UNSET_VARIABLE": None}
+    assert cfg.environment == {
+        "TEST": ["case"],
+        "FMT_FOR_OS": ["a{;}b;c:{PATH!e}{;}d"],
+        u"UNSET_VARIABLE": None,
+    }
 
 
 def test_flat_config(resolver):
     ret = resolver.resolve("not_set/child")
-    assert ret.environment == {"TEST": ["case"], u"UNSET_VARIABLE": None}
-    assert ret.environment == {"TEST": ["case"], u"UNSET_VARIABLE": None}
-    assert ret.environment == {"TEST": ["case"], u"UNSET_VARIABLE": None}
+    check = {
+        "TEST": ["case"],
+        "FMT_FOR_OS": ["a{;}b;c:{PATH!e}{;}d"],
+        u"UNSET_VARIABLE": None,
+    }
+
+    assert ret.environment == check
+    assert ret.environment == check
+    assert ret.environment == check
 
     # Check for edge case where self._environment was reset if the config didn't define
     # environment, but the attached distros did.
@@ -395,6 +414,9 @@ def test_write_script_bat(resolver, tmpdir):
 
     assert 'set "PROMPT=[not_set/child] $P$G"' in config_text
     assert 'set "TEST=case"' in config_text
+    # Expanded "{PATH:e}" and "{;}" formatting is applied correctly
+    assert 'set "FMT_FOR_OS=a;b;c:%PATH%;d"' in config_text
+
     # Check that simple aliases are generated
     assert (
         r'C:\Windows\System32\doskey.exe maya="{}\maya.exe" $*'.format(alias)
@@ -430,6 +452,9 @@ def test_write_script_ps1(resolver, tmpdir):
     )
     assert "function PROMPT {'[not_set/child] ' + $(Get-Location) + '>'}" in config_text
     assert '$env:TEST = "case"' in config_text
+    # Expanded "{PATH:e}" and "{;}" formatting is applied correctly
+    assert '$env:FMT_FOR_OS = "a;b;c:$env:PATH;d"' in config_text
+
     # Check that simple aliases are generated
     assert r"function maya() {{ {} $args }}".format(alias) in config_text
     # Check that list aliases are generated
@@ -437,7 +462,14 @@ def test_write_script_ps1(resolver, tmpdir):
     assert r"function pip() {{ {} -m pip $args }}".format(alias) in config_text
 
 
-def test_write_script_sh(resolver, tmpdir):
+# Bash formatting is different on windows for env vars
+@pytest.mark.parametrize(
+    "platform,fmt_check", (("win32", "a;b;c:$PATH;d"), ("linux", "a:b;c:$PATH:d"))
+)
+def test_write_script_sh(resolver, tmpdir, monkeypatch, platform, fmt_check):
+    # Bash formatting is different on windows for env vars
+    monkeypatch.setattr(sys, 'platform', platform)
+
     cfg = resolver.resolve("not_set/child")
     file_config = tmpdir.join("config")
     file_launch = tmpdir.join("launch")
@@ -449,6 +481,9 @@ def test_write_script_sh(resolver, tmpdir):
     assert 'bash --init-file "{}"\n'.format(file_config) == launch_text
     assert 'export PS1="[not_set/child] $PS1"' in config_text
     assert 'export TEST="case"' in config_text
+    # Expanded "{PATH:e}" and "{;}" formatting is applied correctly
+    assert f'export FMT_FOR_OS="{fmt_check}"' in config_text
+
     # Check that simple aliases are generated
     assert r"function maya() {" in config_text
     assert r' "$@"; };export -f maya;' in config_text
