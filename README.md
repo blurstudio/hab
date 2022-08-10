@@ -253,6 +253,13 @@ Currently supported variables:
 * `{relative_root}`: The directory name of the .json config file. Think of this as the relative path
 `.` when using the command line, but this is a clear indication that it needs to be
 replaced with the dirname and not left alone.
+* `{ANYTHING!e}`: `!e` is a special conversion flag for Environment variables. This will
+be replaced with the correct shell environment variable. For bash it becomes `$ANYTHING`,
+in power shell `$env:ANYTHING`, and in command prompt `%ANYTHING%`. ANYTHING is the name
+of the environment variable.
+* `{;}`: This is replaced with the path separator for the shell. Ie `:` for bash, and `;`
+on windows(including bash).
+
 
 ### Defining Aliases
 
