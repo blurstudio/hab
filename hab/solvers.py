@@ -166,7 +166,7 @@ class Solver(object):
                 if self.redirects_required >= self.max_redirects:
                     raise MaxRedirectError(
                         "Redirect limit of {} reached".format(self.max_redirects)
-                    )
+                    ) from None
 
     @classmethod
     def simplify_requirements(cls, requirements):

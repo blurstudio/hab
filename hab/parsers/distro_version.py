@@ -58,7 +58,7 @@ class DistroVersion(HabBase):
                             'Skipping "{}" its dirname is in the ignored list.'.format(
                                 filename
                             )
-                        )
+                        ) from None
                     raise LookupError(
                         'Hab was unable to determine the version for "{filename}".\n'
                         "The version is defined in one of several ways checked in this order:\n"
@@ -70,7 +70,7 @@ class DistroVersion(HabBase):
                         "preferred method for developers working copies.".format(
                             filename=self.filename
                         )
-                    )
+                    ) from None
 
         # The name should be the version == specifier.
         self.distro_name = data.get("name")

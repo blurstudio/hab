@@ -12,7 +12,10 @@ class Distro(HabBase):
         try:
             version = max(versions)
         except ValueError:
-            raise Exception('Unable to find a valid version for "{}"'.format(specifier))
+            raise Exception(
+                f'Unable to find a valid version for "{specifier}" in versions '
+                f'[{", ".join([str(v) for v in self.versions.keys()])}]'
+            ) from None
         return self.versions[version]
 
     def matching_versions(self, specification):
