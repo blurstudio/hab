@@ -30,7 +30,8 @@ class FlatConfig(Config):
             self._properties, key=lambda i: self._properties[i].sort_key()
         ):
             if attrname == "uri":
-                # TODO: Add detection of setters to HabProperty and don't set values without setters
+                # TODO: Add detection of setters to HabProperty and don't set
+                # values without setters
                 # There is no setter for uri, setting it now will cause errors in testing
                 continue
             if getattr(self, attrname) != NotSet:

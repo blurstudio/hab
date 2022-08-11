@@ -61,7 +61,7 @@ def hab_property(verbosity=0, group=1, process_order=100):
 class HabMeta(type):
     """Scans for HabProperties and adds their name to the `_properties` dict."""
 
-    def __new__(cls, name, bases, dct):
+    def __new__(cls, name, bases, dct):  # noqa: B902
         desc = {}
         # Include any _properties that are added by base classes we are inheriting.
         for base in bases:
