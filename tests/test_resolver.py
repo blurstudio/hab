@@ -1,10 +1,10 @@
-import anytree
 import os
-import pytest
-
 from collections import OrderedDict
-from packaging.requirements import Requirement
 from pathlib import Path
+
+import anytree
+import pytest
+from packaging.requirements import Requirement
 
 from hab import Resolver, Site, utils
 from hab.errors import MaxRedirectError

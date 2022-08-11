@@ -1,6 +1,7 @@
 import logging
-from hab.site import Site
 from pprint import pprint
+
+from hab.site import Site
 
 logging.basicConfig()
 logging.getLogger('hab.parsers.site').setLevel(logging.DEBUG)

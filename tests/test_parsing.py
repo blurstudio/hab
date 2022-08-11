@@ -1,13 +1,15 @@
-import anytree
-from hab import utils
-from hab.errors import DuplicateJsonError
-from hab.parsers import DistroVersion, Config, NotSet
 import json
 import ntpath
-from packaging.version import Version
-import pytest
 import re
 import sys
+
+import anytree
+import pytest
+from packaging.version import Version
+
+from hab import utils
+from hab.errors import DuplicateJsonError
+from hab.parsers import Config, DistroVersion, NotSet
 
 
 def test_distro_parse(config_root, resolver):

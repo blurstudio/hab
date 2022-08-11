@@ -1,6 +1,7 @@
 import pytest
-from hab.solvers import Solver
 from packaging.requirements import Requirement
+
+from hab.solvers import Solver
 
 
 @pytest.mark.parametrize(

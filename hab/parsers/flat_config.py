@@ -1,7 +1,7 @@
 import logging
 
-from . import NotSet, hab_property
 from .config import Config
+from .meta import NotSet, hab_property
 
 logger = logging.getLogger(__name__)
 

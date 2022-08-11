@@ -1,10 +1,11 @@
 import os
-import pytest
-
 from contextlib import contextmanager
 from pathlib import Path
-from hab import Resolver, Site
+
+import pytest
 from packaging.requirements import Requirement
+
+from hab import Resolver, Site
 
 
 @pytest.fixture
