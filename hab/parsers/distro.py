@@ -1,6 +1,7 @@
-from . import HabBase
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
+
+from .hab_base import HabBase
 
 
 class Distro(HabBase):

@@ -2,9 +2,10 @@ import errno
 import os
 import sys
 import textwrap
-from pathlib import Path
 from collections import UserDict
 from collections.abc import KeysView
+from pathlib import Path
+
 import colorama
 
 # Attempt to use pyjson5 if its installed, this allows us to add comments

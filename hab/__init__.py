@@ -10,17 +10,18 @@ __all__ = [
     'Solver',
 ]
 
-import anytree
 import glob
 import logging
 
+import anytree
+from packaging.requirements import Requirement
+
 from . import utils
-from .version import version as __version__
 from .errors import _IgnoredVersionError
-from .parsers import Config, HabBase, DistroVersion
+from .parsers import Config, DistroVersion, HabBase
 from .site import Site
 from .solvers import Solver
-from packaging.requirements import Requirement
+from .version import version as __version__
 
 logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@
 from __future__ import absolute_import
 
 import sys
+
 import hab.cli
 
 if __name__ == "__main__":

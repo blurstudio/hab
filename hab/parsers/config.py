@@ -1,4 +1,5 @@
-from . import HabBase, NotSet, hab_property
+from .hab_base import HabBase
+from .meta import NotSet, hab_property
 
 
 class Config(HabBase):

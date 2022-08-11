@@ -1,8 +1,11 @@
 from __future__ import print_function
-from copy import copy
+
 import logging
-from .errors import MaxRedirectError
+from copy import copy
+
 from packaging.requirements import Requirement
+
+from .errors import MaxRedirectError
 
 logger = logging.getLogger(__name__)
 

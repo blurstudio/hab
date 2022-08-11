@@ -1,6 +1,9 @@
-from . import HabBase, Distro, NotSet, hab_property
+from packaging.version import InvalidVersion, Version
+
 from ..errors import _IgnoredVersionError
-from packaging.version import Version, InvalidVersion
+from .distro import Distro
+from .hab_base import HabBase
+from .meta import NotSet, hab_property
 
 
 class DistroVersion(HabBase):

@@ -1,7 +1,9 @@
-import click
-from . import Resolver, Site
 import logging
 from pathlib import Path
+
+import click
+
+from . import Resolver, Site
 
 logger = logging.getLogger(__name__)
 

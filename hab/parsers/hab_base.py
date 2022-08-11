@@ -1,22 +1,22 @@
 from __future__ import print_function
-import anytree
+
 import logging
 import os
 import subprocess
 import sys
+from pathlib import Path
 
+import anytree
 import colorama
 from future.utils import with_metaclass
 from packaging.version import Version
-from pathlib import Path
 
-from . import HabMeta, NotSet, hab_property
-from ..formatter import Formatter
 from .. import utils
 from ..errors import DuplicateJsonError
+from ..formatter import Formatter
 from ..site import MergeDict
 from ..solvers import Solver
-
+from .meta import HabMeta, NotSet, hab_property
 
 logger = logging.getLogger(__name__)
 

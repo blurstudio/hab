@@ -1,13 +1,12 @@
 from __future__ import print_function
 
-from .meta import hab_property, HabMeta, NotSet
-from .hab_base import HabBase
-from .placeholder import Placeholder
+from .config import Config
 from .distro import Distro
 from .distro_version import DistroVersion
-from .config import Config
 from .flat_config import FlatConfig
-
+from .hab_base import HabBase
+from .meta import HabMeta, NotSet, hab_property
+from .placeholder import Placeholder
 
 __all__ = [
     'Config',
