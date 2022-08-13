@@ -475,7 +475,7 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
             ret["prompt"] = 'set "PROMPT=[{uri}] $P$G"\n'
             ret["launch"] = 'cmd.exe /k "{path}"\n'
             # You can't directly call a doskey alias in a batch script
-            ret["run_alias"] = '"{value}"{args}\n'
+            ret["run_alias"] = '{value}{args}\n'
         elif ext == ".ps1":
             ret["alias_setter"] = "function {key}() {{ {value} $args }}\n"
             ret["comment"] = "# "
@@ -592,7 +592,9 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
                     args = ''
 
                 launch_info = dict(
-                    key=launch, value=self.aliases.get(launch, ""), args=args
+                    key=launch,
+                    value=self.shell_escape(ext, self.aliases.get(launch, "")),
+                    args=args,
                 )
                 fle.write("\n")
                 fle.write("{}Run the requested command\n".format(shell["comment"]))

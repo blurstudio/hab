@@ -398,13 +398,26 @@ def test_misc_coverage(resolver):
         cfg.load('invalid_path.json')
 
 
-def test_write_script_bat(resolver, tmpdir):
+@pytest.mark.parametrize(
+    "launch,exiting,args,launch_check",
+    (
+        (None, False, None, None),
+        # Note: We can't call doskey aliases from a batch script, so we have to
+        # pass the full actual aliased command.
+        ("pip", False, None, '"{alias}\\mayapy.exe" -m pip'),
+        ("pip", False, ["list"], '"{alias}\\mayapy.exe" -m pip list'),
+        ("pip", True, None, '"{alias}\\mayapy.exe" -m pip'),
+    ),
+)
+def test_write_script_bat(resolver, tmpdir, launch, exiting, args, launch_check):
     cfg = resolver.resolve("not_set/child")
     file_config = tmpdir.join("config.bat")
     file_launch = tmpdir.join("launch.bat")
     # Batch is windows only, force the code to evaluate as if it was on windows
     cfg._platform_override = "windows"
-    cfg.write_script(str(file_config), str(file_launch))
+    cfg.write_script(
+        str(file_config), str(file_launch), launch=launch, exit=exiting, args=args
+    )
 
     config_text = file_config.open().read()
     launch_text = file_launch.open().read()
@@ -430,14 +443,35 @@ def test_write_script_bat(resolver, tmpdir):
         in config_text
     )
 
+    # Check that the various launch arguments add the launch command correctly
+    if launch_check:
+        assert launch_check.format(alias=alias) in config_text
 
-def test_write_script_ps1(resolver, tmpdir):
+    if exiting:
+        assert "exit" in config_text
+    else:
+        assert "exit" not in config_text
+
+
+@pytest.mark.parametrize(
+    "launch,exiting,args,launch_check",
+    (
+        (None, False, None, None),
+        # Note: Include the previous line's comment to ensure a valid test
+        ("pip", False, None, 'Run the requested command\npip\n'),
+        ("pip", False, ["list"], 'Run the requested command\npip list\n'),
+        ("pip", True, None, 'Run the requested command\npip\n'),
+    ),
+)
+def test_write_script_ps1(resolver, tmpdir, launch, exiting, args, launch_check):
     cfg = resolver.resolve("not_set/child")
     file_config = tmpdir.join("config.ps1")
     file_launch = tmpdir.join("launch.ps1")
     # Powershell is windows only, force the code to evaluate as if it was on windows
     cfg._platform_override = "windows"
-    cfg.write_script(str(file_config), str(file_launch))
+    cfg.write_script(
+        str(file_config), str(file_launch), launch=launch, exit=exiting, args=args
+    )
 
     config_text = file_config.open().read()
     launch_text = file_launch.open().read()
@@ -463,19 +497,50 @@ def test_write_script_ps1(resolver, tmpdir):
     alias = ntpath.join(ntpath.dirname(alias), "mayapy.exe")
     assert r"function pip() {{ {} -m pip $args }}".format(alias) in config_text
 
+    # Check that the various launch arguments add the launch command correctly
+    if launch_check:
+        assert launch_check in config_text
 
+    if exiting:
+        assert "exit" in config_text
+    else:
+        assert "exit" not in config_text
+
+
+@pytest.mark.parametrize(
+    "launch,exiting,args,launch_check",
+    (
+        (None, False, None, None),
+        # Note: Include the previous line's comment to ensure a valid test
+        ("pip", False, None, 'Run the requested command\npip\n'),
+        ("pip", False, ["list"], 'Run the requested command\npip list\n'),
+        ("pip", True, None, 'Run the requested command\npip\n'),
+    ),
+)
 # Bash formatting is different on windows for env vars
 @pytest.mark.parametrize(
     "platform,fmt_check", (("win32", "a;b;c:$PATH;d"), ("linux", "a:b;c:$PATH:d"))
 )
-def test_write_script_sh(resolver, tmpdir, monkeypatch, platform, fmt_check):
+def test_write_script_sh(
+    resolver,
+    tmpdir,
+    monkeypatch,
+    platform,
+    fmt_check,
+    launch,
+    exiting,
+    args,
+    launch_check,
+):
     # Bash formatting is different on windows for env vars
     monkeypatch.setattr(sys, 'platform', platform)
 
     cfg = resolver.resolve("not_set/child")
     file_config = tmpdir.join("config")
     file_launch = tmpdir.join("launch")
-    cfg.write_script(str(file_config), str(file_launch))
+    cfg.write_script(
+        str(file_config), str(file_launch), launch=launch, exit=exiting, args=args
+    )
 
     config_text = file_config.open().read()
     launch_text = file_launch.open().read()
@@ -492,6 +557,15 @@ def test_write_script_sh(resolver, tmpdir, monkeypatch, platform, fmt_check):
     # Check that list aliases are generated
     assert r'function pip() { ' in config_text
     assert r' -m pip "$@"; };export -f pip;' in config_text
+
+    # Check that the various launch arguments add the launch command correctly
+    if launch_check:
+        assert launch_check in config_text
+
+    if exiting:
+        assert "exit" in config_text
+    else:
+        assert "exit" not in config_text
 
 
 @pytest.mark.parametrize(
