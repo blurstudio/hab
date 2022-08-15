@@ -8,7 +8,7 @@ import pytest
 from packaging.version import Version
 
 from hab import utils
-from hab.errors import DuplicateJsonError
+from hab.errors import DuplicateJsonError, InvalidVersionError, _IgnoredVersionError
 from hab.parsers import Config, DistroVersion, NotSet
 
 
@@ -53,19 +53,32 @@ def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch):
 
     # Test that an error is raised if the version could not be determined
     path = config_root / "distros_version" / "not_scm" / ".hab.json"
-    app = DistroVersion(forest, resolver)
-    with pytest.raises(LookupError) as excinfo:
+    with pytest.raises(InvalidVersionError) as excinfo:
         app.load(path)
     assert str(excinfo.value).startswith("Hab was unable to determine")
 
+    # Test that an nice error is raised if setuptools_scm is not installed
+    with monkeypatch.context() as m:
+        # Simulate that setuptools-scm is not installed
+        m.setitem(sys.modules, "setuptools_scm", None)
+        with pytest.raises(InvalidVersionError) as excinfo:
+            app.load(path)
+    assert str(excinfo.value).startswith("import of setuptools_scm halted")
+
     # Test that setuptools_scm is able to resolve the version.
-    app = DistroVersion(forest, resolver)
     # This env var forces setuptools_scm to this version so we don't have to
     # create a git repo to test that get_version is called correctly.
-    monkeypatch.setenv("SETUPTOOLS_SCM_PRETEND_VERSION", "1.9")
+    with monkeypatch.context() as m:
+        m.setenv("SETUPTOOLS_SCM_PRETEND_VERSION", "1.9")
+        app.load(path)
+        assert app.version == Version("1.9")
 
-    app.load(path)
-    assert app.version == Version("1.9")
+    # Test that if the dirname matches `resolver.ignored`, the folder is
+    # skipped by raising an _IgnoredVersionError exception.
+    path = config_root / "distros_version" / "release" / ".hab.json"
+    with pytest.raises(_IgnoredVersionError) as excinfo:
+        app.load(path)
+    assert "its dirname is in the ignored list." in str(excinfo.value)
 
 
 def test_distro_version(resolver):
