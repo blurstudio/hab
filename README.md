@@ -386,6 +386,23 @@ same configuration syntax you would use in a pip requirements file.
 
 The resolved versions matching the requested distros are shown in the `versions` property.
 
+# Debugging
+
+## Debugging generated scripts
+
+Hab doesn't use a console_script entry point to create an exe for its cli. It uses a shell
+specific [launch script](bin). This script runs hab as a python process to create
+temporary shell scripts to configure the shell(launching a new one if required).
+This prevents the need to keep the python process running and prevents shell
+corruption if that python process is killed. The shell scripts are written to the
+temp location for the shell/os. On windows this should be written to `%tmp%` and
+`$TMPDIR` on linux.
+
+Hab does its best to remove these temp script files on exit so inspecting them can be
+difficult. The best way to view them is to run a `hab env` or `hab launch` command
+this will leave the hab process running while you find and view the config and launch
+scripts in the temp directory. Once you are finished exit the hab process and they
+will be removed.
 
 # Caveats
 
