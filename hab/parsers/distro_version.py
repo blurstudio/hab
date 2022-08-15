@@ -1,6 +1,6 @@
 from packaging.version import InvalidVersion, Version
 
-from ..errors import _IgnoredVersionError
+from ..errors import InvalidVersionError, _IgnoredVersionError
 from .distro import Distro
 from .hab_base import HabBase
 from .meta import NotSet, hab_property
@@ -48,7 +48,10 @@ class DistroVersion(HabBase):
                 """The parent directory was not a valid version, attempt to get a
                 version using setuptools_scm.
                 """
-                from setuptools_scm import get_version
+                try:
+                    from setuptools_scm import get_version
+                except ImportError as error:
+                    raise InvalidVersionError(self.filename, error=error) from None
 
                 try:
                     self.version = get_version(
@@ -62,18 +65,7 @@ class DistroVersion(HabBase):
                                 filename
                             )
                         ) from None
-                    raise LookupError(
-                        'Hab was unable to determine the version for "{filename}".\n'
-                        "The version is defined in one of several ways checked in this order:\n"
-                        "1. The version property in `.hab.json`.\n"
-                        "2. A `.hab_version.txt` file next to `.hab.json`.\n"
-                        "3. `.hab.json`'s parent directory name.\n"
-                        "4. setuptools_scm can get a version from version control.\n"
-                        "The preferred method is #3 for deployed releases. #4 is the "
-                        "preferred method for developers working copies.".format(
-                            filename=self.filename
-                        )
-                    ) from None
+                    raise InvalidVersionError(self.filename) from None
 
         # The name should be the version == specifier.
         self.distro_name = data.get("name")

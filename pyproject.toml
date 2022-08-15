@@ -11,3 +11,6 @@ write_to = "hab/version.py"
 
 [tool.black]
 skip-string-normalization = true
+
+[tool.isort]
+profile = "black"

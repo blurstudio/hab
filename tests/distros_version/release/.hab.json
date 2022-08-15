@@ -1,0 +1,14 @@
+{
+    "name": "the_dcc",
+    "environment": {},
+    "distros": [
+        "the_dcc_plugin_a>=1.0",
+        "the_dcc_plugin_b>=0.9",
+        "the_dcc_plugin_e"
+    ],
+    "aliases": {
+        "windows": [
+            ["dcc", "{relative_root}\\the_dcc.exe"]
+        ]
+    }
+}
