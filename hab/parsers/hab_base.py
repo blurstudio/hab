@@ -3,7 +3,6 @@ from __future__ import print_function
 import logging
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import anytree
@@ -81,7 +80,7 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         if self._platform_override:
             # Provide a method for testing to always test for running on a specific os
             return self._platform_override
-        return "windows" if sys.platform == "win32" else "linux"
+        return utils.platform()
 
     def check_environment(self, environment_config):
         """Check that the environment config only makes valid adjustments.
@@ -514,7 +513,7 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
             # No environment_config dictionary was set, noting to do
             return
 
-        merger = MergeDict(relative_root=self.dirname)
+        merger = MergeDict(relative_root=self.dirname, platform=self._platform)
         merger.formatter = obj.format_environment_value
         merger.validator = self.check_environment
         merger.update(self._environment, environment_config)

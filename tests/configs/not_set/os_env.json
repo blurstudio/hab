@@ -1,0 +1,36 @@
+{
+    "name": "os",
+    "context": ["not_set"],
+    "environment": {
+        "os_specific": true,
+        "linux": {
+            "unset": [
+                "UNSET_VARIABLE_LIN"
+            ],
+            "set": {
+                "SET_VARIABLE_LIN": "set_value_lin"
+            },
+            "append": {
+                "APPEND_VARIABLE_LIN": "append_value_lin"
+            },
+            "prepend": {
+                "PREPEND_VARIABLE_LIN": "prepend_value_lin"
+            }
+        },
+        "windows": {
+            "unset": [
+                "UNSET_VARIABLE_WIN"
+            ],
+            "set": {
+                "SET_VARIABLE_WIN": "set_value_win"
+            },
+            "append": {
+                "APPEND_VARIABLE_WIN": "append_value_win"
+            },
+            "prepend": {
+                "PREPEND_VARIABLE_WIN": "prepend_value_win"
+            }
+        }
+    },
+    "inherits": false
+}

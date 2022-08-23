@@ -1,0 +1,23 @@
+{
+    "os_specific": true,
+    "linux": {
+        "append": {
+            "config_paths": [
+                "config/path"
+            ],
+            "distro_paths": [
+                "distro/path"
+            ]
+        }
+    },
+    "windows": {
+        "append": {
+            "config_paths": [
+                "config\\path"
+            ],
+            "distro_paths": [
+                "distro\\path"
+            ]
+        }
+    }
+}

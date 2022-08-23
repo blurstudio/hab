@@ -702,3 +702,29 @@ def test_duplicated_distros(config_root, resolver):
 
     with pytest.raises(DuplicateJsonError):
         resolver.find_distro("the_dcc==1.2")
+
+
+def test_os_specific_linux(monkeypatch, resolver):
+    """Check that if "os_specific" is set to true, only env vars for the current
+    os are resolved."""
+    # Simulate running on a linux platform.
+    monkeypatch.setattr(sys, "platform", "linux")
+    cfg = resolver.resolve("not_set/os")
+
+    assert cfg.environment["UNSET_VARIABLE_LIN"] is None
+    assert cfg.environment["SET_VARIABLE_LIN"] == ["set_value_lin"]
+    assert cfg.environment["APPEND_VARIABLE_LIN"] == ["append_value_lin"]
+    assert cfg.environment["PREPEND_VARIABLE_LIN"] == ["prepend_value_lin"]
+
+
+def test_os_specific_win(monkeypatch, resolver):
+    """Check that if "os_specific" is set to true, only env vars for the current
+    os are resolved."""
+    # Simulate running on a windows platform
+    monkeypatch.setattr(sys, "platform", "win32")
+    cfg = resolver.resolve("not_set/os")
+
+    assert cfg.environment["UNSET_VARIABLE_WIN"] is None
+    assert cfg.environment["SET_VARIABLE_WIN"] == ["set_value_win"]
+    assert cfg.environment["APPEND_VARIABLE_WIN"] == ["append_value_win"]
+    assert cfg.environment["PREPEND_VARIABLE_WIN"] == ["prepend_value_win"]
