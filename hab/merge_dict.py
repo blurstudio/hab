@@ -8,9 +8,11 @@ class MergeDict(object):
         self.format_kwargs = format_kwargs
         self.formatter = self.default_format
         self.pathsep = os.pathsep
-        # self.platform = platform
-        self.platform = 'windows'
         self.validator = None
+
+        if platform is None:
+            platform = utils.platform()
+        self.platform = platform
 
     def default_format(self, value):
         if isinstance(value, list):

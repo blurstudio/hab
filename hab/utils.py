@@ -172,3 +172,8 @@ def load_json_file(filename):
 def path_forward_slash(path):
     """Converts a Path object into a string with forward slashes"""
     return str(path).replace('\\', '/')
+
+
+def platform():
+    """Returns the current operating system as `windows` or `linux`."""
+    return "windows" if sys.platform == "win32" else "linux"

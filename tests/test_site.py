@@ -1,3 +1,5 @@
+import sys
+
 import colorama
 import pytest
 
@@ -78,3 +80,29 @@ def test_dump(config_root):
     result = site.dump()
     for check in checks:
         assert check.format(green="", reset="") in result
+
+
+def test_os_specific_linux(monkeypatch, config_root):
+    """Check that if "os_specific" is set to true, only vars for the current
+    os are resolved."""
+    # Simulate running on a linux platform.
+    monkeypatch.setattr(sys, "platform", "linux")
+
+    paths = [config_root / "site_os_specific.json"]
+    site = Site(paths)
+
+    assert site.get("config_paths") == ["config/path"]
+    assert site.get("distro_paths") == ["distro/path"]
+
+
+def test_os_specific_win(monkeypatch, config_root):
+    """Check that if "os_specific" is set to true, only vars for the current
+    os are resolved."""
+    # Simulate running on a windows platform
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    paths = [config_root / "site_os_specific.json"]
+    site = Site(paths)
+
+    assert site.get("config_paths") == ["config\\path"]
+    assert site.get("distro_paths") == ["distro\\path"]
