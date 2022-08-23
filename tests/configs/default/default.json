@@ -4,12 +4,12 @@
     "inherits": false,
     "distros": {
         "maya2020": [
-            "tikal",
-            "brSkinBrush",
-            "animBot"
+            "the_dcc_plugin_a",
+            "the_dcc_plugin_b",
+            "the_dcc_plugin_c"
         ],
         "houdini18.5": [
-            "hsite"
+            "the_dcc_plugin_d"
         ]
     }
 }

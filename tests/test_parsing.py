@@ -96,7 +96,14 @@ def test_config_parse(config_root, resolver, helpers):
     path = config_root / "configs" / "default" / "default.json"
     config.load(path)
 
-    check = ["maya2020", "tikal", "brSkinBrush", "animBot", "houdini18.5", "hsite"]
+    check = [
+        "maya2020",
+        "the_dcc_plugin_a",
+        "the_dcc_plugin_b",
+        "the_dcc_plugin_c",
+        "houdini18.5",
+        "the_dcc_plugin_d",
+    ]
 
     # We can't do a simple comparison of Requirement keys so check that these resolved
     helpers.assert_requirements_equal(config.distros, check)

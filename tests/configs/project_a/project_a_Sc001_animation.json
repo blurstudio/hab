@@ -2,9 +2,7 @@
     "name": "Animation",
     "context": ["project_a", "Sc001"],
     "inherits": true,
-    "distros": {
-        "maya2020": [
-            "tikal==0.18.0"
-        ]
-    }
+    "distros": [
+        "maya2020"
+    ]
 }
