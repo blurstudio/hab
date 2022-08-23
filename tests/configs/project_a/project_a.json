@@ -2,14 +2,8 @@
     "name": "project_a",
     "context": [],
     "inherits": false,
-    "distros": {
-        "maya2020": [
-            "tikal>=0.19.0",
-            "brSkinBrush>=0.1.0",
-            "animBot==1.4.6"
-        ],
-        "houdini18.5": [
-            "hsite"
-        ]
-    }
+    "distros": [
+        "maya2020",
+        "houdini18.5"
+    ]
 }
