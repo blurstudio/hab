@@ -370,6 +370,53 @@ def test_flat_config(resolver):
     assert list(ret.environment.keys()) == ["DCC_MODULE_PATH"]
 
 
+def test_placeholder_handling(resolver):
+    # We haven't defined the top level "placeholder" uri or "placeholder/undefined",
+    # but we have defined "placeholder/child". Check that the Placeholder objects
+    # are processed correctly. Ie in this case it inherits from the default config.
+    ret = resolver.resolve("place-holder/undefined")
+    # Name and context are set for every Placeholder
+    assert ret.name == "place-holder"
+    assert ret.context is NotSet
+    assert ret.fullpath == "place-holder"
+
+    # Verify that default configuration settings were loaded because inherits
+    # defaults to True.
+    assert 'the_dcc' not in ret.distros.keys()
+    assert 'maya2020' in ret.distros.keys()
+    assert 'the_dcc_plugin_a' in ret.distros.keys()
+    assert ret.environment == {}
+
+    # Check that if inherits is False, inheritance doesn't happen with Placeholders.
+    ret = resolver.resolve("place-holder/child")
+    # Name and context are set for every Placeholder
+    assert ret.name == "child"
+    assert ret.context == ["place-holder"]
+    assert ret.fullpath == "place-holder/child"
+
+    assert 'the_dcc' in ret.distros
+    assert 'maya2020' not in ret.distros
+    assert 'the_dcc_plugin_a' not in ret.distros
+    assert len(ret.environment) == 1
+    assert 'DCC_MODULE_PATH' in ret.environment
+
+    # Check that if inherits is True, inheritance happens with Placeholders.
+    ret = resolver.resolve("place-holder/inherits")
+    # Name and context are set for every Placeholder
+    assert ret.name == "inherits"
+    assert ret.context == ["place-holder"]
+    assert ret.fullpath == "place-holder/inherits"
+
+    # Inherits does not define distros, so it inherits distros from default.
+    assert 'the_dcc' not in ret.distros.keys()
+    assert 'maya2020' in ret.distros.keys()
+    assert 'the_dcc_plugin_a' in ret.distros.keys()
+    # Inherits defines environment, so its environment settings are not inherited.
+    assert len(ret.environment) == 1
+    assert 'DCC_MODULE_PATH' not in ret.environment
+    assert 'TEST' in ret.environment
+
+
 def test_invalid_config(config_root, resolver):
     """Check that if an invalid json file is processed, its filename is included in
     the traceback"""

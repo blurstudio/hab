@@ -48,7 +48,7 @@ class FlatConfig(Config):
             elif not default and "default" in self.forest:
                 # Start processing the default setup
                 default = True
-                default_node = self.resolver.closest_config(node.fullpath)
+                default_node = self.resolver.closest_config(node.fullpath, default=True)
                 self._collect_values(default_node, default=default)
 
         return self._missing_values
@@ -85,7 +85,9 @@ class FlatConfig(Config):
 
     @property
     def fullpath(self):
-        return self.separator.join([name for name in self.context] + [self.name])
+        if self.context:
+            return self.separator.join([name for name in self.context] + [self.name])
+        return self.name
 
     @hab_property(verbosity=1)
     def versions(self):

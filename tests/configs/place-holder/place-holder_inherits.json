@@ -1,0 +1,10 @@
+{
+    "name": "inherits",
+    "context": ["place-holder"],
+    "inherits": true,
+    "environment": {
+        "set": {
+            "TEST": "case"
+        }
+    }
+}

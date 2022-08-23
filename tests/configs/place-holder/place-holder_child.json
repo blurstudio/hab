@@ -1,0 +1,8 @@
+{
+    "name": "child",
+    "context": ["place-holder"],
+    "inherits": false,
+    "distros": [
+        "the_dcc"
+    ]
+}
