@@ -20,19 +20,32 @@ class Site(UserDict):
 
     """Provides some default values that are always configured but can be updated."""
     _default_data = {
-        "config_paths": [],
-        "distro_paths": [],
-        "ignored_distros": ["release", "pre"],
+        "set": {
+            "config_paths": [],
+            "distro_paths": [],
+            "ignored_distros": ["release", "pre"],
+        }
     }
 
-    def __init__(self, paths=None):
-        self.data = self._default_data.copy()
+    def __init__(self, paths=None, platform=None):
+        if platform is None:
+            platform = utils.platform()
+        self.platform = platform
+
+        # Add default data to all site instances. Site data is only valid for
+        # the current platform, so discard any other platform configurations.
+        merger = MergeDict(platforms=[self.platform])
+        self.frozen_data = merger.apply_platform_wildcards(self._default_data)
 
         if not paths:
             paths = os.getenv("HAB_PATHS", "").split(os.pathsep)
         self.paths = [Path(os.path.expandvars(p)).expanduser() for p in paths if p]
 
         self.load()
+
+    @property
+    def data(self):
+        return self.frozen_data.get(self.platform)
 
     def dump(self, color=None):
         """Return a string of the properties and their values.
@@ -70,8 +83,9 @@ class Site(UserDict):
         """
         data = utils.load_json_file(filename)
 
-        merger = MergeDict(relative_root=filename.parent)
-        merger.update(self, data)
+        # Merge the new data into frozen_data
+        merger = MergeDict(platforms=[self.platform], relative_root=filename.parent)
+        merger.apply_platform_wildcards(data, output=self.frozen_data)
 
     @property
     def paths(self):

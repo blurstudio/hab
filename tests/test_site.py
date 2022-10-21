@@ -1,9 +1,16 @@
 import sys
+from pathlib import Path
 
 import colorama
 import pytest
 
 from hab import Site, utils
+
+
+def check_path_list(paths, checks):
+    """Check that a list of path strings match a list of Path objects."""
+    for i, check in enumerate(checks):
+        assert Path(paths[i]) == check
 
 
 def test_environment_variables(config_root, monkeypatch):
@@ -35,6 +42,18 @@ def test_resolve_paths(config_root):
     assert site.get("override") == ["site_override.json"]
     assert site.get("filename") == ["site_override.json"]
 
+    # Check that the paths defined in multiple site files are correctly added
+    assert len(site.get("config_paths")) == 1
+    check_path_list(site.get("config_paths"), [config_root / "configs" / "*"])
+    assert len(site.get("distro_paths")) == 2
+    check_path_list(
+        site.get("distro_paths"),
+        (
+            config_root / "distros" / "*",
+            config_root / "duplicates" / "distros_1" / "*",
+        ),
+    )
+
 
 def test_resolve_paths_reversed(config_root):
     # Check that values specified by additional files overwrite the previous values
@@ -43,6 +62,18 @@ def test_resolve_paths_reversed(config_root):
     assert site.get("generic_value") is False
     assert site.get("override") == ["site_override.json"]
     assert site.get("filename") == ["site_main.json"]
+
+    # Check that the paths defined in multiple site files are correctly added
+    assert len(site.get("config_paths")) == 1
+    check_path_list(site.get("config_paths"), [config_root / "configs" / "*"])
+    assert len(site.get("distro_paths")) == 2
+    check_path_list(
+        site.get("distro_paths"),
+        (
+            config_root / "duplicates" / "distros_1" / "*",
+            config_root / "distros" / "*",
+        ),
+    )
 
 
 def test_path_in_raise(config_root):
@@ -91,8 +122,8 @@ def test_os_specific_linux(monkeypatch, config_root):
     paths = [config_root / "site_os_specific.json"]
     site = Site(paths)
 
-    assert site.get("config_paths") == ["config/path"]
-    assert site.get("distro_paths") == ["distro/path"]
+    assert site.get("config_paths") == ["config/path/linux"]
+    assert site.get("distro_paths") == ["distro/path/linux"]
 
 
 def test_os_specific_win(monkeypatch, config_root):
@@ -104,5 +135,5 @@ def test_os_specific_win(monkeypatch, config_root):
     paths = [config_root / "site_os_specific.json"]
     site = Site(paths)
 
-    assert site.get("config_paths") == ["config\\path"]
-    assert site.get("distro_paths") == ["distro\\path"]
+    assert site.get("config_paths") == ["config\\path\\windows"]
+    assert site.get("distro_paths") == ["distro\\path\\windows"]

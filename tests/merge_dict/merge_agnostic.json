@@ -1,0 +1,45 @@
+{
+    "file_one": {
+        "unset": [
+            "UNSET_VARIABLE"
+        ],
+        "prepend": {
+            "SHARED": "all_pre"
+        },
+        "append": {
+            "SHARED": "all"
+        }
+    },
+    "file_two": {
+        "unset": [
+            "UNSET_VARIABLE"
+        ],
+        "prepend": {
+            "SHARED": "all_pre_2"
+        },
+        "append": {
+            "SHARED": "all_2"
+        }
+    },
+    "out_data": {
+        "linux": {
+            "SHARED": [
+                "all_pre_2",
+                "all_pre",
+                "all",
+                "all_2"
+            ],
+            "UNSET_VARIABLE": null
+        },
+        "os_specific": true,
+        "windows": {
+            "SHARED": [
+                "all_pre_2",
+                "all_pre",
+                "all",
+                "all_2"
+            ],
+            "UNSET_VARIABLE": null
+        }
+    }
+}

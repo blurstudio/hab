@@ -1,0 +1,26 @@
+{
+    "in_data": {
+        "os_specific": false,
+        "unset": [
+            "UNSET_VARIABLE"
+        ],
+        "append": {
+            "SHARED": "all"
+        }
+    },
+    "out_data": {
+        "linux": {
+            "SHARED": [
+                "all"
+            ],
+            "UNSET_VARIABLE": null
+        },
+        "os_specific": true,
+        "windows": {
+            "SHARED": [
+                "all"
+            ],
+            "UNSET_VARIABLE": null
+        }
+    }
+}

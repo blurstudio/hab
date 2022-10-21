@@ -1,0 +1,79 @@
+{
+    "in_data": {
+        "os_specific": true,
+        "linux": {
+            "unset": [
+                "UNSET_VARIABLE_LIN"
+            ],
+            "set": {
+                "SET_BY_LINUX": "linux_value"
+            },
+            "append": {
+                "LIN_VARIABLE": "append_platform_lin",
+                "SHARED": "linux"
+            }
+        },
+        "windows": {
+            "unset": [
+                "UNSET_VARIABLE_WIN",
+                "UNSET_BY_WINDOWS"
+            ],
+            "append": {
+                "WIN_VARIABLE": "append_platform_win",
+                "SHARED": "windows"
+            }
+        },
+        "*": {
+            "unset": [
+                "UNSET_VARIABLE_ALL"
+            ],
+            "append": {
+                "ALL_VARIABLE": "append_platform_all",
+                "UNSET_BY_WINDOWS": "removed_by_windows",
+                "SET_BY_LINUX": "replaced_only_by_linux",
+                "SHARED": "all"
+            }
+        }
+    },
+    "out_data": {
+        "linux": {
+            "ALL_VARIABLE": [
+                "append_platform_all"
+            ],
+            "LIN_VARIABLE": [
+                "append_platform_lin"
+            ],
+            "SET_BY_LINUX": [
+                "linux_value"
+            ],
+            "SHARED": [
+                "all",
+                "linux"
+            ],
+            "UNSET_BY_WINDOWS": [
+                "removed_by_windows"
+            ],
+            "UNSET_VARIABLE_ALL": null,
+            "UNSET_VARIABLE_LIN": null
+        },
+        "os_specific": true,
+        "windows": {
+            "ALL_VARIABLE": [
+                "append_platform_all"
+            ],
+            "SET_BY_LINUX": [
+                "replaced_only_by_linux"
+            ],
+            "SHARED": [
+                "all",
+                "windows"
+            ],
+            "UNSET_BY_WINDOWS": null,
+            "UNSET_VARIABLE_ALL": null,
+            "UNSET_VARIABLE_WIN": null,
+            "WIN_VARIABLE": [
+                "append_platform_win"
+            ]
+        }
+    }
+}

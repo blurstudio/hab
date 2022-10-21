@@ -4,15 +4,47 @@ from . import utils
 
 
 class MergeDict(object):
-    def __init__(self, platform=None, **format_kwargs):
+    def __init__(self, platform=None, platforms=("linux", "windows"), **format_kwargs):
         self.format_kwargs = format_kwargs
         self.formatter = self.default_format
         self.pathsep = os.pathsep
+        self.platforms = platforms
         self.validator = None
 
         if platform is None:
             platform = utils.platform()
         self.platform = platform
+
+    def apply_platform_wildcards(self, data, output=None):
+        """Ensure the data dict is platform specific and any wildcard entries
+        are applied to all of self.platforms.
+
+        Args:
+            data (dict): A dictionary of settings to apply. `make_os_specific`
+                is called on it.
+            output (dict, optional): If provided, the dictionary is updated in
+                with the info stored in data. If not, a new dictionary is
+                created and returned.
+
+        Returns:
+            dict: The modified dictionary. If output was provided it is the
+                same object, if not a new dict is returned.
+        """
+        data = self.make_os_specific(data)
+
+        if output is None:
+            output = {"os_specific": True}
+
+        for platform in self.platforms:
+            platform_data = output.setdefault(platform, {})
+
+            if "*" in data:
+                self.update_platform(platform_data, data["*"])
+
+            if platform in data:
+                self.update_platform(platform_data, data[platform])
+
+        return output
 
     def default_format(self, value):
         if isinstance(value, list):
@@ -52,36 +84,52 @@ class MergeDict(object):
 
         return a + b
 
-    def update(self, base, changes):
-        """Check and update environment with the provided environment config."""
+    @classmethod
+    def make_os_specific(cls, data):
+        """Ensure the dict conforms to the "os_specific=True" specification.
+        If os_specific is missing or not true, a new dict is returned with a
+        copy of data stored under the "*" key with `os_specific` removed.
 
-        # If os_specific is specified, we are defining environment variables per-os
-        # not globally. Lookup the current os's configuration.
-        if changes.get("os_specific", False):
-            changes = changes.get(self.platform, {})
+        Args:
+            data (dict): The dict to make os_specific. The original dict is
+                returned if it's already os_specific, otherwise a new dict is
+                returned.
 
+        Returns:
+            dict: A dict that conforms to the "os_specific=True" format.
+        """
+        if not data.get("os_specific", False):
+            # Remove os_specific if it was defined so we don't keep it on the
+            # wildcard platform dict.
+            data = data.copy()
+            data.pop("os_specific", False)
+            data = {'*': data}
+            data["os_specific"] = True
+        return data
+
+    def update_platform(self, data, changes):
         if self.validator:
             self.validator(changes)
 
         if "unset" in changes:
             # When applying the env vars later None will trigger removing the env var.
             # The other operations may end up replacing this value.
-            base.update({key: None for key in changes["unset"]})
+            data.update({key: None for key in changes["unset"]})
 
         # set, prepend, append are all treated as set operations, this lets us override
         # base user and system variable values without them causing issues.
         if "set" in changes:
             for key, value in changes["set"].items():
-                base[key] = self.formatter(value)
-                if isinstance(base[key], str):
-                    base[key] = [base[key]]
+                data[key] = self.formatter(value)
+                if isinstance(data[key], str):
+                    data[key] = [data[key]]
 
         for operation in ("prepend", "append"):
             if operation not in changes:
                 continue
 
             for key, value in changes[operation].items():
-                existing = base.get(key, "")
+                existing = data.get(key, "")
                 if existing:
                     if operation == "prepend":
                         value = self.join(value, existing)
@@ -90,4 +138,4 @@ class MergeDict(object):
                 else:
                     # Convert value into a list if it isn't one
                     value = self.join(value, [])
-                base[key] = self.formatter(value)
+                data[key] = self.formatter(value)
