@@ -3,20 +3,20 @@
     "linux": {
         "append": {
             "config_paths": [
-                "config/path"
+                "config/path/linux"
             ],
             "distro_paths": [
-                "distro/path"
+                "distro/path/linux"
             ]
         }
     },
     "windows": {
         "append": {
             "config_paths": [
-                "config\\path"
+                "config\\path\\windows"
             ],
             "distro_paths": [
-                "distro\\path"
+                "distro\\path\\windows"
             ]
         }
     }

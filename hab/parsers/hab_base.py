@@ -528,7 +528,10 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         merger = MergeDict(relative_root=self.dirname, platform=self._platform)
         merger.formatter = obj.format_environment_value
         merger.validator = self.check_environment
-        merger.update(self._environment, environment_config)
+        # Flatten the site configuration down to per-platform configurations
+        output = merger.apply_platform_wildcards(environment_config)
+        # Apply the site settings to this object for the current platform
+        self._environment.update(output.get(merger.platform))
 
     @property
     def uri(self):

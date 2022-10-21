@@ -1,0 +1,76 @@
+{
+    "in_data": {
+        "os_specific": true,
+        "linux": {
+            "unset": [
+                "UNSET_VARIABLE_LIN"
+            ],
+            "set": {
+                "SET_BY_LINUX": "linux_value"
+            },
+            "append": {
+                "LIN_VARIABLE": "append_platform_lin",
+                "SHARED": "linux"
+            }
+        },
+        "reactos": {
+            "unset": [
+                "UNSET_VARIABLE_REACTOS"
+            ],
+            "set": {
+                "SET_BY_REACTOS": "reactos_value"
+            },
+            "append": {
+                "REACTOS_VARIABLE": "append_platform_reactos",
+                "SHARED": "reactos"
+            }
+        },
+        "windows": {
+            "unset": [
+                "UNSET_VARIABLE_WIN",
+                "UNSET_BY_WINDOWS"
+            ],
+            "append": {
+                "WIN_VARIABLE": "append_platform_win",
+                "SHARED": "windows"
+            }
+        },
+        "*": {
+            "unset": [
+                "UNSET_VARIABLE_ALL"
+            ],
+            "append": {
+                "ALL_VARIABLE": "append_platform_all",
+                "UNSET_BY_WINDOWS": "removed_by_windows",
+                "SET_BY_LINUX": "replaced_only_by_linux",
+                "SHARED": "all"
+            }
+        }
+    },
+    "out_data": {
+        "os_specific": true,
+        "reactos": {
+            "ALL_VARIABLE": [
+                "append_platform_all"
+            ],
+            "REACTOS_VARIABLE": [
+                "append_platform_reactos"
+            ],
+            "SET_BY_LINUX": [
+                "replaced_only_by_linux"
+            ],
+            "SET_BY_REACTOS": [
+                "reactos_value"
+            ],
+            "SHARED": [
+                "all",
+                "reactos"
+            ],
+            "UNSET_BY_WINDOWS": [
+                "removed_by_windows"
+            ],
+            "UNSET_VARIABLE_ALL": null,
+            "UNSET_VARIABLE_REACTOS": null
+        }
+    }
+}
