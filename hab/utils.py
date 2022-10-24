@@ -175,5 +175,9 @@ def path_forward_slash(path):
 
 
 def platform():
-    """Returns the current operating system as `windows` or `linux`."""
-    return "windows" if sys.platform == "win32" else "linux"
+    """Returns the current operating system as `windows`, `mac` or `linux`."""
+    if sys.platform == "darwin":
+        return "mac"
+    if sys.platform == "win32":
+        return "windows"
+    return "linux"

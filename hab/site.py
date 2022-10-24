@@ -24,6 +24,7 @@ class Site(UserDict):
             "config_paths": [],
             "distro_paths": [],
             "ignored_distros": ["release", "pre"],
+            "platforms": ["windows", "mac", "linux"],
         }
     }
 
