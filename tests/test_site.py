@@ -41,6 +41,7 @@ def test_resolve_paths(config_root):
     assert site.get("generic_value") is True
     assert site.get("override") == ["site_override.json"]
     assert site.get("filename") == ["site_override.json"]
+    assert site.get("platforms") == ["windows", "mac", "linux"]
 
     # Check that the paths defined in multiple site files are correctly added
     assert len(site.get("config_paths")) == 1
@@ -124,6 +125,21 @@ def test_os_specific_linux(monkeypatch, config_root):
 
     assert site.get("config_paths") == ["config/path/linux"]
     assert site.get("distro_paths") == ["distro/path/linux"]
+    assert site.get("platforms") == ["windows", "linux"]
+
+
+def test_os_specific_mac(monkeypatch, config_root):
+    """Check that if "os_specific" is set to true, only vars for the current
+    os are resolved."""
+    # Simulate running on a mac platform.
+    monkeypatch.setattr(sys, "platform", "darwin")
+
+    paths = [config_root / "site_os_specific.json"]
+    site = Site(paths)
+
+    assert site.get("config_paths") == ["config/path/mac"]
+    assert site.get("distro_paths") == ["distro/path/mac"]
+    assert site.get("platforms") == ["mac", "linux"]
 
 
 def test_os_specific_win(monkeypatch, config_root):
@@ -137,3 +153,4 @@ def test_os_specific_win(monkeypatch, config_root):
 
     assert site.get("config_paths") == ["config\\path\\windows"]
     assert site.get("distro_paths") == ["distro\\path\\windows"]
+    assert site.get("platforms") == ["windows", "mac"]

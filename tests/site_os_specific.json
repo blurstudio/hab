@@ -1,6 +1,9 @@
 {
     "os_specific": true,
     "linux": {
+        "set":{
+            "platforms": ["windows", "linux"]
+        },
         "append": {
             "config_paths": [
                 "config/path/linux"
@@ -10,7 +13,23 @@
             ]
         }
     },
+    "mac": {
+        "set":{
+            "platforms": ["mac", "linux"]
+        },
+        "append": {
+            "config_paths": [
+                "config/path/mac"
+            ],
+            "distro_paths": [
+                "distro/path/mac"
+            ]
+        }
+    },
     "windows": {
+        "set":{
+            "platforms": ["windows", "mac"]
+        },
         "append": {
             "config_paths": [
                 "config\\path\\windows"
