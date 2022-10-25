@@ -376,8 +376,95 @@ def test_flat_config(resolver):
     # Check for edge case where self._environment was reset if the config didn't define
     # environment, but the attached distros did.
     ret = resolver.resolve("not_set/no_env")
-    assert sorted(ret.environment.keys()) == ["DCC_MODULE_PATH", "HAB_URI"]
-    assert sorted(ret.environment.keys()) == ["DCC_MODULE_PATH", "HAB_URI"]
+    assert sorted(ret.environment.keys()) == [
+        "DCC_CONFIG_PATH",
+        "DCC_MODULE_PATH",
+        "HAB_URI",
+    ]
+    assert sorted(ret.environment.keys()) == [
+        "DCC_CONFIG_PATH",
+        "DCC_MODULE_PATH",
+        "HAB_URI",
+    ]
+
+
+def test_flat_config_env_resolve(resolver, config_root, helpers):
+    """Checks that environment variables are properly merged when resolving distros
+    including inherited values. Checks that append/prepend are processed correctly
+    and result in a consistent ordering of the resulting environment variables.
+    """
+    ret = resolver.resolve("not_set/distros")
+
+    # Ensure the the configuration files this test relies on are configured
+    # correctly. This also serves as a explanation for why the final list being
+    # checked is sorted in the way it is
+    raw_json = json.load(open(ret.filename))
+    # The config only links to the "the_dcc" distro and no others.
+    assert raw_json["distros"] == {"the_dcc": []}
+
+    # The_dcc depends on these three distros in this order
+    distro_root = config_root / "distros"
+    raw_json = json.load((distro_root / "the_dcc" / "1.2" / ".hab.json").open())
+    assert "the_dcc_plugin_a" in raw_json["distros"][0]
+    assert "the_dcc_plugin_b" in raw_json["distros"][1]
+    assert "the_dcc_plugin_e" in raw_json["distros"][2]
+
+    # the_dcc_plugin_a depends on these two distros in this order. The dependencies
+    # are resolved down the tree so "e" will show up before "b".
+    distro_root = config_root / "distros"
+    raw_json = json.load(
+        (distro_root / "the_dcc_plugin_a" / "1.1" / ".hab.json").open()
+    )
+    assert "the_dcc_plugin_e" in raw_json["distros"][0]
+    assert "the_dcc_plugin_d" in raw_json["distros"][1]
+
+    # Both environment variables are appended
+    for plugin in ("the_dcc_plugin_a", "the_dcc_plugin_e"):
+        raw_json = json.load((distro_root / plugin / "1.1" / ".hab.json").open())
+        assert "DCC_CONFIG_PATH" in raw_json["environment"]["append"]
+        assert "DCC_MODULE_PATH" in raw_json["environment"]["append"]
+
+    # One env var is appended and the other is prepended
+    for plugin in ("the_dcc_plugin_b", "the_dcc_plugin_d"):
+        raw_json = json.load((distro_root / plugin / "1.1" / ".hab.json").open())
+        assert "DCC_CONFIG_PATH" in raw_json["environment"]["prepend"]
+        assert "DCC_MODULE_PATH" in raw_json["environment"]["append"]
+
+    # Check that the environment was actually processed depth-frist, the above
+    # serves as documentation for why these env vars are ordered the way they are
+
+    # Ensure that appends are handled correctly
+    helpers.check_path_list(
+        ret.environment["DCC_MODULE_PATH"],
+        [
+            # plugin a was first referenced so it is the first append
+            str(config_root / "distros" / "the_dcc_plugin_a" / "1.1"),
+            # plugin e was first in the distros specified by plugin a, so it
+            # gets added next even though the_dcc referenced plugin b first
+            str(config_root / "distros" / "the_dcc_plugin_e" / "1.1"),
+            # plugin d was also referenced by plugin a, so it goes before plugin b
+            str(config_root / "distros" / "the_dcc_plugin_d" / "1.1"),
+            # Finally plugin b is added when the dependency resolver finishes
+            # processing plugin a and returns to the next distro for the_dcc.
+            str(config_root / "distros" / "the_dcc_plugin_b" / "1.1"),
+            # plugin e was already added by plugin a, so it doesn't get re-added
+            # when the dependency resolver finds it in the_dcc's distros.
+        ],
+    )
+
+    # Ensure that prepends are handled correctly
+    helpers.check_path_list(
+        ret.environment["DCC_CONFIG_PATH"],
+        [
+            # plugin b is processed last, so it's prepend ends up first
+            str(config_root / "distros" / "the_dcc_plugin_b" / "1.1"),
+            # plugin d is processed before b, so it's prepend is next
+            str(config_root / "distros" / "the_dcc_plugin_d" / "1.1"),
+            # The rest are appends, and follow the same order as above
+            str(config_root / "distros" / "the_dcc_plugin_a" / "1.1"),
+            str(config_root / "distros" / "the_dcc_plugin_e" / "1.1"),
+        ],
+    )
 
 
 def test_placeholder_handling(resolver):
@@ -408,7 +495,8 @@ def test_placeholder_handling(resolver):
     assert 'the_dcc' in ret.distros
     assert 'maya2020' not in ret.distros
     assert 'the_dcc_plugin_a' not in ret.distros
-    assert len(ret.environment) == 2
+    assert len(ret.environment) == 3
+    assert 'DCC_CONFIG_PATH' in ret.environment
     assert 'DCC_MODULE_PATH' in ret.environment
     # HAB_URI is always added to the environment variables
     assert 'HAB_URI' in ret.environment

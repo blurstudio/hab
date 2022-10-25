@@ -2,7 +2,8 @@
     "name": "the_dcc_plugin_e",
     "environment": {
         "append": {
-            "DCC_MODULE_PATH": "{relative_root}"
+            "DCC_MODULE_PATH": "{relative_root}",
+            "DCC_CONFIG_PATH": "{relative_root}"
         }
     }
 }

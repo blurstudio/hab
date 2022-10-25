@@ -329,7 +329,9 @@ of environment variable keys and the values to store.
 The `HabBase.environment` property shows the final resolved
 environment variables that will be applied. When using a resolved `FlatConfig` object,
 environment also contains the merger of all environment_config definitions for all
-`distros`.
+`distros`. When building append and prepend environment variables it processes
+each dependency in a depth-first manner.
+
 These environment variables will be directly set if there is a value, and unset if the
 value is blank. Hab doesn't inherit the session/system/user environment variable
 values with the exception of the `PATH` variable as this would break the system.

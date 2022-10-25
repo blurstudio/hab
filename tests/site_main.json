@@ -9,6 +9,10 @@
     },
     "set": {
         "generic_value": false,
-        "filename": "site_main.json"
+        "filename": "site_main.json",
+        "platforms": [
+            "windows",
+            "linux"
+        ]
     }
 }
