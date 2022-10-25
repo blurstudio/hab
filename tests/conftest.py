@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from pathlib import Path
+from pathlib import Path, PurePath
 
 import pytest
 from packaging.requirements import Requirement
@@ -49,6 +49,15 @@ class Helpers(object):
         for chk in check:
             chk = Requirement(chk)
             assert Helpers.cmp_requirement(req[chk.name], chk)
+
+    @staticmethod
+    def check_path_list(paths, checks):
+        """Casts the objects in both lists to PurePath objects so they can be
+        reliably asserted and differences easily viewed in the pytest output.
+        """
+        paths = [PurePath(p) for p in paths]
+        checks = [PurePath(p) for p in checks]
+        assert paths == checks
 
     @staticmethod
     def cmp_requirement(a, b):

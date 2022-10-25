@@ -1,16 +1,9 @@
 import sys
-from pathlib import Path
 
 import colorama
 import pytest
 
 from hab import Site, utils
-
-
-def check_path_list(paths, checks):
-    """Check that a list of path strings match a list of Path objects."""
-    for i, check in enumerate(checks):
-        assert Path(paths[i]) == check
 
 
 def test_environment_variables(config_root, monkeypatch):
@@ -34,20 +27,20 @@ def test_resolve_path(config_root):
     assert site.get("filename") == ["site_main.json"]
 
 
-def test_resolve_paths(config_root):
+def test_resolve_paths(config_root, helpers):
     # Check that values specified by additional files overwrite the previous values
     paths = [config_root / "site_main.json", config_root / "site_override.json"]
     site = Site(paths)
     assert site.get("generic_value") is True
     assert site.get("override") == ["site_override.json"]
     assert site.get("filename") == ["site_override.json"]
-    assert site.get("platforms") == ["windows", "mac", "linux"]
+    assert site.get("platforms") == ["windows", "linux"]
 
     # Check that the paths defined in multiple site files are correctly added
     assert len(site.get("config_paths")) == 1
-    check_path_list(site.get("config_paths"), [config_root / "configs" / "*"])
+    helpers.check_path_list(site.get("config_paths"), [config_root / "configs" / "*"])
     assert len(site.get("distro_paths")) == 2
-    check_path_list(
+    helpers.check_path_list(
         site.get("distro_paths"),
         (
             config_root / "distros" / "*",
@@ -56,7 +49,7 @@ def test_resolve_paths(config_root):
     )
 
 
-def test_resolve_paths_reversed(config_root):
+def test_resolve_paths_reversed(config_root, helpers):
     # Check that values specified by additional files overwrite the previous values
     paths = [config_root / "site_override.json", config_root / "site_main.json"]
     site = Site(paths)
@@ -66,9 +59,9 @@ def test_resolve_paths_reversed(config_root):
 
     # Check that the paths defined in multiple site files are correctly added
     assert len(site.get("config_paths")) == 1
-    check_path_list(site.get("config_paths"), [config_root / "configs" / "*"])
+    helpers.check_path_list(site.get("config_paths"), [config_root / "configs" / "*"])
     assert len(site.get("distro_paths")) == 2
-    check_path_list(
+    helpers.check_path_list(
         site.get("distro_paths"),
         (
             config_root / "duplicates" / "distros_1" / "*",

@@ -1,12 +1,13 @@
 {
     "name": "the_dcc_plugin_a",
     "distros": [
-        "the_dcc_plugin_d",
-        "the_dcc_plugin_e<2.0"
+        "the_dcc_plugin_e<2.0",
+        "the_dcc_plugin_d"
     ],
     "environment": {
         "append": {
-            "DCC_MODULE_PATH": "{relative_root}"
+            "DCC_MODULE_PATH": "{relative_root}",
+            "DCC_CONFIG_PATH": "{relative_root}"
         }
     }
 }
