@@ -16,9 +16,8 @@ class FlatConfig(Config):
         super(FlatConfig, self).__init__(original_node.forest, resolver)
         self.original_node = original_node
         self.filename = original_node.filename
-        self._context = original_node.context
+        self.frozen_data["context"] = original_node.context
         self._uri = uri
-        self._versions = None
         # Copy the properties from the inheritance system
         self._collect_values(self.original_node)
 
@@ -70,21 +69,23 @@ class FlatConfig(Config):
 
     @property
     def environment(self):
-        """A resolved set of environment variables that should be applied to
-        configure an environment. Any values containing a empty string indicate
+        """A resolved set of environment variables for this platform that should
+        be applied to configure an environment. Any values set to None indicate
         that the variable should be unset.
         """
-        empty = self._environment is None
-        super(FlatConfig, self).environment
-        # Add any environment variables defined by the linked versions
-        if empty:
+        if self.frozen_data.get("environment") is None:
+            super(FlatConfig, self).environment
+            # Add any environment variables defined by the linked versions
             for version in self.versions:
-                self.update_environment(version.environment_config, obj=version)
-            # Add the HAB_URI env var so scripts know they are in an activated hab
-            # environment and the original uri the user requested.
-            self._environment['HAB_URI'] = [self.uri]
+                self.merge_environment(version.environment_config, obj=version)
+            # Add the HAB_URI env var for each platform so scripts know they are
+            # in an activated hab environment and the original uri the user requested.
+            for platform in self.resolver.site['platforms']:
+                self.frozen_data.setdefault("environment", {}).setdefault(platform, {})[
+                    "HAB_URI"
+                ] = [self.uri]
 
-        return self._environment
+        return self.frozen_data["environment"].get(self._platform, {})
 
     @property
     def fullpath(self):
@@ -94,13 +95,15 @@ class FlatConfig(Config):
 
     @hab_property(verbosity=1)
     def versions(self):
-        if self._distros is NotSet:
+        if self.distros is NotSet:
             return []
 
-        if self._versions is None:
-            self._versions = []
+        if "versions" not in self.frozen_data:
+            versions = []
             reqs = self.resolver.resolve_requirements(self.distros)
             for req in reqs.values():
-                self._versions.append(self.resolver.find_distro(req))
+                versions.append(self.resolver.find_distro(req))
 
-        return self._versions
+            self.frozen_data["versions"] = versions
+
+        return self.frozen_data["versions"]

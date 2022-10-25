@@ -44,9 +44,10 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
 
     def __init__(self, forest, resolver, filename=None, parent=None, root_paths=None):
         super(HabBase, self).__init__()
-        self._environment = None
+        self.frozen_data = {}
         self._filename = None
         self._dirname = None
+        self._distros = NotSet
         self._platform_override = None
         self._uri = NotSet
         self.parent = parent
@@ -55,24 +56,12 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
             self.root_paths = root_paths
         self.forest = forest
         self.resolver = resolver
-        self._init_variables()
         if filename:
             self.load(filename)
 
     def __repr__(self):
         cls = type(self)
         return "{}.{}('{}')".format(cls.__module__, cls.__name__, self.fullpath)
-
-    def _init_variables(self):
-        """Called by __init__. Subclasses can override this to set default variable
-        values before self.load is called if a filename is passed.
-        """
-        # The context setter has a lot of overhead don't use it to set the default
-        self._context = NotSet
-        self.distros = NotSet
-        self.environment_config = NotSet
-        self.name = NotSet
-        self.version = NotSet
 
     @property
     def _platform(self):
@@ -123,11 +112,11 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         of the object, only its parents. `project_a/Sc001` would resolve into context:
         `["project_a"]` and name: `"Sc001"`.
         """
-        return self._context
+        return self.frozen_data.get("context", NotSet)
 
     @context.setter
     def context(self, context):
-        self._context = context
+        self.frozen_data["context"] = context
 
         if not self.context:
             # Add the root of this tree to the forest
@@ -311,14 +300,16 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         configure an environment. Any values containing a empty string indicate
         that the variable should be unset.
         """
-        if self.environment_config is NotSet and self._environment is None:
-            self._environment = {}
+        if "environment" in self.frozen_data:
+            return self.frozen_data["environment"].get(self._platform, {})
 
-        if self._environment is None:
-            self._environment = {}
-            self.update_environment(self.environment_config)
+        self.frozen_data["environment"] = {}
 
-        return self._environment
+        # Merge the environment_config if defined
+        if self.environment_config is not NotSet:
+            self.merge_environment(self.environment_config)
+
+        return self.frozen_data["environment"].get(self._platform, {})
 
     @hab_property(verbosity=2)
     def environment_config(self):
@@ -341,12 +332,12 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         Note however that this does not apply to the PATH env variable. You may
         only use append and prepend on that variable.
         """
-        return self._environment_config
+        return self.frozen_data.get("environment_config", NotSet)
 
     @environment_config.setter
     def environment_config(self, env):
-        self._environment_config = env
-        self._environment = None
+        self.frozen_data["environment_config"] = env
+        self.frozen_data.pop("environment", None)
 
     @property
     def filename(self):
@@ -429,17 +420,37 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
 
         return data
 
+    def merge_environment(self, environment_config, obj=None):
+        """Check and update environment with the provided environment config."""
+
+        if obj is None:
+            obj = self
+
+        if environment_config is NotSet:
+            # No environment_config dictionary was set, noting to do
+            return
+
+        merger = MergeDict(
+            relative_root=self.dirname, platforms=self.resolver.site['platforms']
+        )
+        merger.formatter = obj.format_environment_value
+        merger.validator = self.check_environment
+        # Flatten the site configuration down to per-platform configurations
+        merger.apply_platform_wildcards(
+            environment_config, output=self.frozen_data["environment"]
+        )
+
     @hab_property(verbosity=1, group=0, process_order=40)
     def name(self):
         """The name of this object. See ``.context`` for how this is built into
         a full URI. `project_a/Sc001` would resolve into context: `["project_a"]`
         and name: `"Sc001"`.
         """
-        return self._name
+        return self.frozen_data.get("name", NotSet)
 
     @name.setter
     def name(self, name):
-        self._name = name
+        self.frozen_data["name"] = name
 
     def reduced(self, resolver=None, uri=None):
         """Returns a new instance with the final settings applied respecting inheritance"""
@@ -515,24 +526,6 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
 
         return ret
 
-    def update_environment(self, environment_config, obj=None):
-        """Check and update environment with the provided environment config."""
-
-        if obj is None:
-            obj = self
-
-        if environment_config is NotSet:
-            # No environment_config dictionary was set, noting to do
-            return
-
-        merger = MergeDict(relative_root=self.dirname, platform=self._platform)
-        merger.formatter = obj.format_environment_value
-        merger.validator = self.check_environment
-        # Flatten the site configuration down to per-platform configurations
-        output = merger.apply_platform_wildcards(environment_config)
-        # Apply the site settings to this object for the current platform
-        self._environment.update(output.get(merger.platform))
-
     @property
     def uri(self):
         """The Uniform Resource Identifier for this object. This is a combination of
@@ -544,13 +537,13 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
     @property
     def version(self):
         """A `packaging.version.Version` representing the version of this object."""
-        return self._version
+        return self.frozen_data.get("version", NotSet)
 
     @version.setter
     def version(self, version):
         if version and not isinstance(version, Version):
             version = Version(version)
-        self._version = version
+        self.frozen_data["version"] = version
 
     def write_script(
         self, config_script, launch_script=None, launch=None, exit=False, args=None
