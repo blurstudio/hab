@@ -64,9 +64,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install tox
 
+      - name: Run begin
+        run: |
+          tox -e begin
+
       - name: Run Tox
         run: |
           tox -e py
+
+      - name: Run end
+        run: |
+          tox -e end
 
 
   test-json5:
@@ -97,6 +105,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install tox
 
+      - name: Run begin
+        run: |
+          tox -e begin
+
       - name: Run Tox
         run: |
           tox -e py-json5
+
+      - name: Run end
+        run: |
+          tox -e end
