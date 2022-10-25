@@ -7,17 +7,13 @@ class Config(HabBase):
     variables need to be loaded if this config is chosen. This does not resolve `NotSet`
     values, see `FlatConfig` for the final resolved values that are actually applied."""
 
-    def _init_variables(self):
-        super(Config, self)._init_variables()
-        self.inherits = NotSet
-
     @hab_property(verbosity=2)
     def inherits(self):
-        return self._inherits
+        return self.frozen_data.get("inherits", NotSet)
 
     @inherits.setter
     def inherits(self, inherits):
-        self._inherits = inherits
+        self.frozen_data["inherits"] = inherits
 
     def load(self, filename):
         data = super(Config, self).load(filename)

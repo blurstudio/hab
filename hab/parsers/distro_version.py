@@ -13,19 +13,15 @@ class DistroVersion(HabBase):
     _context_method = "name"
     _placeholder = Distro
 
-    def _init_variables(self):
-        super(DistroVersion, self)._init_variables()
-        self.aliases = NotSet
-
     @hab_property()
     def aliases(self):
         """List of the names and commands that need created to launch desired
         applications."""
-        return self._aliases
+        return self.frozen_data.get("aliases", NotSet)
 
     @aliases.setter
     def aliases(self, aliases):
-        self._aliases = aliases
+        self.frozen_data["aliases"] = aliases
 
     def load(self, filename):
         # Fill in the DistroVersion specific settings before calling super
@@ -84,4 +80,4 @@ class DistroVersion(HabBase):
         # NOTE: super doesn't work for a @property.setter
         if version and not isinstance(version, Version):
             version = Version(version)
-        self._version = version
+        self.frozen_data["version"] = version
