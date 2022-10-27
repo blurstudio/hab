@@ -1,18 +1,3 @@
-class NotSet(object):
-    """The data for this property is not currently set."""
-
-    def __bool__(self):
-        """NotSet should be treated as False when booled Python 3"""
-        return False
-
-    def __str__(self):
-        return "NotSet"
-
-
-# Make this a singleton so it works like a boolean False for if statements.
-NotSet = NotSet()
-
-
 class _HabProperty(property):
     """The @property decorator that can be type checked by the `HabMeta` metaclass
 
