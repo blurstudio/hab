@@ -7,9 +7,9 @@ import anytree
 import pytest
 from packaging.version import Version
 
-from hab import utils
+from hab import NotSet, utils
 from hab.errors import DuplicateJsonError, InvalidVersionError, _IgnoredVersionError
-from hab.parsers import Config, DistroVersion, NotSet
+from hab.parsers import Config, DistroVersion
 
 
 def test_distro_parse(config_root, resolver):

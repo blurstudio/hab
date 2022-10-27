@@ -6,9 +6,8 @@ import anytree
 import pytest
 from packaging.requirements import Requirement
 
-from hab import Resolver, Site, utils
+from hab import NotSet, Resolver, Site, utils
 from hab.errors import MaxRedirectError
-from hab.parsers import NotSet
 from hab.solvers import Solver
 
 

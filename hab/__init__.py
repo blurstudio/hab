@@ -1,11 +1,12 @@
 from __future__ import print_function
 
 __all__ = [
-    'Resolver',
     '__version__',
     'Config',
-    'HabBase',
     'DistroVersion',
+    'HabBase',
+    'NotSet',
+    'Resolver',
     'Site',
     'Solver',
 ]
@@ -16,7 +17,12 @@ import logging
 import anytree
 from packaging.requirements import Requirement
 
+# isort: on # Note: Future imports depend on NotSet so it must be imported here
 from . import utils
+from .utils import NotSet
+
+# isort: off
+
 from .errors import _IgnoredVersionError
 from .parsers import Config, DistroVersion, HabBase
 from .site import Site

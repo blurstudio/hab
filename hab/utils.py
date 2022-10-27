@@ -169,6 +169,31 @@ def load_json_file(filename):
     return data
 
 
+class NotSet(object):
+    """The data for this property is not currently set."""
+
+    def __bool__(self):
+        """NotSet should be treated as False when booled Python 3"""
+        return False
+
+    def __str__(self):
+        return "NotSet"
+
+    def __copy__(self):
+        """Does not return a copy of this object, NotSet is intended to be a
+        singleton so it does not copy itself."""
+        return self
+
+    def __deepcopy__(self, memo):
+        """Does not return a copy of this object, NotSet is intended to be a
+        singleton so it does not copy itself."""
+        return self
+
+
+# Make this a singleton so it works like a boolean False for if statements.
+NotSet = NotSet()
+
+
 def path_forward_slash(path):
     """Converts a Path object into a string with forward slashes"""
     return str(path).replace('\\', '/')

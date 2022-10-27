@@ -7,20 +7,19 @@ from pathlib import Path
 
 import anytree
 import colorama
-from future.utils import with_metaclass
 from packaging.version import Version
 
-from .. import utils
+from .. import NotSet, utils
 from ..errors import DuplicateJsonError
 from ..formatter import Formatter
 from ..site import MergeDict
 from ..solvers import Solver
-from .meta import HabMeta, NotSet, hab_property
+from .meta import HabMeta, hab_property
 
 logger = logging.getLogger(__name__)
 
 
-class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
+class HabBase(anytree.NodeMixin, metaclass=HabMeta):
     """Base class for the various parser classes. Provides most of the functionality
     to parse a json configuration file and resolve it for use in hab.
 

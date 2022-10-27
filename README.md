@@ -235,9 +235,10 @@ passed but Thug does not have a config, its parent project_a is used. If there i
 config for project_a, the default config will be used.
 
 The config system has an inheritance system that follows a tree structure. If a property
-is `NotSet` on the chosen config and the config has inherit enabled the closest parent
-with that property set will be used. If the root of the tree has inherit enabled, and
-the property still is `NotSet`, then the `default` tree will be checked.
+is `hab.NotSet` on the chosen config and the config has inherit enabled the closest
+parent with that property set will be used. If the root of the tree has inherit
+enabled, and the property still is `hab.NotSet`, then the `default` tree will be
+checked.
 
 When the default tree is checked when resolving inheritance, some special rules for
 matching contexts are applied. It will attempt to find the most specific context defined
