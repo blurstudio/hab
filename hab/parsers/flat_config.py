@@ -80,6 +80,9 @@ class FlatConfig(Config):
         if empty:
             for version in self.versions:
                 self.update_environment(version.environment_config, obj=version)
+            # Add the HAB_URI env var so scripts know they are in an activated hab
+            # environment and the original uri the user requested.
+            self._environment['HAB_URI'] = [self.uri]
 
         return self._environment
 

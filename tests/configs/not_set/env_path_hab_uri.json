@@ -1,0 +1,10 @@
+{
+    "name": "env_path_hab_uri",
+    "context": ["not_set"],
+    "environment": {
+        "set": {
+            "HAB_URI": "invalid value"
+        }
+    },
+    "inherits": true
+}

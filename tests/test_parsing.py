@@ -315,6 +315,15 @@ def test_environment(resolver):
         cfg.environment
     assert str(excinfo.value) == "You can not unset PATH"
 
+    # Attempting to use a reserved env var raises an exception
+    cfg = resolver.closest_config("not_set/env_path_hab_uri")
+    with pytest.raises(KeyError) as excinfo:
+        cfg.environment
+    # Note: KeyError always adds quotes around the message passed so we need to
+    # add them when checking the exception text
+    # https://stackoverflow.com/a/24999035
+    assert str(excinfo.value) == "'\"HAB_URI\" is a reserved environment variable'"
+
     # Check environment variable resolving
     cfg = resolver.closest_config("not_set/env1")
 
@@ -356,7 +365,8 @@ def test_flat_config(resolver):
     check = {
         "TEST": ["case"],
         "FMT_FOR_OS": ["a{;}b;c:{PATH!e}{;}d"],
-        u"UNSET_VARIABLE": None,
+        "UNSET_VARIABLE": None,
+        "HAB_URI": ["not_set/child"],
     }
 
     assert ret.environment == check
@@ -366,8 +376,8 @@ def test_flat_config(resolver):
     # Check for edge case where self._environment was reset if the config didn't define
     # environment, but the attached distros did.
     ret = resolver.resolve("not_set/no_env")
-    assert list(ret.environment.keys()) == ["DCC_MODULE_PATH"]
-    assert list(ret.environment.keys()) == ["DCC_MODULE_PATH"]
+    assert sorted(ret.environment.keys()) == ["DCC_MODULE_PATH", "HAB_URI"]
+    assert sorted(ret.environment.keys()) == ["DCC_MODULE_PATH", "HAB_URI"]
 
 
 def test_placeholder_handling(resolver):
@@ -385,7 +395,8 @@ def test_placeholder_handling(resolver):
     assert 'the_dcc' not in ret.distros.keys()
     assert 'maya2020' in ret.distros.keys()
     assert 'the_dcc_plugin_a' in ret.distros.keys()
-    assert ret.environment == {}
+    # HAB_URI is always added to the environment variables
+    assert ret.environment == {"HAB_URI": ["place-holder/undefined"]}
 
     # Check that if inherits is False, inheritance doesn't happen with Placeholders.
     ret = resolver.resolve("place-holder/child")
@@ -397,8 +408,10 @@ def test_placeholder_handling(resolver):
     assert 'the_dcc' in ret.distros
     assert 'maya2020' not in ret.distros
     assert 'the_dcc_plugin_a' not in ret.distros
-    assert len(ret.environment) == 1
+    assert len(ret.environment) == 2
     assert 'DCC_MODULE_PATH' in ret.environment
+    # HAB_URI is always added to the environment variables
+    assert 'HAB_URI' in ret.environment
 
     # Check that if inherits is True, inheritance happens with Placeholders.
     ret = resolver.resolve("place-holder/inherits")
@@ -412,8 +425,10 @@ def test_placeholder_handling(resolver):
     assert 'maya2020' in ret.distros.keys()
     assert 'the_dcc_plugin_a' in ret.distros.keys()
     # Inherits defines environment, so its environment settings are not inherited.
-    assert len(ret.environment) == 1
+    assert len(ret.environment) == 2
     assert 'DCC_MODULE_PATH' not in ret.environment
+    # HAB_URI is always added to the environment variables
+    assert 'HAB_URI' in ret.environment
     assert 'TEST' in ret.environment
 
 
@@ -553,7 +568,7 @@ def test_write_script_ps1(resolver, tmpdir, launch, exiting, args, launch_check)
         )
         == launch_text
     )
-    assert "function PROMPT {'[not_set/child] ' + $(Get-Location) + '>'}" in config_text
+    assert 'function PROMPT {"[$env:HAB_URI] $(Get-Location)>"}' in config_text
     assert '$env:TEST = "case"' in config_text
     # Expanded "{PATH:e}" and "{;}" formatting is applied correctly
     assert '$env:FMT_FOR_OS = "a;b;c:$env:PATH;d"' in config_text

@@ -86,7 +86,7 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         """Check that the environment config only makes valid adjustments.
         For example, check that we never replace path, only append/prepend are allowed.
         """
-        for operation in ("unset", "set"):
+        for operation in ("unset", "set", "prepend", "append"):
             if operation not in environment_config:
                 continue
 
@@ -96,13 +96,24 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
                 keys = keys.keys()
 
             for key in keys:
-                if key.lower() == "path":
+                key_upper = key.upper()
+
+                # These are reserved environment variables that can not be configured
+                # by configs and distros.
+                if key_upper == "HAB_URI":
+                    raise KeyError(f'"{key_upper}" is a reserved environment variable')
+
+                # We can't clear "PATH" or it would likely break the shell and
+                # application execution.
+                if key_upper == "PATH":
+                    msg = None
                     if operation == "set":
                         key = environment_config[operation][key]
                         msg = 'You can not use PATH for the set operation: "{}"'
-                    else:
+                    elif operation == "unset":
                         msg = "You can not unset PATH"
-                    raise ValueError(msg.format(key))
+                    if msg:
+                        raise ValueError(msg.format(key))
 
     @property
     def context(self):
@@ -418,7 +429,7 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
 
         return data
 
-    @hab_property(verbosity=1, group=0)
+    @hab_property(verbosity=1, group=0, process_order=40)
     def name(self):
         """The name of this object. See ``.context`` for how this is built into
         a full URI. `project_a/Sc001` would resolve into context: `["project_a"]`
@@ -482,7 +493,8 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
             ret[
                 "env_unsetter"
             ] = "Remove-Item Env:\\{key} -ErrorAction SilentlyContinue\n"
-            ret["prompt"] = "function PROMPT {{'[{uri}] ' + $(Get-Location) + '>'}}\n"
+            # PROMPT is evaluated every time it is displayed so use the env var
+            ret["prompt"] = 'function PROMPT {{"[$env:HAB_URI] $(Get-Location)>"}}\n'
             ret[
                 "launch"
             ] = 'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{path}"\n'
@@ -548,8 +560,9 @@ class HabBase(with_metaclass(HabMeta, anytree.NodeMixin)):
         with config_script.open("w") as fle:
             if shell["prefix"]:
                 fle.write(shell["prefix"])
+
             # Create a custom prompt
-            fle.write("{}Customizing the prompt\n".format(shell["comment"]))
+            fle.write("{}Customize the prompt\n".format(shell["comment"]))
             fle.write(shell["prompt"].format(uri=self.uri))
             fle.write("\n")
 
