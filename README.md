@@ -39,6 +39,8 @@ If the provided uri has no configurations provided, the default configuration is
 This also supports inheritance with some special rules, see
 [config inheritance](#config-inheritance) for more details.
 
+The provided URI is always stored in the `HAB_URI` environment variable.
+
 ## CLI
 
 Hab is designed as an api with cli support. The majority of the actual work is
