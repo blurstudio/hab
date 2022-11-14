@@ -1,0 +1,25 @@
+{
+    "prepend": {
+        "test_paths": [
+            "left_prepend"
+        ]
+    },
+    "append": {
+        "test_paths": [
+            "left_append"
+        ],
+        "platform_path_maps": {
+            "host": {
+                "linux": "host-linux_left",
+                "windows": "host-windows_left"
+            },
+            "shared": {
+                "linux": "shared-linux_left",
+                "windows": "shared-windows_left"
+            }
+        }
+    },
+    "set": {
+        "set_value": "left"
+    }
+}

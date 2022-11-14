@@ -19,6 +19,167 @@ def test_environment_variables(config_root, monkeypatch):
     assert site.paths == paths
 
 
+class TestMultipleSites:
+    """Check that various combinations of site json files results in the correct
+    merged site. The rules are:
+
+    1. The left most site configuration takes precedence for a given item.
+    2. For prepend/append operations on lists, the left site file's paths will
+    placed on the outside of the the right site file's paths.
+    3. For `platform_path_maps`, only the first key is kept and any duplicates
+    are discarded.
+    """
+
+    def host_left(self):
+        return {
+            'linux': PurePosixPath('host-linux_left'),
+            'windows': PureWindowsPath('host-windows_left'),
+        }
+
+    def host_middle(self):
+        return {
+            'linux': PurePosixPath('host-linux_middle'),
+            'windows': PureWindowsPath('host-windows_middle'),
+        }
+
+    def host_right(self):
+        return {
+            'linux': PurePosixPath('host-linux_right'),
+            'windows': PureWindowsPath('host-windows_right'),
+        }
+
+    def mid(self):
+        return {
+            'linux': PurePosixPath('mid-linux_middle'),
+            'windows': PureWindowsPath('mid-windows_middle'),
+        }
+
+    def net(self):
+        return {
+            'linux': PurePosixPath('net-linux_right'),
+            'windows': PureWindowsPath('net-windows_right'),
+        }
+
+    def shared_left(self):
+        return {
+            'linux': PurePosixPath('shared-linux_left'),
+            'windows': PureWindowsPath('shared-windows_left'),
+        }
+
+    def test_left(self, config_root):
+        """Check that site_left.json returns the correct results."""
+        paths = [config_root / "site" / "site_left.json"]
+        site = Site(paths)
+
+        assert site.get("set_value") == ["left"]
+        assert site.get("test_paths") == ["left_prepend", "left_append"]
+
+        check = {'host': self.host_left(), 'shared': self.shared_left()}
+
+        assert site.get("platform_path_maps") == check
+
+    def test_middle(self, config_root):
+        """Check that site_middle.json returns the correct results."""
+        paths = [config_root / "site" / "site_middle.json"]
+        site = Site(paths)
+
+        assert site.get("set_value") == ["middle"]
+        assert site.get("test_paths") == ["middle_prepend", "middle_append"]
+
+        check = {'host': self.host_middle(), 'mid': self.mid()}
+
+        assert site.get("platform_path_maps") == check
+
+    def test_right(self, config_root):
+        """Check that site_right.json returns the correct results."""
+        paths = [config_root / "site" / "site_right.json"]
+        site = Site(paths)
+
+        assert site.get("set_value") == ["right"]
+        assert site.get("test_paths") == ["right_prepend", "right_append"]
+
+        check = {'host': self.host_right(), 'net': self.net()}
+
+        assert site.get("platform_path_maps") == check
+
+    def test_left_right(self, config_root):
+        """Check that site_left.json and site_right.json are merged correctly."""
+        paths = [
+            config_root / "site" / "site_left.json",
+            config_root / "site" / "site_right.json",
+        ]
+        site = Site(paths)
+
+        assert site.get("set_value") == ["left"]
+        assert site.get("test_paths") == [
+            "left_prepend",
+            "right_prepend",
+            "right_append",
+            "left_append",
+        ]
+
+        check = {
+            'host': self.host_left(),
+            'net': self.net(),
+            'shared': self.shared_left(),
+        }
+
+        assert site.get("platform_path_maps") == check
+
+    def test_right_left(self, config_root):
+        """Check that reversing site_left.json and site_right.json get merged
+        correctly."""
+        paths = [
+            config_root / "site" / "site_right.json",
+            config_root / "site" / "site_left.json",
+        ]
+        site = Site(paths)
+
+        assert site.get("set_value") == ["right"]
+        assert site.get("test_paths") == [
+            "right_prepend",
+            "left_prepend",
+            "left_append",
+            "right_append",
+        ]
+
+        check = {
+            'host': self.host_right(),
+            'net': self.net(),
+            'shared': self.shared_left(),
+        }
+
+        assert site.get("platform_path_maps") == check
+
+    def test_left_middle_right(self, config_root):
+        """Check that more than 2 site json files are merged correctly."""
+        paths = [
+            config_root / "site" / "site_left.json",
+            config_root / "site" / "site_middle.json",
+            config_root / "site" / "site_right.json",
+        ]
+        site = Site(paths)
+
+        assert site.get("set_value") == ["left"]
+        assert site.get("test_paths") == [
+            "left_prepend",
+            "middle_prepend",
+            "right_prepend",
+            "right_append",
+            "middle_append",
+            "left_append",
+        ]
+
+        check = {
+            'host': self.host_left(),
+            'mid': self.mid(),
+            'net': self.net(),
+            'shared': self.shared_left(),
+        }
+
+        assert site.get("platform_path_maps") == check
+
+
 class TestResolvePaths:
     def test_path(self, config_root):
         # Check that the correct values are resolved when processing a single result
@@ -30,7 +191,7 @@ class TestResolvePaths:
 
     def test_paths(self, config_root, helpers):
         # Check that values specified by additional files overwrite the previous values
-        paths = [config_root / "site_main.json", config_root / "site_override.json"]
+        paths = [config_root / "site_override.json", config_root / "site_main.json"]
         site = Site(paths)
         assert site.get("generic_value") is True
         assert site.get("override") == ["site_override.json"]
@@ -53,7 +214,7 @@ class TestResolvePaths:
 
     def test_paths_reversed(self, config_root, helpers):
         # Check that values specified by additional files overwrite the previous values
-        paths = [config_root / "site_override.json", config_root / "site_main.json"]
+        paths = [config_root / "site_main.json", config_root / "site_override.json"]
         site = Site(paths)
         assert site.get("generic_value") is False
         assert site.get("override") == ["site_override.json"]
@@ -276,7 +437,7 @@ class TestPlatformPathMapDict:
         )
 
         # The right-most site file's settings are loaded when both have the same keys
-        self.assert_override(site)
+        self.assert_main(site)
 
     def test_reversed(self, config_root):
         """Test that the correct platform_path_map settings are resolved when using
@@ -296,4 +457,4 @@ class TestPlatformPathMapDict:
         )
 
         # The right-most site file's settings are loaded when both have the same keys
-        self.assert_main(site)
+        self.assert_override(site)

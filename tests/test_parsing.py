@@ -218,15 +218,15 @@ def test_dump(resolver):
     pre = ["name:  child", "uri:  not_set/child"]
     post = ["inherits:  True"]
     env = [
-        "environment:  UNSET_VARIABLE:  None",
+        "environment:  FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
         "              TEST:  case",
-        "              FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
+        "              UNSET_VARIABLE:  None",
     ]
 
     env_config = [
-        "environment_config:  unset:  UNSET_VARIABLE",
-        "                     set:  TEST:  case",
-        "                           FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
+        "environment_config:  set:  FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
+        "                           TEST:  case",
+        "                     unset:  UNSET_VARIABLE",
     ]
     cfg = resolver.closest_config("not_set/child")
     header = f"Dump of {type(cfg).__name__}('{cfg.fullpath}')"

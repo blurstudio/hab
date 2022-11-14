@@ -122,15 +122,61 @@ configuration files. If the `--site` option is passed to the cli, it is used ins
 the environment variable.
 
 Each of the file paths specified are read and merged into a single site configuration
-dictionary hab uses. The values in each file are merged so the value defined in the
-right most path any given configuration option being used. See
-[Defining Environments](#defining-environments) for how to structure the json to
-prepend, append, set, unset values.
+dictionary hab uses. When using multiple site json files here are some general
+rules to keep in mind.
+
+1. The left most site configuration takes precedence for a given item.
+2. For prepend/append operations on lists, the left site file's paths will placed
+on the outside of the the right site file's paths.
+3. For `platform_path_maps`, only the first key is kept and any duplicates
+are discarded.
+
+See [Defining Environments](#defining-environments) for how to structure the json
+to prepend, append, set, unset values.
 
 Developers can use this to load local site configurations loading their wip code
-instead of the official releases. See the [TestResolvePaths::test_paths](tests/test_site.py)
+instead of the official releases. See [TestResolvePaths::test_paths](tests/test_site.py)
 to see an example of [overriding](tests/site_override.json) the
 [main](tests/site_main.json) site settings.
+
+You can inspect the site settings by using the `hab dump -t s` or
+`hab dump --type site` cli command. See
+[TestMultipleSites::test_left_right and TestMultipleSites::test_right_left](tests/test_site.py)
+for an example of how these rules are applied. Here is a dump of the final result
+of using all [3 site json files](tests/site).
+```bash
+$ cd tests/site
+$ hab --site site_left.json --site site_middle.json --site site_right.json dump --type site -v
+Dump of Site
+-------------------------------------------------------------------
+HAB_PATHS:  C:\blur\dev\hab_\tests\site\site_left.json
+            C:\blur\dev\hab_\tests\site\site_middle.json
+            C:\blur\dev\hab_\tests\site\site_right.json
+config_paths:
+distro_paths:
+ignored_distros:  release, pre
+platforms:  windows, mac, linux
+set_value:  left
+test_paths:  left_prepend
+             middle_prepend
+             right_prepend
+             right_append
+             middle_append
+             left_append
+platform_path_maps:  host:  linux:  host-linux_left
+                                     windows:  host-windows_left
+                     mid:  linux:  mid-linux_middle
+                           windows:  mid-windows_middle
+                     net:  linux:  net-linux_right
+                           windows:  net-windows_right
+                     shared:  linux:  shared-linux_left
+                              windows:  shared-windows_left
+-------------------------------------------------------------------
+```
+Note the order of left/middle/right in the test_paths variable. Also, for
+`platform_path_maps`, `host` is defined in all 3 site files, but only the first
+site file with it defined is used. The other path maps are picked up from the
+site file they are defined in.
 
 ### Python version
 

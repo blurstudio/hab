@@ -87,7 +87,7 @@ class Site(UserDict):
         """Iterates over each file in self.path. Replacing the value of each key.
         The last file in the list will have its settings applied even if other
         files define them."""
-        for path in self.paths:
+        for path in reversed(self.paths):
             self.load_file(path)
 
         # Ensure any platform_path_maps are converted to pathlib objects.
