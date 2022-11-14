@@ -1,0 +1,25 @@
+{
+    "prepend": {
+        "test_paths": [
+            "middle_prepend"
+        ]
+    },
+    "append": {
+        "test_paths": [
+            "middle_append"
+        ],
+        "platform_path_maps": {
+            "host": {
+                "linux": "host-linux_middle",
+                "windows": "host-windows_middle"
+            },
+            "mid": {
+                "linux": "mid-linux_middle",
+                "windows": "mid-windows_middle"
+            }
+        }
+    },
+    "set": {
+        "set_value": "middle"
+    }
+}

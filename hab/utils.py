@@ -122,7 +122,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
     elif isinstance(obj, (dict, UserDict)):
         rows = []
         lbl = label
-        for k, v in obj.items():
+        for k, v in sorted(obj.items()):
             rows.append(
                 dump_object(
                     v,

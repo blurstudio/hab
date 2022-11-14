@@ -1,0 +1,25 @@
+{
+    "prepend": {
+        "test_paths": [
+            "right_prepend"
+        ]
+    },
+    "append": {
+        "test_paths": [
+            "right_append"
+        ],
+        "platform_path_maps": {
+            "host": {
+                "linux": "host-linux_right",
+                "windows": "host-windows_right"
+            },
+            "net": {
+                "linux": "net-linux_right",
+                "windows": "net-windows_right"
+            }
+        }
+    },
+    "set": {
+        "set_value": "right"
+    }
+}
