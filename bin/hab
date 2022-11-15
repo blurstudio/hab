@@ -5,15 +5,13 @@
 # supports. This calls the python module cli passing the arguments to it and
 # ends up calling the script file that code generates if required.
 
-# Generate unique temp file names
-temp_launch_file=$(mktemp --suffix _hab_launch.sh)
-temp_config_file=$(mktemp --suffix _hab_config.sh)
-
-# Remove the files that were created, we don't want them at this point.
-rm -f $temp_launch_file $temp_config_file
+# Generate a unique temp directory to contain all of our script files
+temp_directory=$(mktemp -d 2>/dev/null || mktemp -d -t 'hab')
+temp_launch_file=$temp_directory/hab_launch.sh
+temp_config_file=$temp_directory/hab_config.sh
 
 # Ensure the tempfiles are remove on exit if they were created
-trap "rm -f $temp_launch_file $temp_config_file" EXIT
+trap "rm -rf $temp_directory" EXIT
 
 # Calculate the command to run python with
 if [[ ! -z "${HAB_PYTHON}" ]]; then
@@ -35,7 +33,7 @@ else
 fi
 
 # Call our worker python process that may write the temp filename
-$py_exe -m hab --file-config $temp_config_file --file-launch $temp_launch_file "$@"
+$py_exe -m hab --script-dir $temp_directory --script-ext ".sh" "$@"
 
 # Run the launch or config script if it was created on disk
 if test -f "$temp_launch_file"; then

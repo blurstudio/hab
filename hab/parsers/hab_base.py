@@ -545,11 +545,11 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         self.frozen_data["version"] = version
 
     def write_script(
-        self, config_script, launch_script=None, launch=None, exit=False, args=None
+        self, script_dir, ext, launch=None, exit=False, args=None, create_launch=False
     ):
         """Write the configuration to a script file to be run by terminal."""
-        config_script = Path(config_script)
-        ext = config_script.suffix
+        script_dir = Path(script_dir)
+        config_script = script_dir / f'hab_config{ext}'
         shell = self.shell_formats(ext)
 
         with config_script.open("w") as fle:
@@ -609,13 +609,14 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
             # When using `hab launch`, we need to exit the shell that launch_script is
             # going to create when the alias exits.
-            if exit and launch_script:
+            if exit and create_launch:
                 fle.write("\n")
                 fle.write("{}\n".format(shell.get("exit", "exit")))
 
             if shell["postfix"]:
                 fle.write(shell["postfix"])
 
-        if launch_script:
-            with Path(launch_script).open("w") as fle:
+        if create_launch:
+            launch_script = script_dir / f'hab_launch{ext}'
+            with launch_script.open("w") as fle:
                 fle.write(shell["launch"].format(path=config_script))

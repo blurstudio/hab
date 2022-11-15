@@ -3,17 +3,16 @@
 # supports. This calls the python module cli passing the arguments to it and
 # ends up calling the script file that code generates if required.
 
-# Generate unique temp file names
-$temp_config=[System.IO.Path]::GetTempFileName()
-$temp_launch=[System.IO.Path]::GetTempFileName()
+$temp_directory=[System.IO.Path]::GetTempFileName()
 
-# Remove the files that were created, we don't want them at this point.
-# Also it will cause problems if we fill all of these slots
-Remove-Item $temp_config
-Remove-Item $temp_launch
-# Rename the file extension to .ps1
-$temp_config=[System.IO.Path]::ChangeExtension($temp_config, "ps1")
-$temp_launch=[System.IO.Path]::ChangeExtension($temp_launch, "ps1")
+# Remove this file so we can create a directory with the same name
+Remove-Item $temp_directory
+# Create a directory with the same name as the temp file we just deleted
+New-Item -Path $temp_directory -ItemType 'Directory' | Out-Null
+
+# Generate unique temp file names
+$temp_config="$temp_directory\hab_config.ps1"
+$temp_launch="$temp_directory\hab_launch.ps1"
 
 # Calculate the command to run python with
 if ($env:HAB_PYTHON -ne $null) {
@@ -30,7 +29,7 @@ else {
 }
 
 # Call our worker python process that may write the temp filename
-Invoke-Expression "$py_exe -m hab --file-config $temp_config --file-launch $temp_launch $args"
+Invoke-Expression "$py_exe -m hab --script-dir $temp_directory --script-ext .ps1 $args"
 
 # Run the launch or config script if it was created on disk
 if (Test-Path $temp_launch -PathType Leaf)
@@ -42,12 +41,5 @@ elseif (Test-Path $temp_config -PathType Leaf)
     . $temp_config
 }
 
-# Remove the temp files if they exist
-if (Test-Path $temp_launch -PathType Leaf)
-{
-    Remove-Item $temp_launch
-}
-if (Test-Path $temp_config -PathType Leaf)
-{
-    Remove-Item $temp_config
-}
+# Remove the temp directory if it exists
+Remove-Item $temp_directory -Force -Recurse -erroraction 'silentlycontinue'
