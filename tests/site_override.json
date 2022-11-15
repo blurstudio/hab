@@ -2,7 +2,14 @@
     "append": {
         "distro_paths": [
             "{relative_root}/duplicates/distros_1/*"
-        ]
+        ],
+        "platform_path_maps": {
+            "network-mount": {
+                "linux": "/mnt/work/shared_resources",
+                "mac": "/mnt/work/mac/shared_resources",
+                "windows": "g:\\work\\shared_resources"
+            }
+        }
     },
     "set": {
         "generic_value": true,

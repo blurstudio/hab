@@ -2,11 +2,12 @@ import base64
 import errno
 import json as _json
 import os
+import re
 import sys
 import textwrap
 from collections import UserDict
 from collections.abc import KeysView
-from pathlib import Path
+from pathlib import Path, PurePath
 
 import colorama
 
@@ -23,6 +24,9 @@ except ImportError:
 
 
 colorama.init()
+
+re_windows_single_path = re.compile(r'^([a-zA-Z]:[\\\/][^:;]+)$')
+"""A regex that can be used to check if a string is a single windows file path."""
 
 
 def collapse_paths(paths):
@@ -130,6 +134,8 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
             )
             lbl = pad
         return "\n".join(rows)
+    elif isinstance(obj, PurePath):
+        return f"{label}{obj}"
     elif hasattr(obj, 'name'):
         # Likely HabBase objects
         return f"{label}{obj.name}"
@@ -262,6 +268,29 @@ NotSet = NotSet()
 def path_forward_slash(path):
     """Converts a Path object into a string with forward slashes"""
     return str(path).replace('\\', '/')
+
+
+def path_split(path, pathsep=None):
+    """Split a string by pathsep unless that path is a single windows path.
+    This is used to detect an windows file path on linux which uses `:` for path
+    separator and conflicts with the drive letter specification.
+
+    Args:
+        path (str): The string to split.
+        pathsep (str, optional): If not specified, `os.pathsep` is used.
+
+    Returns:
+        list: A list of individual paths.
+    """
+    if pathsep is None:
+        pathsep = os.pathsep
+
+    # If on linux we need to resolve a windows path we can't just use os.pathsep,
+    # check if this is a single windows file path and return it as a list.
+    if pathsep == ":" and re_windows_single_path.match(path):
+        return [path]
+
+    return path.split(pathsep)
 
 
 def platform():

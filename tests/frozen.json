@@ -25,16 +25,16 @@
         "Case"
       ],
       "DCC_MODULE_PATH": [
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_a/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_e/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_d/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_b/1.1"
+        "{config_root}/distros/the_dcc_plugin_a/1.1",
+        "{config_root}/distros/the_dcc_plugin_e/1.1",
+        "{config_root}/distros/the_dcc_plugin_d/1.1",
+        "{config_root}/distros/the_dcc_plugin_b/1.1"
       ],
       "DCC_CONFIG_PATH": [
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_b/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_d/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_a/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_e/1.1"
+        "{config_root}/distros/the_dcc_plugin_b/1.1",
+        "{config_root}/distros/the_dcc_plugin_d/1.1",
+        "{config_root}/distros/the_dcc_plugin_a/1.1",
+        "{config_root}/distros/the_dcc_plugin_e/1.1"
       ],
       "HAB_URI": [
         "not_set/distros"
@@ -45,16 +45,16 @@
         "Case"
       ],
       "DCC_MODULE_PATH": [
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_a/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_e/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_d/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_b/1.1"
+        "{config_root}/distros/the_dcc_plugin_a/1.1",
+        "{config_root}/distros/the_dcc_plugin_e/1.1",
+        "{config_root}/distros/the_dcc_plugin_d/1.1",
+        "{config_root}/distros/the_dcc_plugin_b/1.1"
       ],
       "DCC_CONFIG_PATH": [
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_b/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_d/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_a/1.1",
-        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_e/1.1"
+        "{config_root}/distros/the_dcc_plugin_b/1.1",
+        "{config_root}/distros/the_dcc_plugin_d/1.1",
+        "{config_root}/distros/the_dcc_plugin_a/1.1",
+        "{config_root}/distros/the_dcc_plugin_e/1.1"
       ],
       "HAB_URI": [
         "not_set/distros"

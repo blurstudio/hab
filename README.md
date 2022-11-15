@@ -81,8 +81,9 @@ frame to render using the same hab configuration not what ever it happens to
 resolve for that launch.
 
 To handle this the hab cli stores the current configuration in the `HAB_FREEZE`
-environment variable. This is stored as a base64 encoded json string so it can
-be easily recovered. See `hab.utils.decode_freeze` to decode it.
+environment variable. It is prefixed with `vX:` to denote the version of freeze
+it was encoded with. Version 1 is stored as a base64 encoded json string. See
+`hab.utils.decode_freeze` to decode it.
 
 You can even use a frozen config on other platforms as long as you properly
 configure `platform_path_maps` in your site config.
@@ -127,8 +128,8 @@ right most path any given configuration option being used. See
 prepend, append, set, unset values.
 
 Developers can use this to load local site configurations loading their wip code
-instead of the official releases. See the [test_resolve_paths](tests/test_site.py) to
-see an example of [overriding](tests/site_override.json) the
+instead of the official releases. See the [TestResolvePaths::test_paths](tests/test_site.py)
+to see an example of [overriding](tests/site_override.json) the
 [main](tests/site_main.json) site settings.
 
 ### Python version
@@ -146,11 +147,16 @@ the scripts:
 
 #### Common settings
 
+* `colorize`: If `hab dump` should colorize its output for ease of reading.
 * `config_paths`: Configures where URI configs are discovered. See below.
 * `distro_paths`: Configures where distros discovered. See below.
+* `platform_path_maps`: Configures mappings used to convert paths from one
+operating system to another. This is used by the freeze system to ensure that if
+unfrozen on another platform it will still work.
+* `platforms`: A list of platforms that are supported by these hab configurations.
+When using freeze, all of these platforms will be stored. Defaults to linux, mac, windows.
 * `prereleases`: If pre-release distros should be allowed. Works the same as
 `pip install --pre ...`.
-* `colorize`: If `hab dump` should colorize its output for ease of reading.
 
 `config_paths` and `distro_paths` take one or more glob paths separated by `os.pathsep`.
 The paths are processed left to right. For a given glob string in these variables you
@@ -166,6 +172,36 @@ git checkouts they are working on that will be used, but still have access to al
 global shared configs/distros they are not working on.
 See [specifying distro version](#specifying-distro-version) for details on specifying a
 distro version in a git repo.
+
+`platform_path_maps` is a dictionary, the key is a unique name for each mapping,
+and value is a dictionary of leading paths for each platform. The unique name
+allows for multiple site json files to override the setting. If multiple site
+json files specify the same key, the right-most site json file specifying that
+key is used.
+
+```json
+{
+    "append": {
+        "platform_path_maps": {
+            "server-main": {
+                "linux": "/mnt/main",
+                "windows": "\\\\example\\main"
+            },
+            "server-dev": {
+                "linux": "/mnt/dev",
+                "windows": "\\\\example\\dev"
+            }
+        }
+    },
+    "set": {
+        "platforms": ["linux", "windows"]
+    }
+}
+```
+
+With these settings, if a path on a linux host, starts with `/mnt/main` when
+generating the corresponding windows file path it will translate it to
+`\\example\main`. Note the use of `platforms` to disable mac platform support.
 
 ### Distro
 

@@ -4,12 +4,15 @@ from . import utils
 
 
 class MergeDict(object):
-    def __init__(self, platform=None, platforms=("linux", "windows"), **format_kwargs):
+    def __init__(
+        self, platform=None, platforms=("linux", "windows"), site=None, **format_kwargs
+    ):
         self.format_kwargs = format_kwargs
         self.formatter = self.default_format
         self.pathsep = os.pathsep
         self.platforms = platforms
         self.validator = None
+        self.site = site
 
         if platform is None:
             platform = utils.platform()
@@ -39,21 +42,36 @@ class MergeDict(object):
             platform_data = output.setdefault(platform, {})
 
             if "*" in data:
-                self.update_platform(platform_data, data["*"])
+                self.update_platform(platform_data, data["*"], platform=platform)
 
             if platform in data:
-                self.update_platform(platform_data, data[platform])
+                self.update_platform(platform_data, data[platform], platform=platform)
 
         return output
 
-    def default_format(self, value):
+    def default_format(self, value, platform=None):
+        """Apply string formatting rules to the given value if applicable.
+
+        If value is a list, this method is recursively called on the contents
+        and a new list is returned. If a bool or dict are passed, they are
+        returned without modification. Otherwise its assume to be a string and
+        str.format is called passing `self.format_kwargs`.
+
+        If `self.site` is set and platform is passed, site.platform_path_map is called
+        on the text output to convert it to the desired platform.
+        """
         if isinstance(value, list):
             # Format the individual items if a list of args is used.
             # return [v.format(**self.format_kwargs) for v in value]
             return [self.default_format(v) for v in value]
-        if isinstance(value, bool):
+        if isinstance(value, (bool, dict)):
             return value
-        return value.format(**self.format_kwargs)
+        ret = value.format(**self.format_kwargs)
+
+        if platform and self.site:
+            ret = self.site.platform_path_map(ret, platform)
+
+        return ret
 
     @property
     def format_kwargs(self):
@@ -78,9 +96,14 @@ class MergeDict(object):
             list: The joined a and b values.
         """
         if isinstance(a, str):
-            a = a.split(self.pathsep)
+            a = utils.path_split(a, pathsep=self.pathsep)
         if isinstance(b, str):
-            b = b.split(self.pathsep)
+            b = utils.path_split(b, pathsep=self.pathsep)
+
+        if isinstance(a, dict):
+            if isinstance(b, dict):
+                a.update(b)
+            return a
 
         return a + b
 
@@ -107,7 +130,7 @@ class MergeDict(object):
             data["os_specific"] = True
         return data
 
-    def update_platform(self, data, changes):
+    def update_platform(self, data, changes, platform=None):
         if self.validator:
             self.validator(changes)
 
@@ -120,7 +143,7 @@ class MergeDict(object):
         # base user and system variable values without them causing issues.
         if "set" in changes:
             for key, value in changes["set"].items():
-                data[key] = self.formatter(value)
+                data[key] = self.formatter(value, platform=platform)
                 if isinstance(data[key], str):
                     data[key] = [data[key]]
 
@@ -129,6 +152,7 @@ class MergeDict(object):
                 continue
 
             for key, value in changes[operation].items():
+                value = self.formatter(value, platform=platform)
                 existing = data.get(key, "")
                 if existing:
                     if operation == "prepend":
@@ -138,4 +162,5 @@ class MergeDict(object):
                 else:
                     # Convert value into a list if it isn't one
                     value = self.join(value, [])
-                data[key] = self.formatter(value)
+
+                data[key] = value

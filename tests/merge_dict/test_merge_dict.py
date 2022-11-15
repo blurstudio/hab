@@ -1,7 +1,9 @@
 import json
+import os
 
 import pytest
 
+from hab import utils
 from hab.merge_dict import MergeDict
 
 
@@ -21,7 +23,7 @@ from hab.merge_dict import MergeDict
         ("os_specific_platforms.json", ("reactos",)),
     ),
 )
-def test_apply_platform_wildcards(config_root, filename, platforms):
+def test_apply_platform_wildcards(config_root, resolver, filename, platforms):
     """Test merging of "*" os specific dicts into platform specific dictionaries"""
     json_path = config_root / "merge_dict" / filename
 
@@ -36,11 +38,40 @@ def test_apply_platform_wildcards(config_root, filename, platforms):
     kwargs = {}
     if platforms is not None:
         kwargs["platforms"] = platforms
+        kwargs["site"] = resolver.site
 
     merger = MergeDict(**kwargs)
     result = merger.apply_platform_wildcards(in_data)
 
     assert result == out_data
+
+
+def test_path_split(monkeypatch):
+    # Check the pathsep argument is respected
+    assert utils.path_split("a:b", pathsep=":") == ['a', 'b']
+    assert utils.path_split("a;b", pathsep=";") == ['a', 'b']
+    assert utils.path_split("a-b", pathsep="-") == ['a', 'b']
+
+    # Check if pathsep argument is not passed, the current os is respected
+    # Windows
+    monkeypatch.setattr(os, 'pathsep', ";")
+    assert utils.path_split("a;b") == ['a', 'b']
+    assert utils.path_split("a:b") == ['a:b']
+    # Linux/Mac
+    monkeypatch.setattr(os, 'pathsep', ":")
+    assert utils.path_split("a;b") == ['a;b']
+    assert utils.path_split("a:b") == ['a', 'b']
+
+    # If a single windows file path is passed on linux/mac it's not split on ":"
+    assert utils.path_split(r"Z:\test", pathsep=":") == [r'Z:\test']
+    # TODO: This test covers the current behavior but ideally we can figure out
+    # a way to prevent splitting the two windows file paths.
+    assert utils.path_split(r"Z:\test:X:test", pathsep=":") == [
+        "Z",
+        r"\test",
+        "X",
+        "test",
+    ]
 
 
 @pytest.mark.parametrize("filename", ("merge_agnostic.json", "merge_specific.json"))

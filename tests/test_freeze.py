@@ -1,16 +1,41 @@
+import os
+import sys
+from pathlib import PurePosixPath, PureWindowsPath
+
 import pytest
 
-from hab import NotSet, utils
+from hab import NotSet, Resolver, Site, utils
 from hab.parsers import UnfrozenConfig
-from hab.utils import dumps_json, json
+
+
+def update_config(check, config_root, platform):
+    """Correctly fill in {config_root} for the given frozen config.
+    This allows the test to pass no matter what os it is run on.
+
+    Args:
+        check (dict): A frozen config loaded from a test json file.
+        config_root (pathlib.Path): The config_root string format variable is
+            replaced with this value if it matches platform. Otherwise the generic
+            "c:\\" for windows and "/hab" for linux is used.
+        platform (str): The current platform the test is running on.
+    """
+    env = check['environment']
+    for plat in env:
+        if plat == platform:
+            cfg_root = config_root
+        else:
+            cfg_root = 'c:' if plat == 'windows' else '/hab'
+        for k, values in env[plat].items():
+            for i, v in enumerate(values):
+                env[plat][k][i] = v.format(config_root=cfg_root)
 
 
 def test_json_dumps():
     """Check that dumps_json returns the expected results for non-standard
     objects."""
     data = {"NotSet": NotSet}
-    assert dumps_json(data) == '{"NotSet": null}'
-    assert dumps_json(data, indent=2) == '\n'.join(
+    assert utils.dumps_json(data) == '{"NotSet": null}'
+    assert utils.dumps_json(data, indent=2) == '\n'.join(
         [
             '{',
             '  "NotSet": null',
@@ -19,8 +44,29 @@ def test_json_dumps():
     )
 
 
-def test_freeze(config_root, resolver):
+@pytest.mark.parametrize("platform,pathsep", (("win32", ";"), ("linux", ":")))
+def test_freeze(monkeypatch, config_root, platform, pathsep):
+    monkeypatch.setattr(sys, 'platform', platform)
+    monkeypatch.setattr(os, 'pathsep', pathsep)
+    site = Site([config_root / "site_main.json"])
+    resolver = Resolver(site=site)
+
+    cfg_root = utils.path_forward_slash(config_root)
     cfg = resolver.resolve("not_set/distros")
+
+    # Add a platform_path_maps mapping to convert the current hab checkout path
+    # to a generic know path on the other platform for uniform testing.
+    mappings = site.frozen_data[site.platform]["platform_path_maps"]
+    mappings['local-hab'] = {
+        "linux": PurePosixPath("/hab"),
+        "windows": PureWindowsPath("c:/"),
+    }
+    # Preserve the current platform's path so it matches the frozen output
+    if site.platform == "windows":
+        mappings['local-hab']['windows'] = PureWindowsPath(cfg_root)
+    else:
+        mappings['local-hab'][site.platform] = PurePosixPath(cfg_root)
+
     # Ensure consistent testing across platforms. cfg has the current os's
     # file paths instead of what is stored in frozen.json
     cfg.frozen_data["aliases"]["linux"]["dcc"] = "TEST_DIR_NAME//the_dcc"
@@ -28,7 +74,10 @@ def test_freeze(config_root, resolver):
 
     ret = cfg.freeze()
     check_file = config_root / "frozen.json"
-    check = json.load(check_file.open())
+    check = utils.json.load(check_file.open())
+    # Apply template values so we can easily check against frozen.
+    update_config(check, cfg_root, site.platform)
+
     assert ret == check
 
 
