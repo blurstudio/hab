@@ -1,0 +1,65 @@
+{
+  "context": [
+    "not_set"
+  ],
+  "name": "distros",
+  "aliases": {
+    "windows": {
+      "dcc": "TEST_DIR_NAME\\the_dcc.exe"
+    },
+    "linux": {
+      "dcc": "TEST_DIR_NAME//the_dcc"
+    }
+  },
+  "versions": [
+    "the_dcc==1.2",
+    "the_dcc_plugin_a==1.1",
+    "the_dcc_plugin_e==1.1",
+    "the_dcc_plugin_d==1.1",
+    "the_dcc_plugin_b==1.1"
+  ],
+  "inherits": false,
+  "environment": {
+    "windows": {
+      "Test": [
+        "Case"
+      ],
+      "DCC_MODULE_PATH": [
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_a/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_e/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_d/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_b/1.1"
+      ],
+      "DCC_CONFIG_PATH": [
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_b/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_d/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_a/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_e/1.1"
+      ],
+      "HAB_URI": [
+        "not_set/distros"
+      ]
+    },
+    "linux": {
+      "Test": [
+        "Case"
+      ],
+      "DCC_MODULE_PATH": [
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_a/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_e/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_d/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_b/1.1"
+      ],
+      "DCC_CONFIG_PATH": [
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_b/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_d/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_a/1.1",
+        "C:/blur/dev/hab_/tests/distros/the_dcc_plugin_e/1.1"
+      ],
+      "HAB_URI": [
+        "not_set/distros"
+      ]
+    }
+  },
+  "uri": "not_set/distros"
+}

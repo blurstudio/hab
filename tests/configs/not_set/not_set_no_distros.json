@@ -1,0 +1,10 @@
+{
+    "name": "no_distros",
+    "context": ["not_set"],
+    "inherits": false,
+    "environment": {
+        "append": {
+            "Test": "Case"
+        }
+    }
+}

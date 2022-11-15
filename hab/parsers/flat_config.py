@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 
 from .. import NotSet
 from .config import Config
@@ -57,16 +58,11 @@ class FlatConfig(Config):
     def aliases(self):
         """List of the names and commands that need created to launch desired
         applications."""
-        ret = {}
-        for version in self.versions:
-            if version.aliases:
-                aliases_def = version.aliases.get(self._platform, [])
-                aliases = [a[1] for a in aliases_def]
+        if "aliases" not in self.frozen_data:
+            # Aliases are configured per version so populate them by calling this
+            self.versions
 
-                for i, alias in enumerate(aliases_def):
-                    ret[alias[0]] = version.format_environment_value(aliases[i])
-
-        return ret
+        return self.frozen_data.get("aliases", {}).get(self._platform, [])
 
     @property
     def environment(self):
@@ -94,17 +90,52 @@ class FlatConfig(Config):
             return self.separator.join([name for name in self.context] + [self.name])
         return self.name
 
+    def freeze(self):
+        """Returns information that can be used to create a unfrozen copy of
+        this configuration.
+        """
+
+        # ensure the version environments are flattened into the environment
+        self.environment
+
+        frozen_data = deepcopy(self.frozen_data)
+        frozen_data["uri"] = self.uri
+        if "versions" in self.frozen_data:
+            frozen_data["versions"] = [v.name for v in self.frozen_data["versions"]]
+
+        # Move environment_config to the environment key and clean up
+        frozen_data.pop("environment_config", None)
+
+        return frozen_data
+
     @hab_property(verbosity=1)
     def versions(self):
         if self.distros is NotSet:
             return []
 
+        # Lazily load the contents of versions the first time it's called
         if "versions" not in self.frozen_data:
+            # While processing versions, also populate aliases from the version
+            platform_aliases = {}
+            self.frozen_data["aliases"] = platform_aliases
             versions = []
+            self.frozen_data["versions"] = versions
+
             reqs = self.resolver.resolve_requirements(self.distros)
             for req in reqs.values():
-                versions.append(self.resolver.find_distro(req))
+                version = self.resolver.find_distro(req)
+                versions.append(version)
 
-            self.frozen_data["versions"] = versions
+                # Populate the alias information while we are processing versions
+                platforms = self.resolver.site['platforms']
+                if version.aliases:
+                    for platform in platforms:
+                        aliases_def = version.aliases.get(platform, [])
+                        aliases = [a[1] for a in aliases_def]
+
+                        for i, alias in enumerate(aliases_def):
+                            platform_aliases.setdefault(platform, {})[
+                                alias[0]
+                            ] = version.format_environment_value(aliases[i])
 
         return self.frozen_data["versions"]

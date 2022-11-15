@@ -70,6 +70,41 @@ $ hab env projectDummy/Thug
 The cli prompt is updated while inside a hab config is active. It is `[URI] [cwd]`
 Where URI is the uri requested and cwd is the current working directory.
 
+## Restoring resolved configuration
+
+Under normal operation hab resolves the configuration it loads each time it is run.
+This makes it easy to get updates to the configuration by re-launching hab. However,
+if you want to load the same hab configuration at a later date or on another computer
+it's possible a new distro version has been released or some config settings have
+been modified. For example if you submit a render job to the farm, you want every
+frame to render using the same hab configuration not what ever it happens to
+resolve for that launch.
+
+To handle this the hab cli stores the current configuration in the `HAB_FREEZE`
+environment variable. This is stored as a base64 encoded json string so it can
+be easily recovered. See `hab.utils.decode_freeze` to decode it.
+
+You can even use a frozen config on other platforms as long as you properly
+configure `platform_path_maps` in your site config.
+
+Using the cli to save a freeze to disk as json using dump using `--format json`.
+```bash
+hab dump projectDummy --format freeze > /tmp/frozen_config.json
+```
+
+Restoring a frozen config from a json file using the cli. This works for commands
+other than `dump`.
+```bash
+hab dump --unfreeze /tmp/frozen_config.json
+```
+
+Similarly you can save/load the encoded freeze string using `--format freeze`.
+
+```bash
+export frozen_config=$(hab dump app/nuke13 -f freeze)
+hab dump --unfreeze $frozen_config
+```
+
 ## API
 
 TODO

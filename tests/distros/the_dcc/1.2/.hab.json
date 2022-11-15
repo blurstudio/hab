@@ -7,6 +7,9 @@
         "the_dcc_plugin_e"
     ],
     "aliases": {
+        "linux": [
+            ["dcc", "{relative_root}//the_dcc"]
+        ],
         "windows": [
             ["dcc", "{relative_root}\\the_dcc.exe"]
         ]
