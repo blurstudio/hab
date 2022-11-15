@@ -17,14 +17,14 @@ class SharedSettings(object):
         self,
         site_paths=None,
         verbosity=0,
-        file_config=None,
-        file_launch=None,
+        script_dir=None,
+        script_ext=None,
         pre=None,
         forced_requirements=None,
     ):
         self.verbosity = verbosity
-        self.file_config = Path(file_config or ".").resolve()
-        self.file_launch = Path(file_launch or ".").resolve()
+        self.script_dir = Path(script_dir or ".").resolve()
+        self.script_ext = script_ext
         self._resolver = None
         self.prereleases = pre
         self.forced_requirements = forced_requirements
@@ -41,16 +41,11 @@ class SharedSettings(object):
         return self._resolver
 
     def write_script(
-        self, uri, launch_script=False, launch=None, exit=False, args=None
+        self, uri, launch=None, exit=False, args=None, create_launch=False
     ):
         """Generate the script the calling shell scripts expect to setup the environment"""
-        logger.info("Context: {}".format(uri))
-        logger.debug("Script: {}".format(self.file_config))
-
-        file_launch = None
-        if launch_script:
-            file_launch = self.file_launch
-            logger.debug("Launch script: {}".format(file_launch))
+        logger.info(f"Context: {uri}")
+        logger.debug(f"Script dir: {self.script_dir} ext: {self.script_ext}")
 
         if args:
             # convert to list, subprocess.list2cmdline does not like tuples
@@ -58,7 +53,12 @@ class SharedSettings(object):
 
         ret = self.resolver.resolve(uri)
         ret.write_script(
-            self.file_config, file_launch, launch=launch, exit=exit, args=args
+            self.script_dir,
+            self.script_ext,
+            launch=launch,
+            exit=exit,
+            args=args,
+            create_launch=create_launch,
         )
 
 
@@ -80,15 +80,15 @@ class SharedSettings(object):
     help="Increase the verbosity of the output. Can be used up to 3 times.",
 )
 @click.option(
-    "--file-config",
-    type=click.Path(dir_okay=False, resolve_path=False),
-    help="This file will contain the shell specific configuration commands to enable"
+    "--script-dir",
+    type=click.Path(file_okay=False, resolve_path=False),
+    help="This directory will contain the shell specific script files to enable"
     "this environment configuration.",
 )
 @click.option(
-    "--file-launch",
-    type=click.Path(dir_okay=False, resolve_path=False),
-    help="This file will contain the shell specific launching command to call file-config.",
+    "--script-ext",
+    help="The shell specific scripts created in script-dir will have this "
+    "format and extension.",
 )
 @click.option(
     "--pre/--no-pre",
@@ -103,9 +103,9 @@ class SharedSettings(object):
     "this may lead to configuring your environment incorrectly, use with caution.",
 )
 @click.pass_context
-def cli(ctx, site_paths, verbosity, file_config, file_launch, pre, requirement):
+def cli(ctx, site_paths, verbosity, script_dir, script_ext, pre, requirement):
     ctx.obj = SharedSettings(
-        site_paths, verbosity, file_config, file_launch, pre, requirement
+        site_paths, verbosity, script_dir, script_ext, pre, requirement
     )
     if verbosity > 2:
         verbosity = 2
@@ -124,7 +124,7 @@ def cli(ctx, site_paths, verbosity, file_config, file_launch, pre, requirement):
 @click.pass_obj
 def env(settings, uri, launch):
     """Configures and launches a new shell with the resolved setup."""
-    settings.write_script(uri, launch_script=True, launch=launch)
+    settings.write_script(uri, create_launch=True, launch=launch)
 
 
 @cli.command()
@@ -219,7 +219,7 @@ def launch(settings, uri, alias, args):
     used may not make it to the alias launch arguments.
     (ie: '/c/Program\\ Files').
     """
-    settings.write_script(uri, launch_script=True, launch=alias, exit=True, args=args)
+    settings.write_script(uri, create_launch=True, launch=alias, exit=True, args=args)
 
 
 if __name__ == "__main__":

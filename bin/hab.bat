@@ -7,12 +7,13 @@
 
 :: Generate a unique temp file name
 :uniqLoop
-set "temp_config_file=%tmp%\hab~%RANDOM%"
-if exist "%temp_config_file%_config.bat" goto :uniqLoop
+set "temp_directory=%tmp%\hab~%RANDOM%"
+if exist "%temp_directory%" goto :uniqLoop
 
 :: Create the launch and config filenames we will end up using
-set "temp_launch_file=%temp_config_file%_launch.bat"
-set "temp_config_file=%temp_config_file%_config.bat"
+mkdir %temp_directory%
+set "temp_launch_file=%temp_directory%\hab_launch.bat"
+set "temp_config_file=%temp_directory%\hab_config.bat"
 
 :: Calculate the command to run python with
 SETLOCAL ENABLEEXTENSIONS
@@ -28,7 +29,7 @@ IF DEFINED HAB_PYTHON (
 )
 
 :: Call our worker python process that may write the temp filename
-%py_exe% -m hab --file-config "%temp_config_file%" --file-launch "%temp_launch_file%" %*
+%py_exe% -m hab --script-dir "%temp_directory%" --script-ext ".bat" %*
 ENDLOCAL
 
 :: Run the launch or config script if it was created on disk
@@ -43,12 +44,7 @@ if exist %temp_launch_file% (
 :: the config scripts turn echo back on, turn it off again
 @ECHO OFF
 
-:: Remove the temp files if they exist
-if exist %temp_launch_file% (
-    del "%temp_launch_file%"
-)
-if exist %temp_config_file% (
-    del "%temp_config_file%"
-)
+:: Remove the temp directory and its contents
+RMDIR /S /Q %temp_directory%
 
 @ECHO ON

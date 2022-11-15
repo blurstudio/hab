@@ -1,3 +1,4 @@
+import copy
 import json
 import ntpath
 import re
@@ -547,6 +548,7 @@ def test_invalid_config(config_root, resolver):
 def test_misc_coverage(resolver):
     """Test that cover misc lines not covered by the rest of the tests"""
     assert str(NotSet) == "NotSet"
+    assert copy.copy(NotSet) is NotSet
 
     # Check that dirname is modified when setting a blank filename
     cfg = Config({}, resolver)
@@ -569,33 +571,44 @@ def test_misc_coverage(resolver):
 
 
 @pytest.mark.parametrize(
-    "launch,exiting,args,launch_check",
+    "launch,exiting,args,create_launch,launch_check",
     (
-        (None, False, None, None),
+        (None, False, None, True, None),
         # Note: We can't call doskey aliases from a batch script, so we have to
         # pass the full actual aliased command.
-        ("pip", False, None, '"{alias}\\mayapy.exe" -m pip'),
-        ("pip", False, ["list"], '"{alias}\\mayapy.exe" -m pip list'),
-        ("pip", True, None, '"{alias}\\mayapy.exe" -m pip'),
+        ("pip", False, None, True, '"{alias}\\mayapy.exe" -m pip'),
+        ("pip", False, None, False, '"{alias}\\mayapy.exe" -m pip'),
+        ("pip", False, ["list"], True, '"{alias}\\mayapy.exe" -m pip list'),
+        ("pip", True, None, True, '"{alias}\\mayapy.exe" -m pip'),
     ),
 )
-def test_write_script_bat(resolver, tmpdir, launch, exiting, args, launch_check):
+def test_write_script_bat(
+    resolver, tmpdir, launch, exiting, args, create_launch, launch_check
+):
     cfg = resolver.resolve("not_set/child")
-    file_config = tmpdir.join("config.bat")
-    file_launch = tmpdir.join("launch.bat")
+    file_config = tmpdir.join("hab_config.bat")
+    file_launch = tmpdir.join("hab_launch.bat")
     # Batch is windows only, force the code to evaluate as if it was on windows
     cfg._platform_override = "windows"
     cfg.write_script(
-        str(file_config), str(file_launch), launch=launch, exit=exiting, args=args
+        str(tmpdir),
+        ".bat",
+        launch=launch,
+        exit=exiting,
+        args=args,
+        create_launch=create_launch,
     )
 
     config_text = file_config.open().read()
-    launch_text = file_launch.open().read()
 
     # Ensure this test passes if run with cygwin or command prompt/powershell on windows
     alias = "C:\\Program Files\\Autodesk\\Maya2020\\bin"
 
-    assert 'cmd.exe /k "{}"\n'.format(file_config) == launch_text
+    if create_launch:
+        launch_text = file_launch.open().read()
+        assert 'cmd.exe /k "{}"\n'.format(file_config) == launch_text
+    else:
+        assert not file_launch.exists()
 
     assert 'set "PROMPT=[not_set/child] $P$G"' in config_text
     assert 'set "TEST=case"' in config_text
@@ -624,38 +637,50 @@ def test_write_script_bat(resolver, tmpdir, launch, exiting, args, launch_check)
 
 
 @pytest.mark.parametrize(
-    "launch,exiting,args,launch_check",
+    "launch,exiting,args,create_launch,launch_check",
     (
-        (None, False, None, None),
+        (None, False, None, True, None),
         # Note: Include the previous line's comment to ensure a valid test
-        ("pip", False, None, 'Run the requested command\npip\n'),
-        ("pip", False, ["list"], 'Run the requested command\npip list\n'),
-        ("pip", True, None, 'Run the requested command\npip\n'),
+        ("pip", False, None, True, 'Run the requested command\npip\n'),
+        ("pip", False, None, False, 'Run the requested command\npip\n'),
+        ("pip", False, ["list"], True, 'Run the requested command\npip list\n'),
+        ("pip", True, None, True, 'Run the requested command\npip\n'),
     ),
 )
-def test_write_script_ps1(resolver, tmpdir, launch, exiting, args, launch_check):
+def test_write_script_ps1(
+    resolver, tmpdir, launch, exiting, args, create_launch, launch_check
+):
     cfg = resolver.resolve("not_set/child")
-    file_config = tmpdir.join("config.ps1")
-    file_launch = tmpdir.join("launch.ps1")
+    file_config = tmpdir.join("hab_config.ps1")
+    file_launch = tmpdir.join("hab_launch.ps1")
     # Powershell is windows only, force the code to evaluate as if it was on windows
     cfg._platform_override = "windows"
     cfg.write_script(
-        str(file_config), str(file_launch), launch=launch, exit=exiting, args=args
+        str(tmpdir),
+        ".ps1",
+        launch=launch,
+        exit=exiting,
+        args=args,
+        create_launch=create_launch,
     )
 
     config_text = file_config.open().read()
-    launch_text = file_launch.open().read()
 
     # Ensure this test passes if run with cygwin or command prompt/powershell on windows
     alias = "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"
     alias = cfg.shell_escape(".ps1", alias)
 
-    assert (
-        'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{}"\n'.format(
-            file_config
+    if create_launch:
+        launch_text = file_launch.open().read()
+        assert (
+            'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{}"\n'.format(
+                file_config
+            )
+            == launch_text
         )
-        == launch_text
-    )
+    else:
+        assert not file_launch.exists()
+
     assert 'function PROMPT {"[$env:HAB_URI] $(Get-Location)>"}' in config_text
     assert '$env:TEST = "case"' in config_text
     # Expanded "{PATH:e}" and "{;}" formatting is applied correctly
@@ -678,13 +703,14 @@ def test_write_script_ps1(resolver, tmpdir, launch, exiting, args, launch_check)
 
 
 @pytest.mark.parametrize(
-    "launch,exiting,args,launch_check",
+    "launch,exiting,args,create_launch,launch_check",
     (
-        (None, False, None, None),
+        (None, False, None, True, None),
         # Note: Include the previous line's comment to ensure a valid test
-        ("pip", False, None, 'Run the requested command\npip\n'),
-        ("pip", False, ["list"], 'Run the requested command\npip list\n'),
-        ("pip", True, None, 'Run the requested command\npip\n'),
+        ("pip", False, None, True, 'Run the requested command\npip\n'),
+        ("pip", False, None, False, 'Run the requested command\npip\n'),
+        ("pip", False, ["list"], True, 'Run the requested command\npip list\n'),
+        ("pip", True, None, True, 'Run the requested command\npip\n'),
     ),
 )
 # Bash formatting is different on windows for env vars
@@ -700,22 +726,32 @@ def test_write_script_sh(
     launch,
     exiting,
     args,
+    create_launch,
     launch_check,
 ):
     # Bash formatting is different on windows for env vars
     monkeypatch.setattr(sys, 'platform', platform)
 
     cfg = resolver.resolve("not_set/child")
-    file_config = tmpdir.join("config")
-    file_launch = tmpdir.join("launch")
+    file_config = tmpdir.join("hab_config.sh")
+    file_launch = tmpdir.join("hab_launch.sh")
     cfg.write_script(
-        str(file_config), str(file_launch), launch=launch, exit=exiting, args=args
+        str(tmpdir),
+        ".sh",
+        launch=launch,
+        exit=exiting,
+        args=args,
+        create_launch=create_launch,
     )
 
     config_text = file_config.open().read()
-    launch_text = file_launch.open().read()
 
-    assert 'bash --init-file "{}"\n'.format(file_config) == launch_text
+    if create_launch:
+        launch_text = file_launch.open().read()
+        assert 'bash --init-file "{}"\n'.format(file_config) == launch_text
+    else:
+        assert not file_launch.exists()
+
     assert 'export PS1="[not_set/child] $PS1"' in config_text
     assert 'export TEST="case"' in config_text
     # Expanded "{PATH:e}" and "{;}" formatting is applied correctly
