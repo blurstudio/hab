@@ -1,4 +1,6 @@
+import base64
 import errno
+import json as _json
 import os
 import sys
 import textwrap
@@ -28,6 +30,31 @@ def collapse_paths(paths):
     if isinstance(paths, str):
         return paths
     return os.pathsep.join([str(p) for p in paths])
+
+
+def decode_freeze(txt):
+    """Decodes the provided base64 encoded json string. See `encode_freeze` for
+    details on how this should be encoded."""
+
+    # Extract version information from the string
+    try:
+        version, txt = txt.split(':', 1)
+        if version[0] != 'v':
+            raise ValueError("Missing v prefix in version information.")
+    except ValueError:
+        raise ValueError(
+            "Missing freeze version information in format `v0:...`"
+        ) from None
+    try:
+        version = int(version[1:])
+    except ValueError:
+        raise ValueError(f'Version {version[1:]} is not valid.') from None
+
+    if version == 1:
+        data = txt.encode('ascii')
+        data = base64.b64decode(txt)
+        data = data.decode('ascii')
+        return json.loads(data)
 
 
 def dump_object(obj, label="", width=80, flat_list=False, color=False):
@@ -127,6 +154,33 @@ def dump_title(title, body, color=False):
     return f"{title}\n{'-'*width}\n{body}\n{'-'*width}"
 
 
+def dumps_json(data, **kwargs):
+    """Consistent method for calling json.dumps that handles encoding custom
+    data objects like NotSet.
+
+    Pyjson5's dump is not as fully featured as python's json, so this ensures
+    consistent dumps output as python's json module has more features than
+    pyjson5. For example pyjson5 doesn't support indent."""
+    kwargs.setdefault('cls', HabJsonEncoder)
+    return _json.dumps(data, **kwargs)
+
+
+def encode_freeze(data, version=1):
+    """Encodes the provided data object in json. This string is stored on the
+    "HAB_FREEZE" environment variable when run by the cli.
+
+    Encoded freeze version data is a string with a version prefix matching the
+    regex `v(?P<ver>\\d+):(?P<freeze>.+)`.
+
+    Version 1: Encodes data to a json string that is then encoded with base64.
+    """
+    if version == 1:
+        data = dumps_json(data)
+        data = data.encode('ascii')
+        data = base64.b64encode(data)
+        return f'v1:{data.decode("utf-8")}'
+
+
 def expand_paths(paths):
     """Converts path strings separated by ``os.pathsep`` and lists into
     a list containing Path objects.
@@ -134,6 +188,17 @@ def expand_paths(paths):
     if isinstance(paths, str):
         return [Path(p) for p in paths.split(os.pathsep)]
     return [Path(p) for p in paths]
+
+
+class HabJsonEncoder(_json.JSONEncoder):
+    """JsonEncoder class that handles non-supported objects like hab.NotSet."""
+
+    def default(self, obj):
+        if obj is NotSet:
+            # Convert NotSet to None for json storage
+            return None
+        # Let the base class default method raise the TypeError
+        return _json.JSONEncoder.default(self, obj)
 
 
 def load_json_file(filename):

@@ -62,6 +62,23 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         cls = type(self)
         return "{}.{}('{}')".format(cls.__module__, cls.__name__, self.fullpath)
 
+    @classmethod
+    def _dump_versions(cls, value, verbosity=0, color=None):
+        """Returns the version information for this object as a list of strings."""
+        if verbosity < 3:
+            # Only show the names of the versions
+            return sorted([v.name for v in value], key=lambda i: i.lower())
+
+        # Include the definition of the version's path for debugging
+        if color:  # pragma: no cover
+            fmt = f"{colorama.Fore.GREEN}{{}}{colorama.Style.RESET_ALL}:  {{}}"
+        else:
+            fmt = "{}:  {}"
+        return [
+            fmt.format(v.name, v.filename)
+            for v in sorted(value, key=lambda i: i.name.lower())
+        ]
+
     @property
     def _platform(self):
         """Returns the current operating system `windows` or `linux`."""
@@ -260,19 +277,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 value = value.keys()
                 flat_list = True
             elif prop == "versions":
-                if verbosity < 3:
-                    # Only show the names of the versions
-                    value = sorted([v.name for v in value], key=lambda i: i.lower())
-                else:
-                    # Include the definition of the version's path for debugging
-                    if color:  # pragma: no cover
-                        fmt = f"{colorama.Fore.GREEN}{{}}{colorama.Style.RESET_ALL}:  {{}}"
-                    else:
-                        fmt = "{}:  {}"
-                    value = [
-                        fmt.format(v.name, v.filename)
-                        for v in sorted(value, key=lambda i: i.name.lower())
-                    ]
+                value = self._dump_versions(value, verbosity=verbosity, color=color)
 
             ret.append(
                 utils.dump_object(
@@ -561,23 +566,26 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             fle.write(shell["prompt"].format(uri=self.uri))
             fle.write("\n")
 
-            if self.environment:
-                fle.write("{}Setting environment variables:\n".format(shell["comment"]))
-                for key, value in self.environment.items():
-                    setter = shell["env_setter"]
-                    if value:
-                        value = utils.collapse_paths(value)
-                        # Process any env conversion keys into the shell specific values.
-                        # For example convert `{PATH!e}` to `$PATH` if this is an.sh file
-                        value = Formatter(ext).format(value, key=key, value=value)
-                    else:
-                        setter = shell["env_unsetter"]
-                    fle.write(setter.format(key=key, value=value))
+            fle.write("{}Setting environment variables:\n".format(shell["comment"]))
+            for key, value in self.environment.items():
+                setter = shell["env_setter"]
+                if value:
+                    value = utils.collapse_paths(value)
+                    # Process any env conversion keys into the shell specific values.
+                    # For example convert `{PATH!e}` to `$PATH` if this is an.sh file
+                    value = Formatter(ext).format(value, key=key, value=value)
+                else:
+                    setter = shell["env_unsetter"]
+                fle.write(setter.format(key=key, value=value))
+
+            if hasattr(self, "freeze"):
+                # Always write the HAB_FREEZE environment variable
+                value = utils.encode_freeze(self.freeze())
+                fle.write(setter.format(key="HAB_FREEZE", value=value))
 
             if hasattr(self, "aliases") and self.aliases:
-                if self.environment:
-                    # Only add a blank line if we wrote environment modifications
-                    fle.write("\n")
+                fle.write("\n")
+
                 fle.write(
                     "{}Creating aliases to launch programs:\n".format(shell["comment"])
                 )

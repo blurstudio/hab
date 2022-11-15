@@ -7,6 +7,7 @@ from .flat_config import FlatConfig
 from .hab_base import HabBase
 from .meta import HabMeta, hab_property
 from .placeholder import Placeholder
+from .unfrozen_config import UnfrozenConfig
 
 __all__ = [
     'Config',
@@ -17,4 +18,5 @@ __all__ = [
     'HabBase',
     'HabMeta',
     'Placeholder',
+    'UnfrozenConfig',
 ]
