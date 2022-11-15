@@ -5,7 +5,19 @@
         ],
         "distro_paths": [
             "{relative_root}/distros/*"
-        ]
+        ],
+        "platform_path_maps": {
+            "host-root": {
+                "linux": "/usr/local/host/root",
+                "mac": "/usr/local/mac/host/root",
+                "windows": "c:\\host\\root"
+            },
+            "network-mount": {
+                "linux": "/mnt/shared_resources",
+                "mac": "/mnt/mac/shared_resources",
+                "windows": "\\\\example\\shared_resources"
+            }
+        }
     },
     "set": {
         "generic_value": false,

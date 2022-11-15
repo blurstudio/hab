@@ -249,6 +249,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         Args:
             environment (bool, optional): Show the environment value.
             environment_config (bool, optional): Show the environment_config value.
+            verbosity (int, optional): More information is shown with higher values.
+            color (bool, optional): Add console colorization to output. If None,
+                respect the site property "colorize" defaulting to True.
 
         Returns:
             str: The configuration converted to a string
@@ -363,13 +366,15 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             self._filename = Path(filename)
             self._dirname = self._filename.parent
 
-    def format_environment_value(self, value, ext=None):
+    def format_environment_value(self, value, ext=None, platform=None):
         """Apply standard formatting to environment variable values.
 
         Args:
             value (str): The string to format
             ext (str, optional): Language passed to ``hab.formatter.Formatter``
                 for special formatters. In most cases this should not be used.
+            platform (str, optional): Convert path values from the current
+                platform to this path using `site.plaform_path`.
 
         Format Keys:
             relative_root: Add the dirname of self.filename or a empty string. Equivalent
@@ -378,11 +383,25 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 or a literal relative_root. Houdini doesn't support the native slash
                 direction on windows, so backslashes are replaced with forward slashes.
         """
-        kwargs = dict(relative_root=utils.path_forward_slash(self.dirname))
         if isinstance(value, list):
             # Format the individual items if a list of args is used.
-            return [Formatter(ext).format(v, **kwargs) for v in value]
-        return Formatter(ext).format(value, **kwargs)
+            return [
+                self.format_environment_value(v, ext=ext, platform=platform)
+                for v in value
+            ]
+
+        # Expand and format any variables like "relative_root" using the current
+        # platform for paths.
+        kwargs = dict(relative_root=utils.path_forward_slash(self.dirname))
+        ret = Formatter(ext).format(value, **kwargs)
+
+        # Use site.the platform_path_maps to convert the result to the target platform
+        if platform:
+            ret = utils.path_forward_slash(
+                self.resolver.site.platform_path_map(ret, platform)
+            )
+
+        return ret
 
     @property
     def fullpath(self):
@@ -435,7 +454,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             return
 
         merger = MergeDict(
-            relative_root=self.dirname, platforms=self.resolver.site['platforms']
+            relative_root=self.dirname,
+            platforms=self.resolver.site['platforms'],
+            site=self.resolver.site,
         )
         merger.formatter = obj.format_environment_value
         merger.validator = self.check_environment

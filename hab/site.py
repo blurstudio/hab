@@ -1,6 +1,6 @@
 import os
 from collections import UserDict
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from . import utils
 from .merge_dict import MergeDict
@@ -48,12 +48,13 @@ class Site(UserDict):
     def data(self):
         return self.frozen_data.get(self.platform)
 
-    def dump(self, color=None):
+    def dump(self, verbosity=0, color=None):
         """Return a string of the properties and their values.
 
         Args:
-            environment (bool, optional): Show the environment value.
-            environment_config (bool, optional): Show the environment_config value.
+            verbosity (int, optional): More information is shown with higher values.
+            color (bool, optional): Add console colorization to output. If None,
+                respect the site property "colorize" defaulting to True.
 
         Returns:
             str: The configuration converted to a string
@@ -66,7 +67,20 @@ class Site(UserDict):
             {'HAB_PATHS': [str(p) for p in self.paths]}, color=color
         )
         # Include all of the resolved site configurations
-        ret = utils.dump_object(self, color=color)
+        ret = []
+        for prop, value in self.items():
+            if verbosity < 1 and isinstance(value, dict):
+                # This is too complex for most site dumps, hide the details behind
+                # a higher verbosity setting.
+                txt = utils.dump_object(
+                    f"Dictionary keys: {len(value)}", label=f'{prop}:  ', color=color
+                )
+            else:
+                txt = utils.dump_object(value, label=f'{prop}:  ', color=color)
+
+            ret.append(txt)
+
+        ret = "\n".join(ret)
         return utils.dump_title('Dump of Site', f'{site_ret}\n{ret}', color=color)
 
     def load(self):
@@ -75,6 +89,9 @@ class Site(UserDict):
         files define them."""
         for path in self.paths:
             self.load_file(path)
+
+        # Ensure any platform_path_maps are converted to pathlib objects.
+        self.standardize_platform_path_maps()
 
     def load_file(self, filename):
         """Load an individual file path and merge its contents onto self.
@@ -96,3 +113,50 @@ class Site(UserDict):
     @paths.setter
     def paths(self, paths):
         self._paths = paths
+
+    def platform_path_map(self, path, platform=None):
+        """Convert the provided path to one valid for the platform.
+
+        Uses mappings defined in `site.get('platform_path_maps', {})` to convert
+        path to the target platform.
+        """
+        if self.platform == "windows":
+            path = PureWindowsPath(path)
+        else:
+            path = PurePosixPath(path)
+
+        mappings = self.get('platform_path_maps', {})
+        # Iterate over all mappings and if applicable, apply each of them
+        for mapping in mappings.values():
+            src = mapping.get(self.platform)
+            dest = mapping.get(platform)
+            if path == src:
+                # The path is the same as the source, no need to try to resolve
+                # a relative path, just convert it to the destination
+                path = dest
+                continue
+
+            # If path is relative to the current src mapping, replace src with
+            # dest to generate the updated path
+            try:
+                relative = path.relative_to(src)
+            except ValueError:
+                continue
+            else:
+                path = dest.joinpath(relative)
+
+        return str(path)
+
+    def standardize_platform_path_maps(self):
+        """Ensure the mappings defined in platform_path_maps are converted to
+        the correct PurePath classes."""
+        if "platform_path_maps" not in self.frozen_data[self.platform]:
+            return
+        mappings = self.frozen_data[self.platform]["platform_path_maps"]
+
+        for mapping in mappings.values():
+            for platform in mapping:
+                if platform == "windows":
+                    mapping[platform] = PureWindowsPath(mapping[platform])
+                else:
+                    mapping[platform] = PurePosixPath(mapping[platform])
