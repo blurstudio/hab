@@ -103,8 +103,20 @@ class FlatConfig(Config):
         if "versions" in self.frozen_data:
             frozen_data["versions"] = [v.name for v in self.frozen_data["versions"]]
 
-        # Move environment_config to the environment key and clean up
+        # Simplify the output data by removing un-needed and duplicated items
+        for platform in frozen_data.get("environment", {}):
+            frozen_data["environment"][platform].pop("HAB_URI", None)
+
+        # No need to store the environment_config in a freeze
         frozen_data.pop("environment_config", None)
+
+        # No need to store this it will always be False
+        frozen_data.pop("inherits", None)
+
+        # Remove any empty properties that are not required
+        for key in ("aliases", "versions"):
+            if key in frozen_data and not frozen_data[key]:
+                frozen_data.pop(key, None)
 
         return frozen_data
 
