@@ -113,6 +113,7 @@ def test_dump_forest(resolver):
             "    |-- hab.parsers.config.Config('not_set/env_path_set')",
             "    |-- hab.parsers.config.Config('not_set/env_path_unset')",
             "    |-- hab.parsers.config.Config('not_set/distros')",
+            "    |-- hab.parsers.config.Config('not_set/empty_lists')",
             "    |-- hab.parsers.config.Config('not_set/no_distros')",
             "    |-- hab.parsers.config.Config('not_set/no_env')",
             "    +-- hab.parsers.config.Config('not_set/os')",
