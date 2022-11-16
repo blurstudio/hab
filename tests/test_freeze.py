@@ -72,6 +72,14 @@ def test_freeze(monkeypatch, config_root, platform, pathsep):
     cfg.frozen_data["aliases"]["linux"]["dcc"] = "TEST_DIR_NAME//the_dcc"
     cfg.frozen_data["aliases"]["windows"]["dcc"] = "TEST_DIR_NAME\\the_dcc.exe"
 
+    # Force the lazily loaded `cfg.frozen_data["environment"]` value to be loaded
+    cfg.environment
+    # Ensure the HAB_URI environment variable is defined on the FlatConfig object
+    # When checking the return from `cfg.freeze()` below HAB_URI is removed to
+    # simplify the output json data.
+    assert cfg.frozen_data["environment"]["linux"]["HAB_URI"] == ["not_set/distros"]
+    assert cfg.frozen_data["environment"]["windows"]["HAB_URI"] == ["not_set/distros"]
+
     ret = cfg.freeze()
     check_file = config_root / "frozen.json"
     check = utils.json.load(check_file.open())
@@ -79,6 +87,14 @@ def test_freeze(monkeypatch, config_root, platform, pathsep):
     update_config(check, cfg_root, site.platform)
 
     assert ret == check
+
+    # Check that optional properties are excluded from the dictionary if empty
+    ret = cfg.freeze()
+    assert "versions" in ret
+    # Simulate having versions being empty
+    cfg.frozen_data["versions"] = []
+    ret = cfg.freeze()
+    assert "versions" not in ret
 
 
 def test_unfreeze(config_root, resolver):
@@ -101,6 +117,13 @@ def test_unfreeze(config_root, resolver):
     )
 
     assert cfg.versions == frozen_config["versions"]
+
+    # HAB_URI is removed from the frozen data. Storing it per platform would
+    # just make the frozen string longer. Re-add these to the check data so it
+    # matches UnfrozenConfig also adding it.
+    frozen_config["environment"]["linux"]["HAB_URI"] = "not_set/distros"
+    frozen_config["environment"]["windows"]["HAB_URI"] = "not_set/distros"
+    # Check that environment was restored correctly
     assert cfg.frozen_data["environment"] == frozen_config["environment"]
 
     # Check various class overrides
@@ -108,6 +131,7 @@ def test_unfreeze(config_root, resolver):
     assert cfg.aliases == frozen_config["aliases"][cfg._platform]
     assert "dcc" in cfg.aliases
     assert cfg.fullpath == "not_set/distros"
+    assert cfg.inherits is False
 
 
 def test_decode_freeze(config_root, resolver):

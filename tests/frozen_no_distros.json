@@ -4,26 +4,19 @@
             "not_set"
         ],
         "name": "no_distros",
-        "inherits": false,
         "environment": {
             "windows": {
                 "Test": [
                     "Case"
-                ],
-                "HAB_URI": [
-                    "not_set/no_distros"
                 ]
             },
             "linux": {
                 "Test": [
                     "Case"
-                ],
-                "HAB_URI": [
-                    "not_set/no_distros"
                 ]
             }
         },
         "uri": "not_set/no_distros"
     },
-    "version1": "v1:eyJjb250ZXh0IjogWyJub3Rfc2V0Il0sICJuYW1lIjogIm5vX2Rpc3Ryb3MiLCAiaW5oZXJpdHMiOiBmYWxzZSwgImVudmlyb25tZW50IjogeyJ3aW5kb3dzIjogeyJUZXN0IjogWyJDYXNlIl0sICJIQUJfVVJJIjogWyJub3Rfc2V0L25vX2Rpc3Ryb3MiXX0sICJsaW51eCI6IHsiVGVzdCI6IFsiQ2FzZSJdLCAiSEFCX1VSSSI6IFsibm90X3NldC9ub19kaXN0cm9zIl19fSwgInVyaSI6ICJub3Rfc2V0L25vX2Rpc3Ryb3MifQ=="
+    "version1": "v1:eyJjb250ZXh0IjogWyJub3Rfc2V0Il0sICJuYW1lIjogIm5vX2Rpc3Ryb3MiLCAiZW52aXJvbm1lbnQiOiB7IndpbmRvd3MiOiB7IlRlc3QiOiBbIkNhc2UiXX0sICJsaW51eCI6IHsiVGVzdCI6IFsiQ2FzZSJdfX0sICJ1cmkiOiAibm90X3NldC9ub19kaXN0cm9zIn0="
 }

@@ -13,6 +13,12 @@ class UnfrozenConfig(Config):
         super(UnfrozenConfig, self).__init__(None, resolver)
         self.frozen_data = deepcopy(frozen_data)
 
+        # Restore the HAB_URI env variable that was removed during freeze
+        for platform in self.frozen_data.setdefault("environment", {}):
+            self.frozen_data["environment"][platform].setdefault(
+                "HAB_URI", self.frozen_data["uri"]
+            )
+
     @classmethod
     def _dump_versions(cls, value, verbosity=0, color=None):
         """Returns the version information for this object as a list of strings."""
@@ -25,6 +31,11 @@ class UnfrozenConfig(Config):
         applications."""
         return self.frozen_data.get("aliases", {}).get(self._platform, [])
 
+    @hab_property(verbosity=2)
+    def inherits(self):
+        """Returns False. Unfrozen configurations can not inherit from other configs."""
+        return False
+
     @property
     def fullpath(self):
         return self.frozen_data["uri"]
@@ -35,4 +46,4 @@ class UnfrozenConfig(Config):
 
     @hab_property(verbosity=1)
     def versions(self):
-        return self.frozen_data["versions"]
+        return self.frozen_data.get("versions", [])

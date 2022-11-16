@@ -18,7 +18,6 @@
     "the_dcc_plugin_d==1.1",
     "the_dcc_plugin_b==1.1"
   ],
-  "inherits": false,
   "environment": {
     "windows": {
       "Test": [
@@ -35,9 +34,6 @@
         "{config_root}/distros/the_dcc_plugin_d/1.1",
         "{config_root}/distros/the_dcc_plugin_a/1.1",
         "{config_root}/distros/the_dcc_plugin_e/1.1"
-      ],
-      "HAB_URI": [
-        "not_set/distros"
       ]
     },
     "linux": {
@@ -55,9 +51,6 @@
         "{config_root}/distros/the_dcc_plugin_d/1.1",
         "{config_root}/distros/the_dcc_plugin_a/1.1",
         "{config_root}/distros/the_dcc_plugin_e/1.1"
-      ],
-      "HAB_URI": [
-        "not_set/distros"
       ]
     }
   },
