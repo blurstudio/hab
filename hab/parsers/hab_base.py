@@ -276,7 +276,10 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
             value = getattr(self, prop)
             flat_list = False
-            if prop == "aliases" and verbosity < 3:
+            if prop == "aliases" and not value:
+                # Don't show the aliases row if none are set
+                continue
+            elif prop == "aliases" and verbosity < 3:
                 value = value.keys()
                 flat_list = True
             elif prop == "versions":

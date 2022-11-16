@@ -300,6 +300,16 @@ class TestDump:
         match = check.search(result)
         assert match.group('file') is not None
 
+    @pytest.mark.parametrize("uri", ("not_set/no_distros", "not_set/empty_lists"))
+    def test_no_values(self, resolver, uri):
+        """If noting sets aliases or distros, don't include them in the dump text."""
+        cfg = resolver.resolve(uri)
+
+        for verbosity in range(3):
+            result = cfg.dump(verbosity=verbosity, color=False)
+            assert "aliases" not in result
+            assert "distros:" not in result
+
 
 def test_environment(resolver):
     # Check that the correct errors are raised

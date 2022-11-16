@@ -92,9 +92,15 @@ class Solver(object):
             # This is mostly to ensure that tests for solver errors are not flaky.
             requirements = requirements.copy()
             requirements.update(self.forced)
-        logger.debug("Requirements: {}".format(requirements.values()))
 
-        for req in requirements.values():
+        if requirements:
+            reqs = requirements.values()
+        else:
+            # Support the possibility that no configuration defines requirements
+            reqs = []
+        logger.debug("Requirements: {}".format(reqs))
+
+        for req in reqs:
             name = req.name
             if name in self.forced:
                 if name in reported:
