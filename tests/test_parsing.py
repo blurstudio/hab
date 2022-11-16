@@ -205,100 +205,100 @@ def test_metaclass():
     )
 
 
-def test_dump(resolver):
-    line = "-LINE-"
+class TestDump:
+    def test_dump(self, resolver):
+        line = "-LINE-"
 
-    def standardize(txt):
-        """Dump adds an arbitrary length border of -'s that makes str comparing
-        hard. Replace it with a constant value."""
-        return re.sub(r"^-+$", line, txt, flags=re.M)
+        def standardize(txt):
+            """Dump adds an arbitrary length border of -'s that makes str comparing
+            hard. Replace it with a constant value."""
+            return re.sub(r"^-+$", line, txt, flags=re.M)
 
-    # Build the test data so we can generate the output to check
-    # Note: using `repr([u"` so this test passes in python 2 and 3
-    pre = ["name:  child", "uri:  not_set/child"]
-    post = ["inherits:  True"]
-    env = [
-        "environment:  FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
-        "              TEST:  case",
-        "              UNSET_VARIABLE:  None",
-    ]
+        # Build the test data so we can generate the output to check
+        # Note: using `repr([u"` so this test passes in python 2 and 3
+        pre = ["name:  child", "uri:  not_set/child"]
+        post = ["inherits:  True"]
+        env = [
+            "environment:  FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
+            "              TEST:  case",
+            "              UNSET_VARIABLE:  None",
+        ]
 
-    env_config = [
-        "environment_config:  set:  FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
-        "                           TEST:  case",
-        "                     unset:  UNSET_VARIABLE",
-    ]
-    cfg = resolver.closest_config("not_set/child")
-    header = f"Dump of {type(cfg).__name__}('{cfg.fullpath}')"
+        env_config = [
+            "environment_config:  set:  FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
+            "                           TEST:  case",
+            "                     unset:  UNSET_VARIABLE",
+        ]
+        cfg = resolver.closest_config("not_set/child")
+        header = f"Dump of {type(cfg).__name__}('{cfg.fullpath}')"
 
-    # Check that both environments can be hidden
-    result = cfg.dump(
-        environment=False, environment_config=False, verbosity=2, color=False
-    )
-    check = [f'{header}\n{line}']
-    check.extend(pre)
-    check.extend(post)
-    check.append(line)
-    check = '\n'.join(check)
-    assert standardize(result) == check
+        # Check that both environments can be hidden
+        result = cfg.dump(
+            environment=False, environment_config=False, verbosity=2, color=False
+        )
+        check = [f'{header}\n{line}']
+        check.extend(pre)
+        check.extend(post)
+        check.append(line)
+        check = '\n'.join(check)
+        assert standardize(result) == check
 
-    # Check that both environments can be shown
-    result = cfg.dump(
-        environment=True, environment_config=True, verbosity=2, color=False
-    )
-    check = [f'{header}\n{line}']
-    check.extend(pre)
-    check.extend(env)
-    check.extend(env_config)
-    check.extend(post)
-    check.append(line)
-    check = '\n'.join(check)
-    assert standardize(result) == check
+        # Check that both environments can be shown
+        result = cfg.dump(
+            environment=True, environment_config=True, verbosity=2, color=False
+        )
+        check = [f'{header}\n{line}']
+        check.extend(pre)
+        check.extend(env)
+        check.extend(env_config)
+        check.extend(post)
+        check.append(line)
+        check = '\n'.join(check)
+        assert standardize(result) == check
 
-    # Check that only environment can be shown
-    result = cfg.dump(
-        environment=True, environment_config=False, verbosity=2, color=False
-    )
-    check = [f'{header}\n{line}']
-    check.extend(pre)
-    check.extend(env)
-    check.extend(post)
-    check.append(line)
-    check = '\n'.join(check)
-    # Check that only environment_config can be shown
-    result = cfg.dump(
-        environment=False, environment_config=True, verbosity=2, color=False
-    )
-    check = [f'{header}\n{line}']
-    check.extend(pre)
-    check.extend(env_config)
-    check.extend(post)
-    check.append(line)
-    check = '\n'.join(check)
-    assert standardize(result) == check
+        # Check that only environment can be shown
+        result = cfg.dump(
+            environment=True, environment_config=False, verbosity=2, color=False
+        )
+        check = [f'{header}\n{line}']
+        check.extend(pre)
+        check.extend(env)
+        check.extend(post)
+        check.append(line)
+        check = '\n'.join(check)
+        # Check that only environment_config can be shown
+        result = cfg.dump(
+            environment=False, environment_config=True, verbosity=2, color=False
+        )
+        check = [f'{header}\n{line}']
+        check.extend(pre)
+        check.extend(env_config)
+        check.extend(post)
+        check.append(line)
+        check = '\n'.join(check)
+        assert standardize(result) == check
 
+    def test_flat(self, resolver):
+        """Test additional dump settings for FlatConfig objects"""
+        cfg = resolver.resolve("not_set/child")
+        # Check that dump formats versions nicely
+        check = re.compile(
+            r'versions:  (?P<ver>maya2020==2020\.1)(?P<file>:  [\w:\\.\/-]+\.json)?'
+        )
+        # Versions are not shown with verbosity >= 1
+        result = cfg.dump(color=False)
+        assert not check.search(result)
 
-def test_dump_flat(resolver):
-    """Test additional dump settings for FlatConfig objects"""
-    cfg = resolver.resolve("not_set/child")
-    # Check that dump formats versions nicely
-    check = re.compile(
-        r'versions:  (?P<ver>maya2020==2020\.1)(?P<file>:  [\w:\\.\/-]+\.json)?'
-    )
-    # Versions are not shown with verbosity >= 1
-    result = cfg.dump(color=False)
-    assert not check.search(result)
+        # Verbosity 2 shows just the version requirement
+        result = cfg.dump(verbosity=2, color=False)
+        match = check.search(result)
+        assert match.group('file') is None
+        assert match.group('ver') == u"maya2020==2020.1"
 
-    # Verbosity 2 shows just the version requirement
-    result = cfg.dump(verbosity=2, color=False)
-    match = check.search(result)
-    assert match.group('file') is None
-    assert match.group('ver') == u"maya2020==2020.1"
-
-    # Verbosity 3 also shows the json file name
-    result = cfg.dump(verbosity=3, color=False)
-    match = check.search(result)
-    assert match.group('file') is not None
+        # Verbosity 3 also shows the json file name
+        result = cfg.dump(verbosity=3, color=False)
+        match = check.search(result)
+        assert match.group('file') is not None
 
 
 def test_environment(resolver):
