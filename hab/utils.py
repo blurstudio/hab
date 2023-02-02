@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import textwrap
+import zlib
 from collections import UserDict
 from collections.abc import KeysView
 from pathlib import Path, PurePath
@@ -37,8 +38,9 @@ def collapse_paths(paths):
 
 
 def decode_freeze(txt):
-    """Decodes the provided base64 encoded json string. See `encode_freeze` for
-    details on how this should be encoded."""
+    """Decodes the provided frozen hab string. See `encode_freeze` for
+    details on how these strings are encoded. These will start with a version
+    identifier `vX:` where X denotes the version it was encoded with."""
 
     # Extract version information from the string
     try:
@@ -54,11 +56,15 @@ def decode_freeze(txt):
     except ValueError:
         raise ValueError(f'Version {version[1:]} is not valid.') from None
 
+    data = txt.encode('ascii')
+    data = base64.b64decode(txt)
     if version == 1:
-        data = txt.encode('ascii')
-        data = base64.b64decode(txt)
-        data = data.decode('ascii')
-        return json.loads(data)
+        data = data.decode('utf-8')
+    elif version == 2:
+        data = zlib.decompress(data).decode()
+    else:
+        return None
+    return json.loads(data)
 
 
 def dump_object(obj, label="", width=80, flat_list=False, color=False):
@@ -171,7 +177,7 @@ def dumps_json(data, **kwargs):
     return _json.dumps(data, **kwargs)
 
 
-def encode_freeze(data, version=1):
+def encode_freeze(data, version=None):
     """Encodes the provided data object in json. This string is stored on the
     "HAB_FREEZE" environment variable when run by the cli.
 
@@ -179,12 +185,31 @@ def encode_freeze(data, version=1):
     regex `v(?P<ver>\\d+):(?P<freeze>.+)`.
 
     Version 1: Encodes data to a json string that is then encoded with base64.
+    Version 2: Encodes data to a json string that is then compressed with zlib,
+        and finally encoded with base64.
+    None is returned if this version number is not supported.
+
+    Args:
+        data: The data to freeze.
+        version (int, optional): The version to encode the freeze with.
+            If None is passed, then the default version encoding is used.
     """
+    if version is None:
+        # The current default is 2. Using None makes it easy to control this
+        # with a site configuration.
+        version = 2
+
+    data = dumps_json(data)
+    data = data.encode('utf-8')
     if version == 1:
-        data = dumps_json(data)
-        data = data.encode('ascii')
         data = base64.b64encode(data)
-        return f'v1:{data.decode("utf-8")}'
+    elif version == 2:
+        data = zlib.compress(data)
+        data = base64.b64encode(data)
+    else:
+        return None
+
+    return f'v{version}:{data.decode("utf-8")}'
 
 
 def expand_paths(paths):

@@ -263,7 +263,9 @@ def dump(
             ret = settings.resolver.closest_config(uri)
 
         if format_type == "freeze":
-            ret = encode_freeze(ret.freeze())
+            ret = encode_freeze(
+                ret.freeze(), version=settings.resolver.site.get("freeze_version")
+            )
         elif format_type == "json":
             ret = dumps_json(ret.freeze(), indent=2)
         elif format_type == "versions":

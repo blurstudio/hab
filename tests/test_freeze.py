@@ -140,8 +140,10 @@ def test_decode_freeze(config_root, resolver):
     v1 = checks["version1"]
     raw = checks["raw"]
 
-    # Check that a v1 freeze is decoded correctly
+    # Check that supported freeze's are decoded correctly
     assert utils.decode_freeze(v1) == raw
+    assert utils.decode_freeze(checks["version2"]) == raw
+
     # Check that padded versions are also supported
     assert utils.decode_freeze(f'v01:{v1[3:]}') == raw
 
@@ -165,7 +167,7 @@ def test_decode_freeze(config_root, resolver):
     assert str(excinfo.value) == 'Version INVALID is not valid.'
 
     # check that other version encodings return nothing
-    assert utils.decode_freeze(f'v2:{v1[3:]}') is None
+    assert utils.decode_freeze(f'v3:{v1[3:]}') is None
     assert utils.decode_freeze(f'v0:{v1[3:]}') is None
 
 
@@ -178,10 +180,17 @@ def test_encode_freeze(config_root, resolver):
     freeze = cfg.freeze()
     assert freeze == checks["raw"]
 
-    # Check that version 1 encoding is correct
+    # Check that supported version encodings are correct
     version1 = utils.encode_freeze(freeze, version=1)
     assert version1 == checks["version1"]
+    version2 = utils.encode_freeze(freeze, version=2)
+    assert version2 == checks["version2"]
+
+    # Check that if a version is not defined, the default(2) is used.
+    # This is used if `Site.get("freeze_version")` is not defined.
+    version_none = utils.encode_freeze(freeze, version=None)
+    assert version_none == checks["version2"]
 
     # Check that other version encodings return nothing
     assert utils.encode_freeze(freeze, version=0) is None
-    assert utils.encode_freeze(freeze, version=2) is None
+    assert utils.encode_freeze(freeze, version=3) is None
