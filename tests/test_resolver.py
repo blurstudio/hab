@@ -287,7 +287,6 @@ def test_resolve_requirements_recalculate(resolver):
 
 
 def test_resolve_requirements_errors(resolver):
-
     # This requirement is not possible because the_dcc_plugin_b requires the_dcc<1.2
     requirements = {
         Requirement("the_dcc>1.1"): None,
