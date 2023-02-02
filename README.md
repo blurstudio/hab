@@ -81,29 +81,39 @@ frame to render using the same hab configuration not what ever it happens to
 resolve for that launch.
 
 To handle this the hab cli stores the current configuration in the `HAB_FREEZE`
-environment variable. It is prefixed with `vX:` to denote the version of freeze
-it was encoded with. Version 1 is stored as a base64 encoded json string. See
-`hab.utils.decode_freeze` to decode it.
+environment variable. You can even use a frozen config on other platforms as long
+as you properly configure `platform_path_maps` in your site config.
 
-You can even use a frozen config on other platforms as long as you properly
-configure `platform_path_maps` in your site config.
-
-Using the cli to save a freeze to disk as json using dump using `--format json`.
+The cli can be used to export these freezes. This example uses the cli to save a
+freeze to disk as json using dump using `--format json`.
 ```bash
 hab dump projectDummy --format freeze > /tmp/frozen_config.json
 ```
 
-Restoring a frozen config from a json file using the cli. This works for commands
+And to restore that frozen config from the json file. This works for commands
 other than `dump`.
 ```bash
 hab dump --unfreeze /tmp/frozen_config.json
 ```
 
 Similarly you can save/load the encoded freeze string using `--format freeze`.
+This is what is stored in the `HAB_FREEZE` environment variable.
 
 ```bash
 export frozen_config=$(hab dump app/nuke13 -f freeze)
 hab dump --unfreeze $frozen_config
+```
+
+A freeze string is prefixed with `vX:` to denote the version of freeze it was
+encoded with. See `hab.utils.encode_freeze` and `hab.utils.decode_freeze` to
+encode/decode each version of freeze strings.
+
+You can configure what version of freeze string is saved in `HAB_FREEZE` by
+setting the `freeze_version` key in your site json configuration. This should be
+an int value or None. If not specified(ie None), then the default version is used.
+
+```json
+{"set": {"freeze_version": 1}}
 ```
 
 ## API

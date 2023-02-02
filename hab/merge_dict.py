@@ -64,7 +64,7 @@ class MergeDict(object):
             # Format the individual items if a list of args is used.
             # return [v.format(**self.format_kwargs) for v in value]
             return [self.default_format(v) for v in value]
-        if isinstance(value, (bool, dict)):
+        if isinstance(value, (bool, dict, int)):
             return value
         ret = value.format(**self.format_kwargs)
 

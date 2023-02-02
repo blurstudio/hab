@@ -604,7 +604,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
             if hasattr(self, "freeze"):
                 # Always write the HAB_FREEZE environment variable
-                value = utils.encode_freeze(self.freeze())
+                value = utils.encode_freeze(
+                    self.freeze(), version=self.resolver.site.get("freeze_version")
+                )
                 fle.write(setter.format(key="HAB_FREEZE", value=value))
 
             if hasattr(self, "aliases") and self.aliases:
