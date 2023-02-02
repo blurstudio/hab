@@ -174,12 +174,19 @@ class Resolver(object):
     @classmethod
     def dump_forest(cls, forest, style=None):
         """Convert a forest dictionary to a readable string"""
+
+        def sort_foreset(items):
+            """Ensures consistent sorting of the forest leaf nodes"""
+            return sorted(items, key=lambda item: item.name)
+
         if style is None:
             style = anytree.render.AsciiStyle()
         ret = []
         for tree_name in sorted(forest):
             ret.append(tree_name)
-            tree = str(anytree.RenderTree(forest[tree_name], style))
+            tree = str(
+                anytree.RenderTree(forest[tree_name], style, childiter=sort_foreset)
+            )
             for line in tree.split("\n"):
                 ret.append("    {}".format(line))
         return "\n".join(ret)
