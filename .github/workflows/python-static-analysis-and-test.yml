@@ -44,11 +44,17 @@ jobs:
       github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name != github.repository
 
-    runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python: ['3.6', '3.7', '3.8', '3.9', '3.10']
+        os: ['ubuntu-latest']
+        python: ['3.7', '3.8', '3.9', '3.10']
+        # Works around the deprication of python 3.6 for ubuntu
+        # https://github.com/actions/setup-python/issues/544
+        include:
+          - os: 'ubuntu-20.04'
+            python: '3.6'
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -85,11 +91,17 @@ jobs:
       github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name != github.repository
 
-    runs-on: ubuntu-latest
-
     strategy:
       matrix:
+        os: ['ubuntu-latest']
         python: ['3.7', '3.8', '3.9', '3.10']
+        # Works around the deprication of python 3.6 for ubuntu
+        # https://github.com/actions/setup-python/issues/544
+        include:
+          - os: 'ubuntu-20.04'
+            python: '3.6'
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
