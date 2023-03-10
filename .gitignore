@@ -2,12 +2,14 @@
 *.pyc
 *.swp
 .coverage
+.coverage.*
 .DS_Store
 .eggs
 .pytest_cache
 .tox/
 __pycache__/
 build/
+coverage.xml
 dist/
 htmlcov/
 venv/

@@ -67,7 +67,7 @@ Code formatting is completed by [black]. By relinquishing code appearance standa
 
 Releases are made manually by project managers and will automatically be uploaded to PyPI (via GitHib Action workflow) once completed.
 
-[flake8]: https://gitlab.com/pycqa/flake8
+[flake8]: https://github.com/PyCQA/flake8
 [flake8-bugbear]: https://github.com/PyCQA/flake8-bugbear
 [pep8-naming]: https://github.com/PyCQA/pep8-naming
 [setup.cfg]: https://github.com/blurstudio/python-example/blob/master/setup.cfg
