@@ -1,0 +1,10 @@
+{
+    "description": "Bash for Windows: Tests `hab launch not_set/child pip` without passing arguments",
+    "ext": ".sh",
+    "launch": "pip",
+    "exiting": true,
+    "args": null,
+    "create_launch": true,
+    "platform": "win32",
+    "uri": "not_set/child"
+}

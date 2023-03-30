@@ -1,0 +1,10 @@
+{
+    "description": "PowerShell: Tests `hab activate not_set/child --launch pip` without arguments",
+    "ext": ".ps1",
+    "launch": "pip",
+    "exiting": false,
+    "args": null,
+    "create_launch": false,
+    "platform": "win32",
+    "uri": "not_set/child"
+}

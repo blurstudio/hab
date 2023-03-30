@@ -1,0 +1,10 @@
+{
+    "description": "Bash for Windows: Tests `hab env not_set/child`",
+    "ext": ".sh",
+    "launch": null,
+    "exiting": false,
+    "args": null,
+    "create_launch": true,
+    "platform": "win32",
+    "uri": "not_set/child"
+}
