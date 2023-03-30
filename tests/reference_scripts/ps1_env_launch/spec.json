@@ -1,0 +1,10 @@
+{
+    "description": "PowerShell: Tests hab env not_set/child --launch pip`",
+    "ext": ".ps1",
+    "launch": "pip",
+    "exiting": false,
+    "args": null,
+    "create_launch": true,
+    "platform": "win32",
+    "uri": "not_set/child"
+}

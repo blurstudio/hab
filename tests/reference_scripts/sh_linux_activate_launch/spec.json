@@ -1,0 +1,10 @@
+{
+    "description": "Bash for Linux: Tests `hab activate not_set/child --launch pip` without arguments",
+    "ext": ".sh",
+    "launch": "pip",
+    "exiting": false,
+    "args": null,
+    "create_launch": false,
+    "platform": "linux",
+    "uri": "not_set/child"
+}

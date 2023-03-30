@@ -17,6 +17,7 @@
         ],
         "linux": [
             ["maya", "/usr/local/bin/maya"],
+            ["mayapy", "/usr/local/bin/mayapy"],
             [
                 "pip",
                 [

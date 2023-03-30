@@ -1,0 +1,10 @@
+{
+    "description": "CMD: Tests `hab env not_set/child`",
+    "ext": ".bat",
+    "launch": null,
+    "exiting": false,
+    "args": null,
+    "create_launch": true,
+    "platform": "win32",
+    "uri": "not_set/child"
+}

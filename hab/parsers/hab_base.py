@@ -604,7 +604,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 args=args,
             )
 
-        return template.render(**kwargs)
+        # Note: jinja2' seems to be inconsistent with its trailing newlines depending
+        # on the template and its if statements, so force a single trailing newline
+        return template.render(**kwargs).rstrip() + "\n"
 
     def generate_alias_script(self, template, ext, alias, cfg):
         """Build a shell script for aliases that require their own script files(batch).
@@ -622,7 +624,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             loader=FileSystemLoader(TEMPLATES), trim_blocks=True, lstrip_blocks=True
         )
         template = environment.get_template(f"{template}{ext}")
-        return template.render(
+        kwargs = dict(
             alias=alias,
             cfg=cfg,
             ext=ext,
@@ -630,6 +632,10 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             hab_cfg=self,
             utils=utils,
         )
+
+        # Note: jinja2' seems to be inconsistent with its trailing newlines depending
+        # on the template and its if statements, so force a single trailing newline
+        return template.render(**kwargs).rstrip() + "\n"
 
     def _write_script(self, script_path, content):
         """Work function to save content to script script_path. If dump_scripts

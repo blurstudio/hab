@@ -1,0 +1,10 @@
+{
+    "description": "CMD: Tests hab env not_set/child --launch pip`",
+    "ext": ".bat",
+    "launch": "pip",
+    "exiting": false,
+    "args": null,
+    "create_launch": true,
+    "platform": "win32",
+    "uri": "not_set/child"
+}
