@@ -50,7 +50,6 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         self._filename = None
         self._dirname = None
         self._distros = NotSet
-        self._platform_override = None
         self._uri = NotSet
         self.parent = parent
         self.root_paths = set()
@@ -81,14 +80,6 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             fmt.format(v.name, v.filename)
             for v in sorted(value, key=lambda i: i.name.lower())
         ]
-
-    @property
-    def _platform(self):
-        """Returns the current operating system `windows` or `linux`."""
-        if self._platform_override:
-            # Provide a method for testing to always test for running on a specific os
-            return self._platform_override
-        return utils.platform()
 
     def check_environment(self, environment_config):
         """Check that the environment config only makes valid adjustments.
@@ -313,7 +304,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         that the variable should be unset.
         """
         if "environment" in self.frozen_data:
-            return self.frozen_data["environment"].get(self._platform, {})
+            return self.frozen_data["environment"].get(utils.Platform.name(), {})
 
         self.frozen_data["environment"] = {}
 
@@ -321,7 +312,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         if self.environment_config is not NotSet:
             self.merge_environment(self.environment_config)
 
-        return self.frozen_data["environment"].get(self._platform, {})
+        return self.frozen_data["environment"].get(utils.Platform.name(), {})
 
     @hab_property(verbosity=2)
     def environment_config(self):

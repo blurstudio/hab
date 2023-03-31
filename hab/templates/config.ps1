@@ -4,7 +4,7 @@ function PROMPT {"[$env:HAB_URI] $(Get-Location)>"}
 # Setting global environment variables:
 {% for key, value in hab_cfg.environment.items() %}
 {% if value %}
-    {% set value = utils.collapse_paths(value) %}
+    {% set value = utils.Platform.collapse_paths(value) %}
     {% set value = formatter.format(value, key=key, value=value) %}
 $env:{{ key }}="{{ value }}"
 {% else %}
@@ -27,7 +27,7 @@ function {{ alias }}() {
     $hab_bac_{{ alias_norm }} = Get-ChildItem env:
     {% for k, v in alias_env.items() %}
     {% if v %}
-        {% set v = utils.collapse_paths(v) %}
+        {% set v = utils.Platform.collapse_paths(v) %}
         {% set v = formatter.format(v, key=key, value=v) %}
     $env:{{ k }}="{{ v }}"
     {% else %}

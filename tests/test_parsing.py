@@ -663,7 +663,7 @@ def test_os_specific_linux(monkeypatch, resolver):
     """Check that if "os_specific" is set to true, only env vars for the current
     os are resolved."""
     # Simulate running on a linux platform.
-    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(utils, "Platform", utils.LinuxPlatform)
     cfg = resolver.resolve("not_set/os")
 
     assert cfg.environment["UNSET_VARIABLE_LIN"] is None
@@ -676,7 +676,7 @@ def test_os_specific_win(monkeypatch, resolver):
     """Check that if "os_specific" is set to true, only env vars for the current
     os are resolved."""
     # Simulate running on a windows platform
-    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(utils, "Platform", utils.WinPlatform)
     cfg = resolver.resolve("not_set/os")
 
     assert cfg.environment["UNSET_VARIABLE_WIN"] is None

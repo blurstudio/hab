@@ -1,7 +1,7 @@
 import logging
 from copy import deepcopy
 
-from .. import NotSet
+from .. import NotSet, utils
 from .config import Config
 from .meta import hab_property
 
@@ -29,7 +29,7 @@ class UnfrozenConfig(Config):
     def aliases(self):
         """List of the names and commands that need created to launch desired
         applications."""
-        return self.frozen_data.get("aliases", {}).get(self._platform, [])
+        return self.frozen_data.get("aliases", {}).get(utils.Platform.name(), [])
 
     @hab_property(verbosity=2)
     def inherits(self):

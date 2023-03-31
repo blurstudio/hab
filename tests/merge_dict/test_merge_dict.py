@@ -1,5 +1,4 @@
 import json
-import os
 
 import pytest
 
@@ -48,25 +47,25 @@ def test_apply_platform_wildcards(config_root, resolver, filename, platforms):
 
 def test_path_split(monkeypatch):
     # Check the pathsep argument is respected
-    assert utils.path_split("a:b", pathsep=":") == ['a', 'b']
-    assert utils.path_split("a;b", pathsep=";") == ['a', 'b']
-    assert utils.path_split("a-b", pathsep="-") == ['a', 'b']
+    assert utils.Platform.path_split("a:b", pathsep=":") == ['a', 'b']
+    assert utils.Platform.path_split("a;b", pathsep=";") == ['a', 'b']
+    assert utils.Platform.path_split("a-b", pathsep="-") == ['a', 'b']
 
     # Check if pathsep argument is not passed, the current os is respected
     # Windows
-    monkeypatch.setattr(os, 'pathsep', ";")
-    assert utils.path_split("a;b") == ['a', 'b']
-    assert utils.path_split("a:b") == ['a:b']
+    monkeypatch.setattr(utils, "Platform", utils.WinPlatform)
+    assert utils.Platform.path_split("a;b") == ['a', 'b']
+    assert utils.Platform.path_split("a:b") == ['a:b']
     # Linux/Mac
-    monkeypatch.setattr(os, 'pathsep', ":")
-    assert utils.path_split("a;b") == ['a;b']
-    assert utils.path_split("a:b") == ['a', 'b']
+    monkeypatch.setattr(utils, "Platform", utils.LinuxPlatform)
+    assert utils.Platform.path_split("a;b") == ['a;b']
+    assert utils.Platform.path_split("a:b") == ['a', 'b']
 
     # If a single windows file path is passed on linux/mac it's not split on ":"
-    assert utils.path_split(r"Z:\test", pathsep=":") == [r'Z:\test']
+    assert utils.Platform.path_split(r"Z:\test", pathsep=":") == [r'Z:\test']
     # TODO: This test covers the current behavior but ideally we can figure out
     # a way to prevent splitting the two windows file paths.
-    assert utils.path_split(r"Z:\test:X:test", pathsep=":") == [
+    assert utils.Platform.path_split(r"Z:\test:X:test", pathsep=":") == [
         "Z",
         r"\test",
         "X",

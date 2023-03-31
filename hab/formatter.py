@@ -1,5 +1,6 @@
 import string
-import sys
+
+from . import utils
 
 
 class Formatter(string.Formatter):
@@ -83,7 +84,7 @@ class Formatter(string.Formatter):
             return "ps"
         elif ext in (".sh", ""):
             # Assume no ext is a .sh file
-            if sys.platform == "win32":
+            if utils.Platform.name() == "windows":
                 return "shwin"
             else:
                 return "sh"

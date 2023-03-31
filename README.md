@@ -518,6 +518,34 @@ same configuration syntax you would use in a pip requirements file.
 
 The resolved versions matching the requested distros are shown in the `versions` property.
 
+### Platform specific code
+
+Hab works on windows, linux and mac(needs tested). To make it easier to handle
+platform specific code, it has all been moved into ``hab.utils.Platform`` instead
+of directly relying on ``sys.platform``, ``os.path``, etc. This also has the
+benefit of making it so the testing suite can test that hab works on for all
+platforms without needing to test your code individually on each platform.
+Ultimately we still need to test hab on each platform individually, but this
+should help reduce surprises when the CI/CD runs the tests on a platform you
+don't have easy access to when developing.
+
+Hab can be forced to simulate being run on a different platform by replacing
+the Platform object.
+
+```py
+hab.utils.Platform = hab.utils.WinPlatform
+hab.utils.Platform = utils.BasePlatform.get_platform('osx')
+# Restore the current platform
+hab.utils.Platform = BasePlatform.get_platform()
+```
+
+When working with tests, its recommended that you use the monkeypatch fixture.
+
+```py
+monkeypatch.setattr(utils, "Platform", utils.LinuxPlatform)
+monkeypatch.setattr(utils, "Platform", utils.WinPlatform)
+```
+
 # Debugging
 
 ## Debugging generated scripts

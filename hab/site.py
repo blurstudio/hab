@@ -30,7 +30,7 @@ class Site(UserDict):
 
     def __init__(self, paths=None, platform=None):
         if platform is None:
-            platform = utils.platform()
+            platform = utils.Platform.name()
         self.platform = platform
 
         # Add default data to all site instances. Site data is only valid for

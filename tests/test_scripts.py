@@ -1,5 +1,4 @@
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -61,7 +60,7 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
     # are testing the requested platform, not the current one.
     platform = spec["platform"]
     assert platform in ("linux", "mac", "win32")
-    monkeypatch.setattr(sys, 'platform', platform)
+    monkeypatch.setattr(utils, "Platform", utils.BasePlatform.get_platform(platform))
 
     cfg = resolver.resolve(spec["uri"])
     reference = config_root / "reference_scripts" / reference_name

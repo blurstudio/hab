@@ -1,5 +1,4 @@
-import sys
-
+from hab import utils
 from hab.formatter import Formatter
 from hab.parsers import Config
 
@@ -33,11 +32,11 @@ def test_language_from_ext(monkeypatch):
 
     # Bash formatting is different on windows for env vars
     with monkeypatch.context() as m:
-        m.setattr(sys, 'platform', "win32")
+        m.setattr(utils, "Platform", utils.WinPlatform)
         assert Formatter.language_from_ext('.sh') == "shwin"
         assert Formatter.language_from_ext('') == "shwin"
 
-        m.setattr(sys, 'platform', "anything_else")
+        m.setattr(utils, "Platform", utils.LinuxPlatform)
         assert Formatter.language_from_ext('.sh') == "sh"
         assert Formatter.language_from_ext('') == "sh"
 
