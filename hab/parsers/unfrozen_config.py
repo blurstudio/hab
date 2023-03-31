@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class UnfrozenConfig(Config):
     def __init__(self, frozen_data, resolver, uri=NotSet, forest=None):
-        super(UnfrozenConfig, self).__init__(None, resolver)
+        super().__init__(None, resolver)
         self.frozen_data = deepcopy(frozen_data)
 
         # Restore the HAB_URI env variable that was removed during freeze

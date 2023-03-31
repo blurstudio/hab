@@ -6,7 +6,7 @@ class _HabProperty(property):
     """
 
     def __init__(self, *args, **kwargs):
-        super(_HabProperty, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # Copy from the class, and store it on the instance. This makes it so we
         # can use isinstance checks against this class.
         cls = type(self)

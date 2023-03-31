@@ -17,7 +17,7 @@ class FlatConfig(Config):
     Default tree instead."""
 
     def __init__(self, original_node, resolver, uri=NotSet):
-        super(FlatConfig, self).__init__(original_node.forest, resolver)
+        super().__init__(original_node.forest, resolver)
         self.original_node = original_node
         self.filename = original_node.filename
         self.frozen_data["context"] = original_node.context
@@ -134,7 +134,7 @@ class FlatConfig(Config):
         that the variable should be unset.
         """
         if self.frozen_data.get("environment") is None:
-            super(FlatConfig, self).environment
+            super().environment
             # Add any environment variables defined by the linked versions
             for version in self.versions:
                 self.merge_environment(version.environment_config, obj=version)
