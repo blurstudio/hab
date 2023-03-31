@@ -283,7 +283,8 @@ class TestDump:
         cfg = resolver.resolve("not_set/child")
         # Check that dump formats versions nicely
         check = re.compile(
-            r'versions:  (?P<ver>maya2020==2020\.1)(?P<file>:  [\w:\\.\/-]+\.json)?'
+            r'versions:  (?P<ver>aliased==2\.0, maya2020==2020\.1)'
+            r'(?P<file>:  [\w:\\.\/-]+\.json)?'
         )
         # Versions are not shown with verbosity >= 1
         result = cfg.dump(color=False)
@@ -293,12 +294,17 @@ class TestDump:
         result = cfg.dump(verbosity=2, color=False)
         match = check.search(result)
         assert match.group('file') is None
-        assert match.group('ver') == u"maya2020==2020.1"
+        assert match.group('ver') == "aliased==2.0, maya2020==2020.1"
 
         # Verbosity 3 also shows the json file name
+        check = re.compile(
+            r'versions:  (?P<vera>aliased==2\.0)(?P<filea>:  [\w:\\.\/-]+\.json)?\n'
+            r'           (?P<verm>maya2020==2020\.1)(?P<filem>:  [\w:\\.\/-]+\.json)?'
+        )
         result = cfg.dump(verbosity=3, color=False)
         match = check.search(result)
-        assert match.group('file') is not None
+        assert match.group('filea') is not None
+        assert match.group('filem') is not None
 
     @pytest.mark.parametrize("uri", ("not_set/no_distros", "not_set/empty_lists"))
     def test_no_values(self, resolver, uri):
@@ -378,6 +384,11 @@ def test_flat_config(resolver):
         "FMT_FOR_OS": ["a{;}b;c:{PATH!e}{;}d"],
         "UNSET_VARIABLE": None,
         "HAB_URI": ["not_set/child"],
+        'ALIASED_GLOBAL_A': ['Global A'],
+        'ALIASED_GLOBAL_B': ['Global B'],
+        'ALIASED_GLOBAL_C': ['Global C'],
+        'ALIASED_GLOBAL_D': ['Global D'],
+        'ALIASED_GLOBAL_E': None,
     }
 
     assert ret.environment == check
@@ -580,24 +591,24 @@ def test_misc_coverage(resolver):
         cfg.load('invalid_path.json')
 
 
+# TODO: Simplify test_write_script checks to comparing to reference files
 @pytest.mark.parametrize(
     "launch,exiting,args,create_launch,launch_check",
     (
         (None, False, None, True, None),
-        # Note: We can't call doskey aliases from a batch script, so we have to
-        # pass the full actual aliased command.
-        ("pip", False, None, True, '"{alias}\\mayapy.exe" -m pip'),
-        ("pip", False, None, False, '"{alias}\\mayapy.exe" -m pip'),
-        ("pip", False, ["list"], True, '"{alias}\\mayapy.exe" -m pip list'),
-        ("pip", True, None, True, '"{alias}\\mayapy.exe" -m pip'),
+        ("pip", False, None, True, '\nCALL pip\n'),
+        ("pip", False, None, False, '\nCALL pip\n'),
+        ("pip", False, ["list"], True, '\nCALL pip list\n'),
+        ("pip", True, None, True, '\nCALL pip\n'),
     ),
 )
 def test_write_script_bat(
     resolver, tmpdir, launch, exiting, args, create_launch, launch_check
 ):
     cfg = resolver.resolve("not_set/child")
-    file_config = tmpdir.join("hab_config.bat")
-    file_launch = tmpdir.join("hab_launch.bat")
+    alias_dir = tmpdir / "aliases"
+    file_config = tmpdir / "hab_config.bat"
+    file_launch = tmpdir / "hab_launch.bat"
     # Batch is windows only, force the code to evaluate as if it was on windows
     cfg._platform_override = "windows"
     cfg.write_script(
@@ -624,21 +635,37 @@ def test_write_script_bat(
     assert 'set "TEST=case"' in config_text
     # Expanded "{PATH:e}" and "{;}" formatting is applied correctly
     assert 'set "FMT_FOR_OS=a;b;c:%PATH%;d"' in config_text
+    # Alias specific env vars were not mutated by the alias parsing
+    assert 'set "ALIASED_GLOBAL_A=Global A"' in config_text
+    assert 'set "ALIASED_GLOBAL_C=Global C"' in config_text
+    assert 'set ALIASED_GLOBAL_E=' in config_text
 
-    # Check that simple aliases are generated
-    assert (
-        r'C:\Windows\System32\doskey.exe maya="{}\maya.exe" $*'.format(alias)
-        in config_text
-    )
+    # Check that PATH env var is updated so cmd can find our alias scripts
+    assert f'set "PATH={alias_dir};%PATH%"' in config_text
+
+    # Check that aliases are generated
+    alias_txt = (alias_dir / "maya.bat").open().read()
+    assert f'"{alias}\\maya.exe" $*' in alias_txt
     # Check that list aliases are generated
-    assert (
-        r'C:\Windows\System32\doskey.exe pip="{}\mayapy.exe" -m pip $*'.format(alias)
-        in config_text
-    )
+    alias_txt = (alias_dir / "pip.bat").open().read()
+    assert f'"{alias}\\mayapy.exe" -m pip $*' in alias_txt
+
+    # Check that complex aliases set /unset env vars
+    alias_txt = (alias_dir / "global.bat").open().read()
+    split = alias_txt.find('list_vars.py $*')
+    assert split > 0, "Unable to find the alias command line"
+    pre = alias_txt[:split]
+    post = alias_txt[split:]
+    assert 'SETLOCAL' in pre
+    assert 'set "ALIASED_GLOBAL_A=Local A Prepend;Global A;Local A Append"' in pre
+    assert 'set "ALIASED_GLOBAL_C=Local C Set"' in pre
+    assert 'set ALIASED_GLOBAL_D=' in pre
+    # NOTE: No need to check for resetting env vars in batch
+    assert 'ENDLOCAL' in post
 
     # Check that the various launch arguments add the launch command correctly
     if launch_check:
-        assert launch_check.format(alias=alias) in config_text
+        assert launch_check in config_text
 
     if exiting:
         assert "exit" in config_text
@@ -682,34 +709,54 @@ def test_write_script_ps1(
 
     if create_launch:
         launch_text = file_launch.open().read()
+        ext = ' -NoExit' if not (exiting and create_launch) else ''
         assert (
-            'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{}"\n'.format(
-                file_config
-            )
+            f'powershell.exe{ext} -ExecutionPolicy Unrestricted . "{file_config}"\n'
             == launch_text
         )
     else:
         assert not file_launch.exists()
 
     assert 'function PROMPT {"[$env:HAB_URI] $(Get-Location)>"}' in config_text
-    assert '$env:TEST = "case"' in config_text
+    assert '$env:TEST="case"' in config_text
     # Expanded "{PATH:e}" and "{;}" formatting is applied correctly
-    assert '$env:FMT_FOR_OS = "a;b;c:$env:PATH;d"' in config_text
+    assert '$env:FMT_FOR_OS="a;b;c:$env:PATH;d"' in config_text
 
     # Check that simple aliases are generated
-    assert r"function maya() {{ {} $args }}".format(alias) in config_text
+    assert f"function maya() {{\n    {alias} $args\n}}" in config_text
     # Check that list aliases are generated
     alias = ntpath.join(ntpath.dirname(alias), "mayapy.exe")
-    assert r"function pip() {{ {} -m pip $args }}".format(alias) in config_text
+    assert f"function pip() {{\n    {alias} -m pip $args\n}}" in config_text
+
+    # Check that complex aliases set /unset env vars
+    match = re.search(
+        r"function global\(\) {(?P<pre>.+)(?P<alias>python .+ \$args)(?P<post>.+})\n}",
+        config_text,
+        re.MULTILINE | re.DOTALL,
+    )
+    pre = match.group('pre')
+    # TODO: this doesn't ensure the env var backup is before the env var setting
+    # The current env var is backed up before we modify
+    assert "$hab_bac_global = Get-ChildItem env:" in pre
+    # Environment variables are set before the alias is called
+    assert '$env:ALIASED_GLOBAL_A="Local A Prepend;Global A;Local A Append"' in pre
+    assert '$env:ALIASED_GLOBAL_C="Local C Set"' in pre
+    assert r"Remove-Item Env:\\ALIASED_GLOBAL_D -ErrorAction SilentlyContinue" in pre
+    # Variables we set are unset after the alias is run
+    post = match.group('post')
+    assert r"Remove-Item Env:\\ALIASED_GLOBAL_A -ErrorAction SilentlyContinue" in post
+    assert r"Remove-Item Env:\\ALIASED_GLOBAL_C -ErrorAction SilentlyContinue" in post
+    assert r"Remove-Item Env:\\ALIASED_GLOBAL_D -ErrorAction SilentlyContinue" in post
+    # The env var backup is restored
+    assert '$hab_bac_global | % { Set-Item "env:$($_.Name)" $_.Value }' in post
 
     # Check that the various launch arguments add the launch command correctly
     if launch_check:
         assert launch_check in config_text
 
-    if exiting:
-        assert "exit" in config_text
-    else:
-        assert "exit" not in config_text
+    # PowerShell's exit doesn't work like other shells. Calling it from inside a
+    # script doesn't cause the parent shell to exit. See the use of`-NoExit`.
+    assert "exit" not in config_text
 
 
 @pytest.mark.parametrize(
@@ -768,11 +815,35 @@ def test_write_script_sh(
     assert f'export FMT_FOR_OS="{fmt_check}"' in config_text
 
     # Check that simple aliases are generated
-    assert r"function maya() {" in config_text
-    assert r' "$@"; };export -f maya;' in config_text
+    assert "function maya() {\n" in config_text
+    assert ' "$@";\n}\nexport -f maya;' in config_text
     # Check that list aliases are generated
-    assert r'function pip() { ' in config_text
-    assert r' -m pip "$@"; };export -f pip;' in config_text
+    assert 'function pip() {\n' in config_text
+    assert ' -m pip "$@";\n}\nexport -f pip;' in config_text
+
+    # Check that complex aliases set /unset env vars
+    match = re.search(
+        r"function global\(\) {(?P<pre>.+)"
+        r"(?P<alias>python [^\"]+ \"\$@\";)"
+        r"(?P<post>.+)export -f global;",
+        config_text,
+        re.MULTILINE | re.DOTALL,
+    )
+    pre = match.group('pre')
+    # TODO: this doesn't ensure the env var backup is before the env var setting
+    # The current env var is backed up before we modify
+    assert "hab_bac_global=`export -p`" in pre
+    # Environment variables are set before the alias is called
+    assert 'export ALIASED_GLOBAL_A="Local A Prepend;Global A;Local A Append"' in pre
+    assert 'export ALIASED_GLOBAL_C="Local C Set"' in pre
+    assert "unset ALIASED_GLOBAL_D" in pre
+    # Variables we set are unset after the alias is run
+    post = match.group('post')
+    assert "unset ALIASED_GLOBAL_A" in post
+    assert "unset ALIASED_GLOBAL_C" in post
+    assert "unset ALIASED_GLOBAL_D" in post
+    # The env var backup is restored
+    assert 'eval "$hab_bac_global"' in post
 
     # Check that the various launch arguments add the launch command correctly
     if launch_check:

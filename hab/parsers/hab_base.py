@@ -6,7 +6,8 @@ import subprocess
 from pathlib import Path
 
 import anytree
-import colorama
+from colorama import Fore, Style
+from jinja2 import Environment, FileSystemLoader
 from packaging.version import Version
 
 from .. import NotSet, utils
@@ -17,6 +18,8 @@ from ..solvers import Solver
 from .meta import HabMeta, hab_property
 
 logger = logging.getLogger(__name__)
+
+TEMPLATES = Path(__file__).parent.parent / "templates"
 
 
 class HabBase(anytree.NodeMixin, metaclass=HabMeta):
@@ -71,7 +74,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
         # Include the definition of the version's path for debugging
         if color:  # pragma: no cover
-            fmt = f"{colorama.Fore.GREEN}{{}}{colorama.Style.RESET_ALL}:  {{}}"
+            fmt = f"{Fore.GREEN}{{}}{Style.RESET_ALL}:  {{}}"
         else:
             fmt = "{}:  {}"
         return [
@@ -296,8 +299,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         if color:  # pragma: no cover
             # Only colorize the uri name not the entire title line
             title = (
-                f"Dump of {name}({colorama.Fore.GREEN}'"
-                f"{self.fullpath}'{colorama.Style.RESET_ALL})"
+                f"Dump of {name}({Fore.GREEN}'" f"{self.fullpath}'{Style.RESET_ALL})"
             )
         else:
             title = f"Dump of {name}('{self.fullpath}')"
@@ -392,6 +394,12 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 self.format_environment_value(v, ext=ext, platform=platform)
                 for v in value
             ]
+        elif isinstance(value, dict):
+            # Format the values each dictionary pair
+            return {
+                k: self.format_environment_value(v, ext=ext, platform=platform)
+                for k, v in value.items()
+            }
 
         # Expand and format any variables like "relative_root" using the current
         # platform for paths.
@@ -510,47 +518,15 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
     @classmethod
     def shell_formats(cls, ext):
         """Returns a file ext specific dict that is used to write launch scripts"""
-        ret = {
-            "postfix": "",
-            "prefix": "",
-        }
+        ret = {}
         if ext in (".bat", ".cmd"):
-            ret["alias_setter"] = 'C:\\Windows\\System32\\doskey.exe {key}={value} $*\n'
-            ret["comment"] = "REM "
-            ret["env_setter"] = 'set "{key}={value}"\n'
-            ret["env_unsetter"] = 'set "{key}="\n'
-            ret["postfix"] = "@ECHO ON\n"
-            ret["prefix"] = "@ECHO OFF\n"
-            ret["prompt"] = 'set "PROMPT=[{uri}] $P$G"\n'
             ret["launch"] = 'cmd.exe /k "{path}"\n'
-            # You can't directly call a doskey alias in a batch script
-            ret["run_alias"] = '{value}{args}\n'
         elif ext == ".ps1":
-            ret["alias_setter"] = "function {key}() {{ {value} $args }}\n"
-            ret["comment"] = "# "
-            ret["env_setter"] = '$env:{key} = "{value}"\n'
-            ret[
-                "env_unsetter"
-            ] = "Remove-Item Env:\\{key} -ErrorAction SilentlyContinue\n"
-            # PROMPT is evaluated every time it is displayed so use the env var
-            ret["prompt"] = 'function PROMPT {{"[$env:HAB_URI] $(Get-Location)>"}}\n'
             ret[
                 "launch"
-            ] = 'powershell.exe -NoExit -ExecutionPolicy Unrestricted . "{path}"\n'
-            # Simply call the alias
-            ret["run_alias"] = "{key}{args}\n"
+            ] = 'powershell.exe{launch_args} -ExecutionPolicy Unrestricted . "{path}"\n'
         elif ext in (".sh", ""):  # Assume no ext is a .sh file
-            ret[
-                "alias_setter"
-            ] = 'function {key}() {{ {value} "$@"; }};export -f {key};\n'
-            ret["comment"] = "# "
-            ret["env_setter"] = 'export {key}="{value}"\n'
-            ret["env_unsetter"] = "unset {key}\n"
-            # For now just tack the hab uri onto the prompt
-            ret["prompt"] = 'export PS1="[{uri}] $PS1"\n'
             ret["launch"] = 'bash --init-file "{path}"\n'
-            # Simply call the alias
-            ret["run_alias"] = "{key}{args}\n"
 
         return ret
 
@@ -573,84 +549,169 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             version = Version(version)
         self.frozen_data["version"] = version
 
+    def generate_config_script(
+        self,
+        template,
+        ext,
+        alias_dir=None,
+        args=None,
+        create_launch=False,
+        exit=False,
+        launch=None,
+    ):
+        """Build a shell script for the requested template.
+
+        Args:
+            template (str): The name of the Jinja2 template file to generate with.
+            ext (str): The file extension of the script to generate including leading `.`.
+
+        Returns:
+            str: The rendered script.
+        """
+
+        environment = Environment(
+            loader=FileSystemLoader(TEMPLATES), trim_blocks=True, lstrip_blocks=True
+        )
+        template = environment.get_template(f"{template}{ext}")
+        kwargs = dict(
+            alias_dir=alias_dir,
+            args=args,
+            create_launch=create_launch,
+            exit=exit,
+            ext=ext,
+            formatter=Formatter(ext),
+            freeze=None,
+            hab_cfg=self,
+            launch_info={},
+            utils=utils,
+        )
+        if hasattr(self, "freeze"):
+            kwargs['freeze'] = utils.encode_freeze(
+                self.freeze(), version=self.resolver.site.get("freeze_version")
+            )
+        if launch:
+            # Write additional args into the launch command. This may not properly
+            # add quotes around windows file paths if writing a shell script.
+            # At this point we have lost the original double quote the user used.
+            if isinstance(args, list):
+                args = ' {}'.format(self.shell_escape(ext, args))
+            else:
+                args = ''
+
+            kwargs["launch_info"] = dict(
+                key=launch,
+                value=self.shell_escape(ext, self.aliases.get(launch, "")['cmd']),
+                args=args,
+            )
+
+        return template.render(**kwargs)
+
+    def generate_alias_script(self, template, ext, alias, cfg):
+        """Build a shell script for aliases that require their own script files(batch).
+
+        Args:
+            template (str): The name of the Jinja2 template file to generate with.
+            ext (str): The file extension of the script to generate including leading `.`.
+            alias (str): The name of the alias to generate.
+            cfg (dict): The configuration of the alias.
+
+        Returns:
+            str: The rendered script.
+        """
+        environment = Environment(
+            loader=FileSystemLoader(TEMPLATES), trim_blocks=True, lstrip_blocks=True
+        )
+        template = environment.get_template(f"{template}{ext}")
+        return template.render(
+            alias=alias,
+            cfg=cfg,
+            ext=ext,
+            formatter=Formatter(ext),
+            hab_cfg=self,
+            utils=utils,
+        )
+
+    def _write_script(self, script_path, content):
+        """Work function to save content to script script_path. If dump_scripts
+        is enabled, script_path is ignored and content is printed instead.
+        """
+        if self.resolver.dump_scripts:
+            self.print_script(script_path, content)
+        else:
+            with script_path.open("w") as fle:
+                fle.write(content)
+
     def write_script(
         self, script_dir, ext, launch=None, exit=False, args=None, create_launch=False
     ):
         """Write the configuration to a script file to be run by terminal."""
         script_dir = Path(script_dir)
         config_script = script_dir / f'hab_config{ext}'
+        alias_dir = script_dir / "aliases"
         shell = self.shell_formats(ext)
 
-        with config_script.open("w") as fle:
-            if shell["prefix"]:
-                fle.write(shell["prefix"])
+        content = self.generate_config_script(
+            "config",
+            ext,
+            alias_dir=alias_dir,
+            args=args,
+            create_launch=create_launch,
+            exit=exit,
+            launch=launch,
+        )
+        self._write_script(config_script, content)
 
-            # Create a custom prompt
-            fle.write("{}Customize the prompt\n".format(shell["comment"]))
-            fle.write(shell["prompt"].format(uri=self.uri))
-            fle.write("\n")
+        # Handle aliases that can't be defined in memory(batch) by writing
+        # additional scripts to disk
+        if ext in (".bat", ".cmd") and hasattr(self, "aliases"):
+            if not self.resolver.dump_scripts:
+                alias_dir.mkdir(exist_ok=True)
 
-            fle.write("{}Setting environment variables:\n".format(shell["comment"]))
-            for key, value in self.environment.items():
-                setter = shell["env_setter"]
-                if value:
-                    value = utils.collapse_paths(value)
-                    # Process any env conversion keys into the shell specific values.
-                    # For example convert `{PATH!e}` to `$PATH` if this is an.sh file
-                    value = Formatter(ext).format(value, key=key, value=value)
-                else:
-                    setter = shell["env_unsetter"]
-                fle.write(setter.format(key=key, value=value))
-
-            if hasattr(self, "freeze"):
-                # Always write the HAB_FREEZE environment variable
-                value = utils.encode_freeze(
-                    self.freeze(), version=self.resolver.site.get("freeze_version")
-                )
-                fle.write(setter.format(key="HAB_FREEZE", value=value))
-
-            if hasattr(self, "aliases") and self.aliases:
-                fle.write("\n")
-
-                fle.write(
-                    "{}Creating aliases to launch programs:\n".format(shell["comment"])
-                )
-                for alias in self.aliases:
-                    fle.write(
-                        shell["alias_setter"].format(
-                            key=alias, value=self.shell_escape(ext, self.aliases[alias])
-                        )
-                    )
-
-            # If launch was passed, call the requested command at the end of the script
-            if launch:
-                # Write additional args into the launch command. This may not properly
-                # add quotes around windows file paths if writing a shell script.
-                # At this point we have lost the original double quote the user used.
-                if isinstance(args, list):
-                    args = ' {}'.format(self.shell_escape(ext, args))
-                else:
-                    args = ''
-
-                launch_info = dict(
-                    key=launch,
-                    value=self.shell_escape(ext, self.aliases.get(launch, "")),
-                    args=args,
-                )
-                fle.write("\n")
-                fle.write("{}Run the requested command\n".format(shell["comment"]))
-                fle.write(shell["run_alias"].format(**launch_info))
-
-            # When using `hab launch`, we need to exit the shell that launch_script is
-            # going to create when the alias exits.
-            if exit and create_launch:
-                fle.write("\n")
-                fle.write("{}\n".format(shell.get("exit", "exit")))
-
-            if shell["postfix"]:
-                fle.write(shell["postfix"])
+            for alias, cfg in self.aliases.items():
+                content = self.generate_alias_script("alias", ext, alias=alias, cfg=cfg)
+                self._write_script(alias_dir / f"{alias}{ext}", content)
 
         if create_launch:
             launch_script = script_dir / f'hab_launch{ext}'
-            with launch_script.open("w") as fle:
-                fle.write(shell["launch"].format(path=config_script))
+            launch_args = ""
+            if ext == ".ps1":
+                # If we want PowerShell to stay open after the script exits pass
+                # `-NoExit` to the shell launch. Other shells allow us to simply
+                # call exit at the end of the configure script.
+                if not (exit and create_launch):
+                    launch_args = " -NoExit"
+
+            content = shell["launch"].format(
+                path=config_script, launch_args=launch_args
+            )
+            self._write_script(launch_script, content)
+
+    def print_script(self, filename, content):
+        """Prints a header including the filename and content.
+
+        Args:
+            filename (pathlib.Path): The name of the file contents is to be
+                written to.
+            content (str): Shell script that is to be written to filename.
+                If colorize is enabled, then syntax highlighting is applied
+                based on filenames extension.
+        """
+        colorize = self.resolver.site.get('colorize', True)
+        if colorize:
+            from pygments import highlight
+            from pygments.formatters import TerminalFormatter
+            from pygments.lexers import get_lexer_for_filename
+
+        # Print the name of the script being printed
+        if colorize:
+            header = f"{Fore.GREEN}-- Script: {filename} --{Fore.RESET}"
+        else:
+            header = f"-- Script: {filename} --"
+        print(header)
+
+        # Highlight and print the script contents
+        if colorize:
+            lexer = get_lexer_for_filename(filename)
+            content = highlight(content, lexer, TerminalFormatter())
+
+        print(content)
