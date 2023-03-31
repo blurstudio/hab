@@ -13,14 +13,18 @@ from hab.solvers import Solver
 
 def test_environment_variables(config_root, helpers, monkeypatch):
     """Check that Resolver's init respects the environment variables it uses."""
-    config_paths_env = utils.expand_paths(["a/config/path", "b/config/path"])
-    distro_paths_env = utils.expand_paths(["a/distro/path", "b/distro/path"])
-    config_paths_direct = utils.expand_paths(["z/config/path", "zz/config/path"])
-    distro_paths_direct = utils.expand_paths(["z/distro/path", "zz/distro/path"])
+    config_paths_env = utils.Platform.expand_paths(["a/config/path", "b/config/path"])
+    distro_paths_env = utils.Platform.expand_paths(["a/distro/path", "b/distro/path"])
+    config_paths_direct = utils.Platform.expand_paths(
+        ["z/config/path", "zz/config/path"]
+    )
+    distro_paths_direct = utils.Platform.expand_paths(
+        ["z/distro/path", "zz/distro/path"]
+    )
 
     # Set the config environment variables
     monkeypatch.setenv(
-        "HAB_PATHS", utils.collapse_paths([config_root / "site_env.json"])
+        "HAB_PATHS", utils.Platform.collapse_paths([config_root / "site_env.json"])
     )
 
     # configured by the environment
@@ -356,4 +360,4 @@ def test_path_expansion(resolver, value, check):
     assert resolver.distro_paths == check
 
     # Check that collapse_paths also works as expected
-    assert utils.collapse_paths('test_string') == str('test_string')
+    assert utils.Platform.collapse_paths('test_string') == str('test_string')

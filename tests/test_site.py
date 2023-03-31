@@ -1,4 +1,3 @@
-import sys
 from pathlib import PurePosixPath, PureWindowsPath
 
 import colorama
@@ -9,12 +8,12 @@ from hab import Site, utils
 
 def test_environment_variables(config_root, monkeypatch):
     paths = [config_root / "site_main.json"]
-    monkeypatch.setenv("HAB_PATHS", utils.collapse_paths(paths))
+    monkeypatch.setenv("HAB_PATHS", utils.Platform.collapse_paths(paths))
     site = Site()
     assert site.paths == paths
 
     paths.append(config_root / "site_override.json")
-    monkeypatch.setenv("HAB_PATHS", utils.collapse_paths(paths))
+    monkeypatch.setenv("HAB_PATHS", utils.Platform.collapse_paths(paths))
     site = Site()
     assert site.paths == paths
 
@@ -277,7 +276,7 @@ class TestOsSpecific:
         """Check that if "os_specific" is set to true, only vars for the current
         os are resolved."""
         # Simulate running on a linux platform.
-        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(utils, "Platform", utils.LinuxPlatform)
 
         paths = [config_root / "site_os_specific.json"]
         site = Site(paths)
@@ -290,7 +289,7 @@ class TestOsSpecific:
         """Check that if "os_specific" is set to true, only vars for the current
         os are resolved."""
         # Simulate running on a mac platform.
-        monkeypatch.setattr(sys, "platform", "darwin")
+        monkeypatch.setattr(utils, "Platform", utils.OsxPlatform)
 
         paths = [config_root / "site_os_specific.json"]
         site = Site(paths)
@@ -303,7 +302,7 @@ class TestOsSpecific:
         """Check that if "os_specific" is set to true, only vars for the current
         os are resolved."""
         # Simulate running on a windows platform
-        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(utils, "Platform", utils.WinPlatform)
 
         paths = [config_root / "site_os_specific.json"]
         site = Site(paths)
@@ -316,7 +315,7 @@ class TestOsSpecific:
 class TestPlatformPathMap:
     def test_linux(self, monkeypatch, config_root):
         """For linux check that various inputs are correctly processed."""
-        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(utils, "Platform", utils.LinuxPlatform)
         site = Site([config_root / "site_main.json"])
 
         # Check exact path matches are translated
@@ -337,7 +336,7 @@ class TestPlatformPathMap:
 
     def test_win(self, monkeypatch, config_root):
         """For windows check that various inputs are correctly processed."""
-        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(utils, "Platform", utils.WinPlatform)
         site = Site([config_root / "site_main.json"])
 
         # Check exact path matches are translated

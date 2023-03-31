@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import PurePosixPath, PureWindowsPath
 
 import pytest
@@ -46,7 +45,7 @@ def test_json_dumps():
 
 @pytest.mark.parametrize("platform,pathsep", (("win32", ";"), ("linux", ":")))
 def test_freeze(monkeypatch, config_root, platform, pathsep):
-    monkeypatch.setattr(sys, 'platform', platform)
+    monkeypatch.setattr(utils, "Platform", utils.WinPlatform)
     monkeypatch.setattr(os, 'pathsep', pathsep)
     site = Site([config_root / "site_main.json"])
     resolver = Resolver(site=site)
@@ -128,7 +127,7 @@ def test_unfreeze(config_root, resolver):
 
     # Check various class overrides
     assert cfg._dump_versions(cfg.versions) == sorted(frozen_config["versions"])
-    assert cfg.aliases == frozen_config["aliases"][cfg._platform]
+    assert cfg.aliases == frozen_config["aliases"][utils.Platform.name()]
     assert "dcc" in cfg.aliases
     assert cfg.fullpath == "not_set/distros"
     assert cfg.inherits is False

@@ -15,7 +15,7 @@ class MergeDict(object):
         self.site = site
 
         if platform is None:
-            platform = utils.platform()
+            platform = utils.Platform.name()
         self.platform = platform
 
     def apply_platform_wildcards(self, data, output=None):
@@ -96,9 +96,9 @@ class MergeDict(object):
             list: The joined a and b values.
         """
         if isinstance(a, str):
-            a = utils.path_split(a, pathsep=self.pathsep)
+            a = utils.Platform.path_split(a, pathsep=self.pathsep)
         if isinstance(b, str):
-            b = utils.path_split(b, pathsep=self.pathsep)
+            b = utils.Platform.path_split(b, pathsep=self.pathsep)
 
         if isinstance(a, dict):
             if isinstance(b, dict):

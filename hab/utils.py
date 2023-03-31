@@ -6,6 +6,7 @@ import re
 import sys
 import textwrap
 import zlib
+from abc import ABC, abstractmethod
 from collections import UserDict
 from collections.abc import KeysView
 from pathlib import Path, PurePath
@@ -28,13 +29,6 @@ colorama.init()
 
 re_windows_single_path = re.compile(r'^([a-zA-Z]:[\\\/][^:;]+)$')
 """A regex that can be used to check if a string is a single windows file path."""
-
-
-def collapse_paths(paths):
-    """Converts a list of paths into a string compatible with the os."""
-    if isinstance(paths, str):
-        return paths
-    return os.pathsep.join([str(p) for p in paths])
 
 
 def decode_freeze(txt):
@@ -212,15 +206,6 @@ def encode_freeze(data, version=None):
     return f'v{version}:{data.decode("utf-8")}'
 
 
-def expand_paths(paths):
-    """Converts path strings separated by ``os.pathsep`` and lists into
-    a list containing Path objects.
-    """
-    if isinstance(paths, str):
-        return [Path(p) for p in paths.split(os.pathsep)]
-    return [Path(p) for p in paths]
-
-
 class HabJsonEncoder(_json.JSONEncoder):
     """JsonEncoder class that handles non-supported objects like hab.NotSet."""
 
@@ -295,33 +280,126 @@ def path_forward_slash(path):
     return str(path).replace('\\', '/')
 
 
-def path_split(path, pathsep=None):
-    """Split a string by pathsep unless that path is a single windows path.
-    This is used to detect an windows file path on linux which uses `:` for path
-    separator and conflicts with the drive letter specification.
+class BasePlatform(ABC):
+    """Subclasses of BasePlatform are the interface hab uses to handle cross
+    platform code.
 
-    Args:
-        path (str): The string to split.
-        pathsep (str, optional): If not specified, `os.pathsep` is used.
-
-    Returns:
-        list: A list of individual paths.
+    The current platform is accessible via hab.utils.Platform which is set by
+    calling `BasePlatform.get_platform()`. To change the current platform, set
+    the subclass to Platform. `hab.utils.Platform = hab.utils.WinPlatform`
     """
-    if pathsep is None:
-        pathsep = os.pathsep
 
-    # If on linux we need to resolve a windows path we can't just use os.pathsep,
-    # check if this is a single windows file path and return it as a list.
-    if pathsep == ":" and re_windows_single_path.match(path):
-        return [path]
+    _name = None
+    _sep = ":"
 
-    return path.split(pathsep)
+    @classmethod
+    @abstractmethod
+    def check_name(cls, name):
+        """Checks if the provided name is valid for this class"""
+
+    @classmethod
+    def collapse_paths(cls, paths):
+        """Converts a list of paths into a string compatible with the os."""
+        if isinstance(paths, str):
+            return paths
+        return cls.pathsep().join([str(p) for p in paths])
+
+    @classmethod
+    def expand_paths(cls, paths):
+        """Converts path strings separated by ``cls.pathsep()`` and lists into
+        a list containing Path objects.
+        """
+        if isinstance(paths, str):
+            return [Path(p) for p in paths.split(cls.pathsep())]
+        return [Path(p) for p in paths]
+
+    @staticmethod
+    def get_platform(name=None):
+        """Returns the subclass matching the requested platform name. This can
+        be the value returned by sys.platform, BasePlatform.system(), or a name
+        returned by a subclass. See `check_name` for details.
+        """
+        if name is None:
+            name = BasePlatform.system()
+        # Note: This is a staticmethod because it should always look at its
+        # children not the current class's children
+        for c in BasePlatform.__subclasses__():
+            if c.check_name(name):
+                return c
+
+    @classmethod
+    def name(cls):
+        """The hab name for this platform."""
+        return cls._name
+
+    @classmethod
+    def path_split(cls, path, pathsep=None):
+        """Split a string by pathsep unless that path is a single windows path.
+        This is used to detect an windows file path on linux which uses `:` for
+        path separator and conflicts with the drive letter specification.
+
+        Args:
+            path (str): The string to split.
+            pathsep (str, optional): If not specified, `os.pathsep` is used.
+
+        Returns:
+            list: A list of individual paths.
+        """
+        if pathsep is None:
+            pathsep = cls.pathsep()
+
+        # If on linux we need to resolve a windows path we can't just use
+        # `os.path.pathsep`, check if this is a single windows file path and
+        # return it as a list.
+        if pathsep == ":" and re_windows_single_path.match(path):
+            return [path]
+
+        return path.split(pathsep)
+
+    @classmethod
+    def pathsep(cls):
+        """The path separator used by this platform."""
+        return cls._sep
+
+    @classmethod
+    def system(cls):
+        """Returns the current operating system as `windows`, `mac` or `linux`."""
+        if sys.platform == "darwin":
+            return "mac"
+        if sys.platform == "win32":
+            return "windows"
+        return "linux"
 
 
-def platform():
-    """Returns the current operating system as `windows`, `mac` or `linux`."""
-    if sys.platform == "darwin":
-        return "mac"
-    if sys.platform == "win32":
-        return "windows"
-    return "linux"
+class WinPlatform(BasePlatform):
+    _name = "windows"
+    _sep = ";"
+
+    @classmethod
+    def check_name(cls, name):
+        return name in ("win32", "windows")
+
+
+class LinuxPlatform(BasePlatform):
+    _name = "linux"
+
+    @classmethod
+    def check_name(cls, name):
+        return name.startswith("linux")
+
+
+class OsxPlatform(BasePlatform):
+    _name = "mac"
+
+    @classmethod
+    def check_name(cls, name):
+        return name in ("darwin", "osx")
+
+
+Platform = BasePlatform.get_platform()
+"""BasePlatform: Hab uses this variable to handle any platform specific operations
+and to know what the current platform is. This allows for centralization of
+platform specific code. It also allows the testing suite to switch to other
+platforms to prevent the need for a developer to test their changes on each
+platform individually, though the CI testing should still run on all platforms.
+"""

@@ -9,7 +9,7 @@ REM this script is running.
 SETLOCAL
 {% for k, v in alias_env.items() %}
 {% if v %}
-    {% set v = utils.collapse_paths(v) %}
+    {% set v = utils.Platform.collapse_paths(v) %}
     {% set v = formatter.format(v, key=key, value=v) %}
 set "{{ k }}={{ v }}"
 {% else %}

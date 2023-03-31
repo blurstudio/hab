@@ -5,7 +5,7 @@ set "PROMPT=[{{ hab_cfg.uri }}] $P$G"
 REM Setting global environment variables:
 {% for key, value in hab_cfg.environment.items() %}
 {% if value %}
-    {% set value = utils.collapse_paths(value) %}
+    {% set value = utils.Platform.collapse_paths(value) %}
     {% set value = formatter.format(value, key=key, value=value) %}
 set "{{ key }}={{ value }}"
 {% else %}

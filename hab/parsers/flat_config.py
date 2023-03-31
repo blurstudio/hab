@@ -2,7 +2,7 @@ import logging
 from copy import deepcopy
 from itertools import chain
 
-from .. import NotSet
+from .. import NotSet, utils
 from ..merge_dict import MergeDict
 from .config import Config
 from .meta import hab_property
@@ -104,7 +104,9 @@ class FlatConfig(Config):
                 # If a per-alias env var is also defined in the global env var's
                 # managed by hab, use that as the base env var, otherwise overwrite
                 # non-hab managed env vars as we do for global env vars.
-                global_env = self.frozen_data["environment"].get(self._platform, {})
+                global_env = self.frozen_data["environment"].get(
+                    utils.Platform.name(), {}
+                )
                 all_keys = chain(*data["environment"].values())
                 merged_env = {k: global_env[k] for k in all_keys if k in global_env}
                 merged_env = {platform: merged_env}
@@ -121,9 +123,9 @@ class FlatConfig(Config):
         """List of the names and commands that need created to launch desired
         applications."""
         if "aliases" in self.frozen_data:
-            return self.frozen_data.get("aliases", {}).get(self._platform, {})
+            return self.frozen_data.get("aliases", {}).get(utils.Platform.name(), {})
 
-        return self.frozen_data.get("aliases", {}).get(self._platform, {})
+        return self.frozen_data.get("aliases", {}).get(utils.Platform.name(), {})
 
     @property
     def environment(self):
@@ -143,7 +145,7 @@ class FlatConfig(Config):
                     "HAB_URI"
                 ] = [self.uri]
 
-        return self.frozen_data["environment"].get(self._platform, {})
+        return self.frozen_data["environment"].get(utils.Platform.name(), {})
 
     @property
     def fullpath(self):
