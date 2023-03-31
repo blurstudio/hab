@@ -27,7 +27,7 @@ class UnfrozenType(click.Path):
     def __init__(
         self, exists=True, path_type=Path, file_okay=True, resolve_path=True, **kwargs
     ):
-        super(UnfrozenType, self).__init__(
+        super().__init__(
             exists=exists,
             path_type=path_type,
             file_okay=file_okay,
@@ -41,7 +41,7 @@ class UnfrozenType(click.Path):
 
         # If its not a string, convert to a Path object matching requirements
         try:
-            data = super(UnfrozenType, self).convert(value, param, ctx)
+            data = super().convert(value, param, ctx)
         except ValueError:
             self.fail(
                 f"{value!r} is not a valid frozen version or file path.", param, ctx

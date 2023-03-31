@@ -17,11 +17,11 @@ class Config(HabBase):
         self.frozen_data["inherits"] = inherits
 
     def load(self, filename):
-        data = super(Config, self).load(filename)
+        data = super().load(filename)
         self.inherits = data.get("inherits", NotSet)
         return data
 
     @hab_property(verbosity=1, group=0)
     def uri(self):
         # Mark uri as a HabProperty so it is included in _properties
-        return super(Config, self).uri
+        return super().uri

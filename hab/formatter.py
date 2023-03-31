@@ -50,7 +50,7 @@ class Formatter(string.Formatter):
     }
 
     def __init__(self, language):
-        super(Formatter, self).__init__()
+        super().__init__()
         self.language = self.language_from_ext(language)
         self.current_field_name = None
 
@@ -60,12 +60,12 @@ class Formatter(string.Formatter):
                 self.current_field_name
             )
         else:
-            ret = super(Formatter, self).convert_field(value, conversion)
+            ret = super().convert_field(value, conversion)
         return ret
 
     def get_field(self, field_name, args, kwargs):
         self.current_field_name = field_name
-        ret = super(Formatter, self).get_field(field_name, args, kwargs)
+        ret = super().get_field(field_name, args, kwargs)
         return ret
 
     @classmethod
@@ -103,5 +103,5 @@ class Formatter(string.Formatter):
 
     def vformat(self, format_string, args, kwargs):
         kwargs = self.merge_kwargs(kwargs)
-        ret = super(Formatter, self).vformat(format_string, args, kwargs)
+        ret = super().vformat(format_string, args, kwargs)
         return ret

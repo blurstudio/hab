@@ -68,13 +68,13 @@ class DistroVersion(HabBase):
         self.distro_name = data.get("name")
         self.name = u"{}=={}".format(self.distro_name, self.version)
 
-        data = super(DistroVersion, self).load(filename, data=data)
+        data = super().load(filename, data=data)
 
         return data
 
     @hab_property()
     def version(self):
-        return super(DistroVersion, self).version
+        return super().version
 
     @version.setter
     def version(self, version):

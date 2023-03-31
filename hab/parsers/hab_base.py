@@ -45,7 +45,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
     _placeholder = None
 
     def __init__(self, forest, resolver, filename=None, parent=None, root_paths=None):
-        super(HabBase, self).__init__()
+        super().__init__()
         self.frozen_data = {}
         self._filename = None
         self._dirname = None
