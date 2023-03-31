@@ -2,7 +2,8 @@
     "name": "not_set",
     "context": [],
     "inherits": false,
-    "distros": {
-        "maya2020": []
-    }
+    "distros": [
+        "aliased",
+        "maya2020"
+    ]
 }

@@ -1,7 +1,9 @@
 import logging
 from copy import deepcopy
+from itertools import chain
 
 from .. import NotSet
+from ..merge_dict import MergeDict
 from .config import Config
 from .meta import hab_property
 
@@ -22,8 +24,12 @@ class FlatConfig(Config):
         self._uri = uri
         # Copy the properties from the inheritance system
         self._collect_values(self.original_node)
+        self._finalize_values()
 
     def _collect_values(self, node, default=False):
+        """Recursively process this config node and its parents until all
+        missing_values have been resolved or we run out of parents.
+        """
         logger.debug("Loading node: {} inherits: {}".format(node.name, node.inherits))
         self._missing_values = False
         # Use sort_key to ensure the properties are processed in the correct order
@@ -54,15 +60,70 @@ class FlatConfig(Config):
 
         return self._missing_values
 
-    @hab_property()
+    def _finalize_values(self):
+        """Post processing done after `_collect_values` is run."""
+
+        # Process version aliases, merging global env vars.
+        platform_aliases = {}
+        self.frozen_data["aliases"] = platform_aliases
+        for version in self.versions:
+            for platform, alias, data in self._process_version(version):
+                platform_aliases.setdefault(platform, {})[alias] = data
+
+    def _process_version(self, version):
+        """Generator that yields each finalized alias definition dictionary
+        to be stored in the frozen_data for aliases.
+
+        Yields:
+            tuple: 3 item tuple containing (platform, alias, alias_spec). The
+                alias_spec is stored in frozen_data under the other two keys.
+        """
+        if not version.aliases:
+            # There are no aliases to process, so we can simply exit
+            return
+
+        # TODO: Add support for the '*'' platform
+        for platform in self.resolver.site['platforms']:
+            aliases_def = version.aliases.get(platform, [])
+            aliases = [a[1] for a in aliases_def]
+
+            merger = MergeDict(platforms=[platform], relative_root=version.dirname)
+
+            for i, alias in enumerate(aliases_def):
+                # Ensure that we always have a dictionary for aliases
+                data = version.format_environment_value(aliases[i])
+                if not isinstance(data, dict):
+                    data = dict(cmd=data)
+
+                if "environment" not in data:
+                    yield platform, alias[0], data
+                    continue
+
+                # Merge and flatten the alias and global env var for the platform
+
+                # If a per-alias env var is also defined in the global env var's
+                # managed by hab, use that as the base env var, otherwise overwrite
+                # non-hab managed env vars as we do for global env vars.
+                global_env = self.frozen_data["environment"].get(self._platform, {})
+                all_keys = chain(*data["environment"].values())
+                merged_env = {k: global_env[k] for k in all_keys if k in global_env}
+                merged_env = {platform: merged_env}
+
+                # Update the global env vars with per-alias env vars
+                merger.apply_platform_wildcards(data["environment"], output=merged_env)
+
+                # Update the alias environment removing the redundant platform spec
+                data["environment"] = merged_env[platform]
+                yield platform, alias[0], data
+
+    @hab_property(process_order=120)
     def aliases(self):
         """List of the names and commands that need created to launch desired
         applications."""
-        if "aliases" not in self.frozen_data:
-            # Aliases are configured per version so populate them by calling this
-            self.versions
+        if "aliases" in self.frozen_data:
+            return self.frozen_data.get("aliases", {}).get(self._platform, {})
 
-        return self.frozen_data.get("aliases", {}).get(self._platform, [])
+        return self.frozen_data.get("aliases", {}).get(self._platform, {})
 
     @property
     def environment(self):
@@ -127,9 +188,6 @@ class FlatConfig(Config):
 
         # Lazily load the contents of versions the first time it's called
         if "versions" not in self.frozen_data:
-            # While processing versions, also populate aliases from the version
-            platform_aliases = {}
-            self.frozen_data["aliases"] = platform_aliases
             versions = []
             self.frozen_data["versions"] = versions
 
@@ -137,17 +195,5 @@ class FlatConfig(Config):
             for req in reqs.values():
                 version = self.resolver.find_distro(req)
                 versions.append(version)
-
-                # Populate the alias information while we are processing versions
-                platforms = self.resolver.site['platforms']
-                if version.aliases:
-                    for platform in platforms:
-                        aliases_def = version.aliases.get(platform, [])
-                        aliases = [a[1] for a in aliases_def]
-
-                        for i, alias in enumerate(aliases_def):
-                            platform_aliases.setdefault(platform, {})[
-                                alias[0]
-                            ] = version.format_environment_value(aliases[i])
 
         return self.frozen_data["versions"]

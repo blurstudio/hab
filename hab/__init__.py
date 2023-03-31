@@ -74,6 +74,12 @@ class Resolver(object):
         self._distros = None
         self.ignored = self.site['ignored_distros']
 
+        # If true, then all scripts are printed instead of being written to disk
+        # to allow for quick debugging of the underlying shell scripts driving hab
+        # If the files are not written to disk, the calling shell scripts will
+        # simply exit instead of running the requested command.
+        self.dump_scripts = False
+
     def closest_config(self, path, default=False):
         """Returns the most specific leaf or the tree root matching path. Ignoring any
         path names that don't exist in self.configs.

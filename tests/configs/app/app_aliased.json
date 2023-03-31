@@ -1,0 +1,8 @@
+{
+    "name": "aliased",
+    "context": ["app"],
+    "inherits": false,
+    "distros": [
+        "aliased"
+    ]
+}

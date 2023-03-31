@@ -1,8 +1,10 @@
 import logging
 import re
+import sys
 from pathlib import Path
 
 import click
+from colorama import Fore
 
 from . import Resolver, Site, __version__
 from .parsers.unfrozen_config import UnfrozenConfig
@@ -56,6 +58,7 @@ class SharedSettings(object):
         script_ext=None,
         pre=None,
         forced_requirements=None,
+        dump_scripts=False,
     ):
         self.verbosity = verbosity
         self.script_dir = Path(script_dir or ".").resolve()
@@ -63,6 +66,7 @@ class SharedSettings(object):
         self._resolver = None
         self.prereleases = pre
         self.forced_requirements = forced_requirements
+        self.dump_scripts = dump_scripts
         self.site = Site([Path(p) for p in site_paths])
 
     @property
@@ -73,6 +77,7 @@ class SharedSettings(object):
                 prereleases=self.prereleases,
                 forced_requirements=self.forced_requirements,
             )
+            self._resolver.dump_scripts = self.dump_scripts
         return self._resolver
 
     def write_script(
@@ -155,10 +160,20 @@ class SharedSettings(object):
     help="Forces this distro requirement ignoring normally resolved requirements. Using "
     "this may lead to configuring your environment incorrectly, use with caution.",
 )
+@click.option(
+    "--dump-scripts/--no-dump-scripts",
+    default=False,
+    help=(
+        "Print the generated scripts hab uses for this command instead of "
+        "running them. This does not work for dump."
+    ),
+)
 @click.pass_context
-def cli(ctx, site_paths, verbosity, script_dir, script_ext, pre, requirement):
+def cli(
+    ctx, site_paths, verbosity, script_dir, script_ext, pre, requirement, dump_scripts
+):
     ctx.obj = SharedSettings(
-        site_paths, verbosity, script_dir, script_ext, pre, requirement
+        site_paths, verbosity, script_dir, script_ext, pre, requirement, dump_scripts
     )
     if verbosity > 2:
         verbosity = 2
@@ -297,7 +312,24 @@ def activate(settings, uri, unfreeze, launch):
     """Resolves the setup and updates in the current shell.
 
     In powershell and bash you must use the source dot: ". hab activate ..."
+    WARNING: Not supported in Command Prompt currently.
     """
+    if settings.script_ext in (".bat", ".cmd"):
+        # The hab shell scripts clean up their temp script files before exiting.
+        # Due to batch not having a `function` feature we have to create the
+        # aliases as extra script files to support complex aliases. We can't use
+        # doskey if we want to support complex aliases. Another reason to avoid
+        # doskey, is that it leaks assignments to the parent command prompt when
+        # using it for env/launch so exiting doesn't get rid of aliases in those
+        # modes. The env/launch commands continue to run till the user exits, but
+        # activate exits immediately so the temp alias batch files get deleted
+        # before they can be used by the user/script breaking this command.
+        click.echo(
+            f"{Fore.RED}Not Supported:{Fore.RESET} Using hab activate in the "
+            "Command Prompt is not currently supported."
+        )
+        sys.exit(1)
+
     settings.write_script(uri, unfreeze=unfreeze, launch=launch)
 
 

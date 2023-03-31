@@ -538,8 +538,11 @@ will be removed.
 
 # Caveats
 
-* When using `hab env` in the command prompt, doskey aliases don't get cleared when you
-exit a context.
+* Using `hab activate` in the command prompt is disabled. Batch doesn't have a function
+feature like the other shells, so each alias is its own .bat file in a directory
+prepended to the PATH environment variable. Hab needs to clean up its temp scripts
+and due to how activate works, there isn't currently a method to do this. We don't
+use doskey so we can support complex aliases.
 * Powershell disables running .ps1 scripts disabled by default. If you get a error like
 `hab.ps1 cannot be loaded because running scripts is disabled on this system.`, you will
 need to launch the Powershell with this command `powershell -ExecutionPolicy Unrestricted`.

@@ -1,0 +1,84 @@
+{
+    "name": "aliased",
+    "aliases": {
+        "linux": [
+            [
+                "as_dict", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "prepend": {
+                            "ALIASED_LOCAL": "{relative_root}/test"
+                        }
+                    }
+                }
+            ],
+            ["as_list", ["python", "{relative_root}/list_vars.py"]],
+            ["as_str", "python"],
+            [
+                "global", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "append": {
+                            "ALIASED_GLOBAL_A": "Local A Append"
+                        },
+                        "prepend": {
+                            "ALIASED_GLOBAL_A": "Local A Prepend"
+                        },
+                        "set": {
+                            "ALIASED_GLOBAL_C": "Local C Set"
+                        },
+                        "unset": [
+                            "ALIASED_GLOBAL_D"
+                        ]
+                    }
+                }
+            ]
+        ],
+        "windows": [
+            [
+                "as_dict", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "prepend": {
+                            "ALIASED_LOCAL": "{relative_root}/test"
+                        }
+                    }
+                }
+            ],
+            ["as_list", ["python", "{relative_root}/list_vars.py"]],
+            ["as_str", "python"],
+            [
+                "global", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "append": {
+                            "ALIASED_GLOBAL_A": "Local A Append"
+                        },
+                        "prepend": {
+                            "ALIASED_GLOBAL_A": "Local A Prepend"
+                        },
+                        "set": {
+                            "ALIASED_GLOBAL_C": "Local C Set"
+                        },
+                        "unset": [
+                            "ALIASED_GLOBAL_D"
+                        ]
+                    }
+                }
+            ]
+        ]
+    },
+    "environment": {
+        "append": {
+            "ALIASED_GLOBAL_A": "Global A"
+        },
+        "set": {
+            "ALIASED_GLOBAL_B": "Global B",
+            "ALIASED_GLOBAL_C": "Global C",
+            "ALIASED_GLOBAL_D": "Global D"
+        },
+        "unset": [
+            "ALIASED_GLOBAL_E"
+        ]
+    }
+}

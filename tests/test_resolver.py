@@ -101,6 +101,9 @@ def test_dump_forest(resolver):
     result = resolver.dump_forest(resolver.configs)
     check = "\n".join(
         (
+            "app",
+            "    hab.parsers.placeholder.Placeholder('app')",
+            "    +-- hab.parsers.config.Config('app/aliased')",
             "default",
             "    hab.parsers.config.Config('default')",
             "    |-- hab.parsers.config.Config('default/Sc1')",
@@ -134,7 +137,7 @@ def test_dump_forest(resolver):
 def test_reduced(resolver, helpers):
     """Check that NotSet is used if no value is provided."""
     cfg = resolver.closest_config("not_set")
-    check = ["maya2020"]
+    check = ["aliased", "maya2020"]
     helpers.assert_requirements_equal(cfg.distros, check)
     assert cfg.environment_config == NotSet
     assert cfg.inherits is False
