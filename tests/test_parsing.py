@@ -184,6 +184,7 @@ def test_config_parenting(config_root, resolver):
 def test_metaclass():
     assert set(DistroVersion._properties.keys()) == set(
         [
+            "alias_mods",
             "aliases",
             "distros",
             "environment",
@@ -388,6 +389,7 @@ def test_flat_config(resolver):
         'ALIASED_GLOBAL_C': ['Global C'],
         'ALIASED_GLOBAL_D': ['Global D'],
         'ALIASED_GLOBAL_E': None,
+        'ALIASED_GLOBAL_F': ['Global F'],
     }
 
     assert ret.environment == check
@@ -683,3 +685,91 @@ def test_os_specific_win(monkeypatch, resolver):
     assert cfg.environment["SET_VARIABLE_WIN"] == ["set_value_win"]
     assert cfg.environment["APPEND_VARIABLE_WIN"] == ["append_value_win"]
     assert cfg.environment["PREPEND_VARIABLE_WIN"] == ["prepend_value_win"]
+
+
+def test_alias_mods_global(resolver):
+    """Check the various operations that alias_mod creates."""
+    cfg = resolver.resolve("app/aliased/mod")
+    alias = cfg.aliases["global"]
+
+    # Check global hab managed env vars
+    assert cfg.environment['ALIASED_GLOBAL_A'] == ['Global A']
+    assert cfg.environment['ALIASED_GLOBAL_B'] == ['Global B']
+    assert cfg.environment['ALIASED_GLOBAL_C'] == ['Global C']
+    assert cfg.environment['ALIASED_GLOBAL_D'] == ['Global D']
+    assert cfg.environment['ALIASED_GLOBAL_E'] is None
+    assert cfg.environment['ALIASED_GLOBAL_F'] == ['Global F']
+    assert cfg.environment['ALIASED_MOD_GLOBAL_A'] == ['Global Mod A']
+
+    # Check cmd is expected
+    assert alias["cmd"][0] == "python"
+    assert alias["cmd"][1].endswith("list_vars.py")
+
+    env = alias["environment"]
+    # Check that order of prepend/append env vars is correct from all sources
+    # Order of processing of env vars: Global hab, alias, alias_mod.
+    assert env["ALIASED_GLOBAL_A"] == [
+        # 4. Prepended alias_mod env var processed last
+        "Local Mod A",
+        # 2. Prepend alias defined env var
+        "Local A Prepend",
+        # 1. Hab defined global env vars are added first
+        "Global A",
+        # 3. Append alias defined env var
+        "Local A Append",
+    ]
+    # Set by alias env var(replace value)
+    assert env["ALIASED_GLOBAL_C"] == ["Local C Set"]
+    # This variable is unset for this alias(removing global value)
+    assert env["ALIASED_GLOBAL_D"] is None
+    # Set globally, and is being prepended by alias_mod
+    assert env["ALIASED_GLOBAL_F"] == ["Local Mod F", "Global F"]
+    # Set globally by aliased_mod, modified by aliased_mod
+    assert env["ALIASED_MOD_LOCAL_B"] == ["Local Mod B"]
+
+
+def test_alias_mods_as_list(resolver):
+    """Check that non-dict defined aliases are modified correctly"""
+    cfg = resolver.resolve("app/aliased/mod")
+    alias = cfg.aliases["global"]
+
+    # Check cmd is expected
+    assert alias["cmd"][0] == "python"
+    assert alias["cmd"][1].endswith("list_vars.py")
+
+    # Env var can be set by alias_mod without any other hab management
+    assert alias["environment"]["ALIASED_MOD_LOCAL_B"] == ["Local Mod B"]
+
+
+def test_alias_mods_as_dict(resolver):
+    """Additional tests for alias_mod."""
+    cfg = resolver.resolve("app/aliased/mod")
+    alias = cfg.aliases["as_dict"]
+
+    # Check cmd is expected
+    assert alias["cmd"][0] == "python"
+    assert alias["cmd"][1].endswith("list_vars.py")
+
+    env = alias["environment"]
+
+    # Check alias_mod is prepended to alias defined env var
+    assert env['ALIASED_LOCAL'][0].endswith("modified")
+    assert env['ALIASED_LOCAL'][1].endswith('test')
+    # Env var can be set by alias_mod without any other hab management
+    assert env['ALIASED_MOD_LOCAL_A'] == ['Local Mod A']
+
+
+def test_duplicates(resolver):
+    """Ensure consistent handling of duplicate alias names."""
+
+    # houdini18.5 is the first distro, it's duplicate generic alias is used
+    cfg = resolver.resolve("app/houdini/a")
+    assert '18.5' in cfg.aliases["houdini"]["cmd"]
+    assert '18.5' in cfg.aliases["houdini18.5"]["cmd"]
+    assert '19.5' in cfg.aliases["houdini19.5"]["cmd"]
+
+    # houdini19.5 is the first distro, it's duplicate generic alias is used
+    cfg = resolver.resolve("app/houdini/b")
+    assert '19.5' in cfg.aliases["houdini"]["cmd"]
+    assert '18.5' in cfg.aliases["houdini18.5"]["cmd"]
+    assert '19.5' in cfg.aliases["houdini19.5"]["cmd"]

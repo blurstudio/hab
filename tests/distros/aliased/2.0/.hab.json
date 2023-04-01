@@ -75,7 +75,8 @@
         "set": {
             "ALIASED_GLOBAL_B": "Global B",
             "ALIASED_GLOBAL_C": "Global C",
-            "ALIASED_GLOBAL_D": "Global D"
+            "ALIASED_GLOBAL_D": "Global D",
+            "ALIASED_GLOBAL_F": "Global F"
         },
         "unset": [
             "ALIASED_GLOBAL_E"

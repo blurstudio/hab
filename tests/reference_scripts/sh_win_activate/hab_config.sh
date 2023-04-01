@@ -9,6 +9,7 @@ unset ALIASED_GLOBAL_E
 export ALIASED_GLOBAL_B="Global B"
 export ALIASED_GLOBAL_C="Global C"
 export ALIASED_GLOBAL_D="Global D"
+export ALIASED_GLOBAL_F="Global F"
 export ALIASED_GLOBAL_A="Global A"
 export HAB_URI="not_set/child"
 export HAB_FREEZE="{{ freeze }}"

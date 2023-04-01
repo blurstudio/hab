@@ -1,0 +1,10 @@
+{
+    "name": "a",
+    "context": ["app", "houdini"],
+    "description": "Test that the duplicated alias houdini is resolved against 18.5.",
+    "inherits": false,
+    "distros": [
+        "houdini18.5",
+        "houdini19.5"
+    ]
+}

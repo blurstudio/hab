@@ -1,0 +1,62 @@
+{
+    "name": "aliased_mod",
+    "description": "Modifies the aliases defined in the aliased distro.",
+    "alias_mods": {
+        "as_dict": {
+            "environment": {
+                "os_specific": true,
+                "linux": {
+                    "prepend": {
+                        "ALIASED_LOCAL": "{relative_root}/modified",
+                        "ALIASED_MOD_LOCAL_A": "Local Mod A"
+                    }
+                },
+                "windows": {
+                    "prepend": {
+                        "ALIASED_LOCAL": "{relative_root}/modified",
+                        "ALIASED_MOD_LOCAL_A": "Local Mod A"
+                    }
+                }
+            }
+        },
+        "as_list": {
+            "environment": {
+                "os_specific": true,
+                "linux": {
+                    "prepend": {
+                        "ALIASED_MOD_LOCAL_B": "Local Mod B"
+                    }
+                },
+                "windows": {
+                    "prepend": {
+                        "ALIASED_MOD_LOCAL_B": "Local Mod B"
+                    }
+                }
+            }
+        },
+        "global": {
+            "environment": {
+                "os_specific": true,
+                "linux": {
+                    "prepend": {
+                        "ALIASED_GLOBAL_A": "Local Mod A",
+                        "ALIASED_MOD_LOCAL_B": "Local Mod B",
+                        "ALIASED_GLOBAL_F": "Local Mod F"
+                    }
+                },
+                "windows": {
+                    "prepend": {
+                        "ALIASED_GLOBAL_A": "Local Mod A",
+                        "ALIASED_MOD_LOCAL_B": "Local Mod B",
+                        "ALIASED_GLOBAL_F": "Local Mod F"
+                    }
+                }
+            }
+        }
+    },
+    "environment": {
+        "set": {
+            "ALIASED_MOD_GLOBAL_A": "Global Mod A"
+        }
+    }
+}
