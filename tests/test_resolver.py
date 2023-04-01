@@ -107,7 +107,11 @@ def test_dump_forest(resolver):
         (
             "app",
             "    hab.parsers.placeholder.Placeholder('app')",
-            "    +-- hab.parsers.config.Config('app/aliased')",
+            "    |-- hab.parsers.config.Config('app/aliased')",
+            "    |   +-- hab.parsers.config.Config('app/aliased/mod')",
+            "    +-- hab.parsers.placeholder.Placeholder('app/houdini')",
+            "        |-- hab.parsers.config.Config('app/houdini/a')",
+            "        +-- hab.parsers.config.Config('app/houdini/b')",
             "default",
             "    hab.parsers.config.Config('default')",
             "    |-- hab.parsers.config.Config('default/Sc1')",

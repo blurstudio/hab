@@ -214,12 +214,11 @@ When using freeze, all of these platforms will be stored. Defaults to linux, mac
 * `prereleases`: If pre-release distros should be allowed. Works the same as
 `pip install --pre ...`.
 
-`config_paths` and `distro_paths` take one or more glob paths separated by `os.pathsep`.
-The paths are processed left to right. For a given glob string in these variables you
-can not have duplicate values. For configs a duplicate is two configs with the same URI.
-A duplicate distro is two distros with the same name and version. If this happens a
-`DuplicateJsonError` is raised. This prevents developers from copying a config and
-forgetting to update its context.
+`config_paths` and `distro_paths` take a list of glob paths. For a given glob
+string in these variables you can not have duplicate values. For configs a
+duplicate is two configs with the same URI. A duplicate distro is two distros
+with the same name and version. If this happens a `DuplicateJsonError` is raised.
+This prevents developers from copying a config and forgetting to update its context.
 
 You can however have duplicates across individual glob paths. The glob paths are processed
 left to right and the first config/distro is used, any subsequent duplicates are ignored
@@ -267,7 +266,7 @@ additional requirements.
 
 A recommended released distro folder structure: `[name]\[version]\.hab.json`.
 The `[name]` folder is referenced by one of the disto_path globs. This makes it easy
-to store multiple versions of the distro. Each glob specified by `HAB_DISTRO_PATHS` will
+to store multiple versions of the distro. Each glob specified by `distro_paths` will
 automatically have `/*/.hab.json` added to it, so the `.hab.json` file should
 be in the root of a version folder. The root of the version folder is likely the root of
 a git repo.
@@ -296,12 +295,16 @@ In most cases  you will not define version in `.hab.json`. If not defined, the
 parent folder is used as the version. This makes it easy for automated deployments
 without needing to modify a file checked into version control.
 
-You will note that I'm using the version of maya in the name. This allows you to provide
-access to multiple versions of the Maya application. Only one version of a given distro
-name is going to be used so if you need access to multiple versions of maya you must use
-this method. If there are duplicate alias names, only one will be provided and it is not
-consistent, so you should define version specific aliases as well if you plan to use
-more than one for a given config.
+You will note that we are using the version of maya in name. This allows you to
+provide access to multiple versions of the Maya application. Only one version of
+a given distro name is going to be used so if you need access to multiple versions
+of maya you must use this method. If an duplicate alias is defined, it is ignored.
+The order distros are specified controls which duplicate alias is used, so make
+sure the distro you want to use for a generic alias is specified before the others.
+See [app/houdini/a](tests/configs/app/app_houdini_a.json) and
+[app/houdini/b](tests/configs/app/app_houdini_b.json) for an example of how this
+is controlled. Both of these configs end up adding the aliases `houdini`,
+`houdini18.5` and `houdini19.5`, but the `houdini` alias is configured differently.
 
 #### Specifying distro version
 
@@ -393,35 +396,117 @@ on windows(including bash).
 
 ### Defining Aliases
 
-Aliases are normally defined for distros. They provide information to create a command
-in the terminal and what program that command runs. The top level dictionary is specifies
-the operating system this alias is for. Each alias is defined as a two part list where
-the first item is the name of the created alias command. The second argument is a string
-or list of strings of the actual command to run. If you need to pass hard coded
-arguments to the alias command you should use a list.
+Aliases are used to run a program in a specific way. The hab cli creates shell
+commands for each alias. Aliases are defined on distros, and per-platform.
 
 ```json
+{
+    "name": "aliased",
     "aliases": {
         "windows": [
-            ["hython", "C:/Program Files/Side Effects Software/Houdini 19.0.578/bin/hython.exe"],
             [
-                "usdview",
-                [
-                    "C:/Program Files/Side Effects Software/Houdini 19.0.578/bin/hython",
-                    "C:/Program Files/Side Effects Software/Houdini 19.0.578/bin/usdview"
-                ]
+                "as_dict", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "prepend": {
+                            "ALIASED_GLOBAL_A": "Local A Prepend",
+                            "ALIASED_LOCAL": "{relative_root}/test"
+                        }
+                    }
+                }
             ],
-        ],
-        "linux": [
-            ["hython", "/opt/hfs19.0.578/bin/hython"]
+            ["as_list", ["python", "{relative_root}/list_vars.py"]],
+            ["as_str", "python"]
         ]
+    },
+    "environment": {
+        "set": {
+            "ALIASED_GLOBAL_A": "Global A"
+        }
     }
+}
 ```
 
-`HabBase.aliases` is reduced to just the current operating system's aliases. Ie if
-this is run on windows, you would have access to both the hython and usdview alias, but
-on linux you would only have access to hython.
+This example distro shows the various ways you can define aliases. Each alias is
+defined as a two part list where the first item is the name of the created alias
+command. The second argument is the actual command to run and configuration
+definition.
 
+Ultimately all alias definitions are turned into dictionaries like `as_dict`, but
+you can also define aliases as lists of strings or a single string. It's
+recommended that you use a list of strings for any commands that require multiple
+arguments, for more details see args documentation in
+[subprocess.Popen](https://docs.python.org/3/library/subprocess.html#subprocess.Popen).
+
+
+#### Complex Aliases
+
+`as_list` and `as_str` show simple aliases. Ie aliases that just need to run a
+command from inside the current hab environment. They inherit the environment
+from the active hab config.
+
+`as_dict` shows a complex alias, that also inherits the environment from the
+active hab config, but in this case prepends an additional value on
+`ALIASED_GLOBAL_A`. While this distro is in use, the environment variable
+`ALIASED_GLOBAL_A` will be set to `Global A`. However while you are using the
+alias `as_dict`, the variable will be set to `Local A Prepend;Global A`.
+
+Complex Aliases have two keys:
+1. `cmd` is the command to run. When list or str defined aliases are resolved,
+their value is stored under this key.
+2. `environment`: A set of env var configuration options. For details on this
+format, see [Defining Environments](#defining-environments). This is not
+os_specific due to aliases already being defined per-platform.
+
+**Use Case:** You want to add a custom AssetResolver to USD for Maya, Houdini,
+and standalone usdview. To get this to work, you need to compile your plugin
+against each of these applications unique compiling requirements. This means that
+you also need to set the env var `PXR_PLUGINPATH_NAME` to a unique path for each
+application. Maya's .mod files and houdini's plugin json files make it relatively
+easy for the distro to update the global env vars `MAYA_MODULE_PATH` and
+`HOUDINI_PACKAGE_DIR` to application specific configs setting the env var correctly.
+However, that doesn't work for the standalone usdview application which doesn't
+have a robust plugin loading system that can resolve application specific dll/so
+files at startup. If you were to set the `PXR_PLUGINPATH_NAME` env var globally,
+it would break houdini and maya as they would try to load the standalone path.
+This is where complex aliases are useful. The usd distro can define an complex
+alias to launch usdview that only adds the path to your standalone plugin to
+`PXR_PLUGINPATH_NAME` only when that alias is launched.
+
+#### Alias Mods
+
+Alias mods provide a way for a distro to modify another distro's aliases. This
+is useful for plugins that need to modify more than one host application
+independently.
+
+```json
+{
+    "name": "aliased_mod",
+    "alias_mods": {
+        "as_list": {
+            "environment": {
+                "os_specific": true,
+                "windows": {
+                    "set": {
+                        "ALIASED_MOD_LOCAL_B": "Local Mod B"
+                    }
+                }
+            }
+        }
+    },
+}
+```
+This example is forcing an the env var `ALIASED_MOD_LOCAL_B` to `Local Mod B` if
+the resolved config has the alias `as_list`. Assuming the above aliased and this
+aliased_mod distro are loaded, then the resulting `as_list` command would now set
+the `ALIASED_MOD_LOCAL_B` env var to `Local Mod B` before calling its cmd.
+Currently only the environment key is supported, and is os_specific.
+
+**Use Case:** The complex alias use case has a drawback, it ties your usd version
+to a specific usd plugin release. You likely will have multiple releases of your
+plugin for the same usd version, as well as having multiple plugins you want to
+version independently. To do this you can define a distro for each USD plugin,
+and modify the `PXR_PLUGINPATH_NAME` env var for usdview using alias_mods.
 
 ### Defining Environments
 

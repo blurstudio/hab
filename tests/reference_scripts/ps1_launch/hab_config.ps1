@@ -9,6 +9,7 @@ Remove-Item Env:\\ALIASED_GLOBAL_E -ErrorAction SilentlyContinue
 $env:ALIASED_GLOBAL_B="Global B"
 $env:ALIASED_GLOBAL_C="Global C"
 $env:ALIASED_GLOBAL_D="Global D"
+$env:ALIASED_GLOBAL_F="Global F"
 $env:ALIASED_GLOBAL_A="Global A"
 $env:HAB_URI="not_set/child"
 $env:HAB_FREEZE="{{ freeze }}"

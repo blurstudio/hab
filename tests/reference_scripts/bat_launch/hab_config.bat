@@ -10,6 +10,7 @@ set ALIASED_GLOBAL_E=
 set "ALIASED_GLOBAL_B=Global B"
 set "ALIASED_GLOBAL_C=Global C"
 set "ALIASED_GLOBAL_D=Global D"
+set "ALIASED_GLOBAL_F=Global F"
 set "ALIASED_GLOBAL_A=Global A"
 set "HAB_URI=not_set/child"
 set "HAB_FREEZE={{ freeze }}"

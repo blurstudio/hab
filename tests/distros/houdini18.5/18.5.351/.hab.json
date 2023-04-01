@@ -1,0 +1,20 @@
+{
+    "name": "houdini18.5",
+    "version": "18.5.351",
+    "aliases": {
+        "linux": [
+            ["houdini", "/opt/hfs18.5.351/bin/houdini"],
+            ["houdini18.5", "/opt/hfs18.5.351/bin/houdini"]
+        ],
+        "windows": [
+            [
+                "houdini",
+                "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\houdini.exe"
+            ],
+            [
+                "houdini18.5",
+                "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\houdini.exe"
+            ]
+        ]
+    }
+}

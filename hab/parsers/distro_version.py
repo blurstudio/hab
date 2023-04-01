@@ -14,6 +14,10 @@ class DistroVersion(HabBase):
     _context_method = "name"
     _placeholder = Distro
 
+    def __init__(self, *args, **kwargs):
+        self._alias_mods = NotSet
+        super().__init__(*args, **kwargs)
+
     @hab_property()
     def aliases(self):
         """List of the names and commands that need created to launch desired
@@ -24,10 +28,19 @@ class DistroVersion(HabBase):
     def aliases(self, aliases):
         self.frozen_data["aliases"] = aliases
 
+    @hab_property()
+    def alias_mods(self):
+        """List of the names and commands that need created to launch desired
+        applications."""
+        return self._alias_mods
+
     def load(self, filename):
         # Fill in the DistroVersion specific settings before calling super
         data = self._load(filename)
+
         self.aliases = data.get("aliases", NotSet)
+        # Store any alias_mods, they will be processed later when flattening
+        self._alias_mods = data.get("alias_mods", NotSet)
 
         # The version can be stored in several ways to make deployment and dev easier
         version_txt = self.dirname / ".hab_version.txt"

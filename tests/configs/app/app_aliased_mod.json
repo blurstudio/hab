@@ -1,0 +1,9 @@
+{
+    "name": "mod",
+    "context": ["app", "aliased"],
+    "inherits": true,
+    "distros": [
+        "aliased",
+        "aliased_mod"
+    ]
+}
