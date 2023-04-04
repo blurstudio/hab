@@ -8,7 +8,7 @@ SETLOCAL
 set "ALIASED_LOCAL={{ config_root }}/distros/aliased/2.0/test"
 
 REM Run alias command
-python {{ config_root }}/distros/aliased/2.0/list_vars.py $*
+python {{ config_root }}/distros/aliased/2.0/list_vars.py %*
 
 REM Clear the alias specific environment variables before exiting the script
 ENDLOCAL
