@@ -10,7 +10,7 @@ set "ALIASED_GLOBAL_C=Local C Set"
 set ALIASED_GLOBAL_D=
 
 REM Run alias command
-python {{ config_root }}/distros/aliased/2.0/list_vars.py $*
+python {{ config_root }}/distros/aliased/2.0/list_vars.py %*
 
 REM Clear the alias specific environment variables before exiting the script
 ENDLOCAL

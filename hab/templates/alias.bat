@@ -19,7 +19,7 @@ set {{ k }}=
 
 REM Run alias command
 {% endif %}
-{{ hab_cfg.shell_escape(ext, cfg["cmd"]) }} $*
+{{ hab_cfg.shell_escape(ext, cfg["cmd"]) }} %*
 
 {% if alias_env %}
 REM Clear the alias specific environment variables before exiting the script
