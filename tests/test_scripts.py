@@ -127,3 +127,114 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
         ), f"Reference dir needs to contain at least one script. {reference}"
 
     walk_dir(reference)
+
+
+@pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
+def test_complex_alias_bat(tmpdir, config_root, resolver):
+    """This test is a placeholder for a future that can actually call hab's cli
+    and its aliases to check that they function correctly in Batch.
+
+    This example text shows that using "hab env" can set an environment variable,
+    and a complex alias call can modify that env var for the called command, but
+    when the alias exits, the original env var is returned.
+    """
+    hab_paths = config_root / "site_main.json"
+    test = (
+        "REM Use the correct hab site configuration",
+        f'set "HAB_PATHS={hab_paths}"',
+        "REM activate the current hab environment",
+        "hab env app/aliased/mod",
+        'REM At this point the env var is set to "Global A"',
+        'echo "In Hab env: " %ALIASED_GLOBAL_A%',
+        "REM Call the alias, and check its output against the next section.",
+        "REM This is showing that the alias process has modified env vars.",
+        "global test",
+        'REM After the alias was run, the global env var is restored',
+        'echo "after calling function: " %ALIASED_GLOBAL_A%',
+    )
+
+    print("## Run these commands one at a time in a new bash terminal:")
+    print("")
+    print('\n'.join(test))
+    print("")
+    print("## The output of calling global, should include:")
+    print("- The `sys.argv:` line should include the test string passed to global")
+    print(
+        "- ALIASED_GLOBAL_A: ['Local Mod A', 'Local A Prepend', 'Global A', "
+        "'Local A Append']"
+    )
+    raise AssertionError("Run this test manually line by line in a Command Prompt")
+
+
+@pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
+def test_complex_alias_ps1(tmpdir, config_root, resolver):
+    """This test is a placeholder for a future that can actually call hab's cli
+    and its aliases to check that they function correctly in PowerShell.
+
+    This example text shows that using "hab env" can set an environment variable,
+    and a complex alias call can modify that env var for the called command, but
+    when the alias exits, the original env var is returned.
+    """
+    hab_paths = config_root / "site_main.json"
+    test = (
+        "# Use the correct hab site configuration",
+        f'$env:HAB_PATHS="{hab_paths}"',
+        "# activate the current hab environment",
+        "hab env app/aliased/mod",
+        '# At this point the env var is set to "Global A"',
+        'echo "In Hab env: " $env:ALIASED_GLOBAL_A',
+        "# Call the alias, and check its output against the next section.",
+        "# This is showing that the alias process has modified env vars.",
+        "global test",
+        '# After the alias was run, the global env var is restored',
+        'echo "after calling function: " $env:ALIASED_GLOBAL_A',
+    )
+
+    print("## Run these commands one at a time in a new bash terminal:")
+    print("")
+    print('\n'.join(test))
+    print("")
+    print("## The output of calling global, should include:")
+    print("- The `sys.argv:` line should include the test string passed to global")
+    print(
+        "- ALIASED_GLOBAL_A: ['Local Mod A', 'Local A Prepend', 'Global A', "
+        "'Local A Append']"
+    )
+    raise AssertionError("Run this test manually line by line in a PowerShell")
+
+
+@pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
+def test_complex_alias_sh(tmpdir, config_root, resolver):
+    """This test is a placeholder for a future that can actually call hab's cli
+    and its aliases to check that they function correctly in Bash.
+
+    This example text shows that using "hab env" can set an environment variable,
+    and a complex alias call can modify that env var for the called command, but
+    when the alias exits, the original env var is returned.
+    """
+    hab_paths = config_root / "site_main.json"
+    test = (
+        "# Use the correct hab site configuration",
+        f'export HAB_PATHS="{hab_paths}"',
+        "# activate the current hab environment",
+        "hab env app/aliased/mod",
+        '# At this point the env var is set to "Global A"',
+        'echo "In Hab env: " $ALIASED_GLOBAL_A',
+        "# Call the alias, and check its output against the next section.",
+        "# This is showing that the alias process has modified env vars.",
+        "global test",
+        '# After the alias was run, the global env var is restored',
+        'echo "after calling function: " $ALIASED_GLOBAL_A',
+    )
+
+    print("## Run these commands one at a time in a new bash terminal:")
+    print("")
+    print('\n'.join(test))
+    print("")
+    print("## The output of calling global, should include:")
+    print("- The `sys.argv:` line should include the test string passed to global")
+    print(
+        "- ALIASED_GLOBAL_A: ['Local Mod A', 'Local A Prepend', 'Global A', "
+        "'Local A Append']"
+    )
+    raise AssertionError("Run this test manually line by line in a bash shell")

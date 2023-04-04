@@ -27,7 +27,9 @@ function as_dict() {
     # Restore the previous environment without alias specific hab variables by
     # removing variables hab added, then restore the original variable values.
     unset ALIASED_LOCAL
-    eval "$hab_bac_as_dict"
+    # For these changes to apply outside the function scope, we need to add the
+    # global scope flag to the recorded declare statements
+    eval "${hab_bac_as_dict//declare/declare -g}"
 }
 export -f as_dict;
 
@@ -57,7 +59,9 @@ function global() {
     unset ALIASED_GLOBAL_A
     unset ALIASED_GLOBAL_C
     unset ALIASED_GLOBAL_D
-    eval "$hab_bac_global"
+    # For these changes to apply outside the function scope, we need to add the
+    # global scope flag to the recorded declare statements
+    eval "${hab_bac_global//declare/declare -g}"
 }
 export -f global;
 

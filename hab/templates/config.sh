@@ -45,7 +45,9 @@ function {{ alias }}() {
     {% for k, v in alias_env.items() %}
     unset {{ k }}
     {% endfor %}
-    eval "$hab_bac_{{ alias_norm }}"
+    # For these changes to apply outside the function scope, we need to add the
+    # global scope flag to the recorded declare statements
+    eval "${hab_bac_{{ alias_norm }}//declare/declare -g}"
     {% endif %}
 }
 export -f {{ alias }};
