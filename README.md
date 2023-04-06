@@ -165,7 +165,7 @@ HAB_PATHS:  C:\blur\dev\hab_\tests\site\site_left.json
 config_paths:
 distro_paths:
 ignored_distros:  release, pre
-platforms:  windows, mac, linux
+platforms:  windows, osx, linux
 set_value:  left
 test_paths:  left_prepend
              middle_prepend
@@ -210,7 +210,7 @@ the scripts:
 operating system to another. This is used by the freeze system to ensure that if
 unfrozen on another platform it will still work.
 * `platforms`: A list of platforms that are supported by these hab configurations.
-When using freeze, all of these platforms will be stored. Defaults to linux, mac, windows.
+When using freeze, all of these platforms will be stored. Defaults to linux, osx, windows.
 * `prereleases`: If pre-release distros should be allowed. Works the same as
 `pip install --pre ...`.
 
@@ -256,7 +256,7 @@ key is used.
 
 With these settings, if a path on a linux host, starts with `/mnt/main` when
 generating the corresponding windows file path it will translate it to
-`\\example\main`. Note the use of `platforms` to disable mac platform support.
+`\\example\main`. Note the use of `platforms` to disable osx platform support.
 
 ### Distro
 
@@ -605,7 +605,7 @@ The resolved versions matching the requested distros are shown in the `versions`
 
 ### Platform specific code
 
-Hab works on windows, linux and mac(needs tested). To make it easier to handle
+Hab works on windows, linux and osx(needs tested). To make it easier to handle
 platform specific code, it has all been moved into ``hab.utils.Platform`` instead
 of directly relying on ``sys.platform``, ``os.path``, etc. This also has the
 benefit of making it so the testing suite can test that hab works on for all

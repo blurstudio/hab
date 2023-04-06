@@ -13,22 +13,22 @@
             ]
         }
     },
-    "mac": {
+    "osx": {
         "set":{
-            "platforms": ["mac", "linux"]
+            "platforms": ["osx", "linux"]
         },
         "append": {
             "config_paths": [
-                "config/path/mac"
+                "config/path/osx"
             ],
             "distro_paths": [
-                "distro/path/mac"
+                "distro/path/osx"
             ]
         }
     },
     "windows": {
         "set":{
-            "platforms": ["windows", "mac"]
+            "platforms": ["windows", "osx"]
         },
         "append": {
             "config_paths": [
