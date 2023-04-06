@@ -9,12 +9,12 @@
         "platform_path_maps": {
             "host-root": {
                 "linux": "/usr/local/host/root",
-                "mac": "/usr/local/mac/host/root",
+                "osx": "/usr/local/osx/host/root",
                 "windows": "c:\\host\\root"
             },
             "network-mount": {
                 "linux": "/mnt/shared_resources",
-                "mac": "/mnt/mac/shared_resources",
+                "osx": "/mnt/osx/shared_resources",
                 "windows": "\\\\example\\shared_resources"
             }
         }

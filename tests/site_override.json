@@ -6,7 +6,7 @@
         "platform_path_maps": {
             "network-mount": {
                 "linux": "/mnt/work/shared_resources",
-                "mac": "/mnt/work/mac/shared_resources",
+                "osx": "/mnt/work/osx/shared_resources",
                 "windows": "g:\\work\\shared_resources"
             }
         }

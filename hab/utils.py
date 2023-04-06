@@ -363,9 +363,9 @@ class BasePlatform(ABC):
 
     @classmethod
     def system(cls):
-        """Returns the current operating system as `windows`, `mac` or `linux`."""
+        """Returns the current operating system as `windows`, `osx` or `linux`."""
         if sys.platform == "darwin":
-            return "mac"
+            return "osx"
         if sys.platform == "win32":
             return "windows"
         return "linux"
@@ -389,7 +389,7 @@ class LinuxPlatform(BasePlatform):
 
 
 class OsxPlatform(BasePlatform):
-    _name = "mac"
+    _name = "osx"
 
     @classmethod
     def check_name(cls, name):

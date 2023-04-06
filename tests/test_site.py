@@ -285,18 +285,18 @@ class TestOsSpecific:
         assert site.get("distro_paths") == ["distro/path/linux"]
         assert site.get("platforms") == ["windows", "linux"]
 
-    def test_mac(self, monkeypatch, config_root):
+    def test_osx(self, monkeypatch, config_root):
         """Check that if "os_specific" is set to true, only vars for the current
         os are resolved."""
-        # Simulate running on a mac platform.
+        # Simulate running on a osx platform.
         monkeypatch.setattr(utils, "Platform", utils.OsxPlatform)
 
         paths = [config_root / "site_os_specific.json"]
         site = Site(paths)
 
-        assert site.get("config_paths") == ["config/path/mac"]
-        assert site.get("distro_paths") == ["distro/path/mac"]
-        assert site.get("platforms") == ["mac", "linux"]
+        assert site.get("config_paths") == ["config/path/osx"]
+        assert site.get("distro_paths") == ["distro/path/osx"]
+        assert site.get("platforms") == ["osx", "linux"]
 
     def test_win(self, monkeypatch, config_root):
         """Check that if "os_specific" is set to true, only vars for the current
@@ -309,7 +309,7 @@ class TestOsSpecific:
 
         assert site.get("config_paths") == ["config\\path\\windows"]
         assert site.get("distro_paths") == ["distro\\path\\windows"]
-        assert site.get("platforms") == ["windows", "mac"]
+        assert site.get("platforms") == ["windows", "osx"]
 
 
 class TestPlatformPathMap:
@@ -324,10 +324,10 @@ class TestPlatformPathMap:
         out = site.platform_path_map("/usr/local/host/root/extra", platform="linux")
         assert out == "/usr/local/host/root/extra"
 
-        out = site.platform_path_map("/usr/local/host/root", platform="mac")
-        assert out == "/usr/local/mac/host/root"
-        out = site.platform_path_map("/usr/local/host/root/extra", platform="mac")
-        assert out == "/usr/local/mac/host/root/extra"
+        out = site.platform_path_map("/usr/local/host/root", platform="osx")
+        assert out == "/usr/local/osx/host/root"
+        out = site.platform_path_map("/usr/local/host/root/extra", platform="osx")
+        assert out == "/usr/local/osx/host/root/extra"
 
         out = site.platform_path_map("/usr/local/host/root", platform="windows")
         assert out == r"c:\host\root"
@@ -347,12 +347,12 @@ class TestPlatformPathMap:
         out = site.platform_path_map("c:/host/root", platform="linux")
         assert out == "/usr/local/host/root"
 
-        out = site.platform_path_map(r"c:\host\root", platform="mac")
-        assert out == "/usr/local/mac/host/root"
-        out = site.platform_path_map(r"c:\host\root\extra", platform="mac")
-        assert out == "/usr/local/mac/host/root/extra"
-        out = site.platform_path_map("c:/host/root", platform="mac")
-        assert out == "/usr/local/mac/host/root"
+        out = site.platform_path_map(r"c:\host\root", platform="osx")
+        assert out == "/usr/local/osx/host/root"
+        out = site.platform_path_map(r"c:\host\root\extra", platform="osx")
+        assert out == "/usr/local/osx/host/root/extra"
+        out = site.platform_path_map("c:/host/root", platform="osx")
+        assert out == "/usr/local/osx/host/root"
 
         out = site.platform_path_map(r"c:\host\root", platform="windows")
         assert out == r"c:\host\root"
@@ -370,8 +370,8 @@ class TestPlatformPathMapDict:
         assert site["platform_path_maps"]["network-mount"]["linux"] == PurePosixPath(
             "/mnt/shared_resources"
         )
-        assert site["platform_path_maps"]["network-mount"]["mac"] == PurePosixPath(
-            "/mnt/mac/shared_resources"
+        assert site["platform_path_maps"]["network-mount"]["osx"] == PurePosixPath(
+            "/mnt/osx/shared_resources"
         )
         assert site["platform_path_maps"]["network-mount"][
             "windows"
@@ -384,8 +384,8 @@ class TestPlatformPathMapDict:
         assert site["platform_path_maps"]["network-mount"]["linux"] == PurePosixPath(
             "/mnt/work/shared_resources"
         )
-        assert site["platform_path_maps"]["network-mount"]["mac"] == PurePosixPath(
-            "/mnt/work/mac/shared_resources"
+        assert site["platform_path_maps"]["network-mount"]["osx"] == PurePosixPath(
+            "/mnt/work/osx/shared_resources"
         )
         assert site["platform_path_maps"]["network-mount"][
             "windows"
@@ -399,8 +399,8 @@ class TestPlatformPathMapDict:
         assert site["platform_path_maps"]["host-root"]["linux"] == PurePosixPath(
             "/usr/local/host/root"
         )
-        assert site["platform_path_maps"]["host-root"]["mac"] == PurePosixPath(
-            "/usr/local/mac/host/root"
+        assert site["platform_path_maps"]["host-root"]["osx"] == PurePosixPath(
+            "/usr/local/osx/host/root"
         )
         assert site["platform_path_maps"]["host-root"]["windows"] == PureWindowsPath(
             "c:\\host\\root"
@@ -428,8 +428,8 @@ class TestPlatformPathMapDict:
         assert site["platform_path_maps"]["host-root"]["linux"] == PurePosixPath(
             "/usr/local/host/root"
         )
-        assert site["platform_path_maps"]["host-root"]["mac"] == PurePosixPath(
-            "/usr/local/mac/host/root"
+        assert site["platform_path_maps"]["host-root"]["osx"] == PurePosixPath(
+            "/usr/local/osx/host/root"
         )
         assert site["platform_path_maps"]["host-root"]["windows"] == PureWindowsPath(
             "c:\\host\\root"
@@ -448,8 +448,8 @@ class TestPlatformPathMapDict:
         assert site["platform_path_maps"]["host-root"]["linux"] == PurePosixPath(
             "/usr/local/host/root"
         )
-        assert site["platform_path_maps"]["host-root"]["mac"] == PurePosixPath(
-            "/usr/local/mac/host/root"
+        assert site["platform_path_maps"]["host-root"]["osx"] == PurePosixPath(
+            "/usr/local/osx/host/root"
         )
         assert site["platform_path_maps"]["host-root"]["windows"] == PureWindowsPath(
             "c:\\host\\root"

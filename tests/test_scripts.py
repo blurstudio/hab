@@ -59,7 +59,7 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
     # Script formatting is subtly different on different platforms, ensure we
     # are testing the requested platform, not the current one.
     platform = spec["platform"]
-    assert platform in ("linux", "mac", "win32")
+    assert platform in ("linux", "osx", "win32")
     monkeypatch.setattr(utils, "Platform", utils.BasePlatform.get_platform(platform))
 
     cfg = resolver.resolve(spec["uri"])
