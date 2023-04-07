@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from jinja2 import Environment, FileSystemLoader
 
-from hab import utils
+from hab import errors, utils
 
 # Create a test for each dir in reference_scripts. We pass the name of the folder
 # so test selection matches the name of the folder instead of something abstract
@@ -238,3 +238,25 @@ def test_complex_alias_sh(tmpdir, config_root, resolver):
         "'Local A Append']"
     )
     raise AssertionError("Run this test manually line by line in a bash shell")
+
+
+@pytest.mark.parametrize("ext", (".bat", ".ps1", ".sh"))
+def test_invalid_alias(resolver, tmpdir, ext):
+    """Check that useful errors are raised if an invalid alias is passed or if
+    the alias doesn't have "cmd" defined.
+    """
+    kwargs = dict(ext=ext, exit=True, args=None, create_launch=True)
+
+    # Check that calling a bad alias name raises a useful error message
+    cfg = resolver.resolve("not_set/child")
+    with pytest.raises(errors.HabError) as excinfo:
+        cfg.write_script(str(tmpdir), launch="bad-alias", **kwargs)
+    assert str(excinfo.value) == '"bad-alias" is not a valid alias name'
+
+    # Remove the "cmd" value to test an invalid configuration
+    alias = cfg.frozen_data["aliases"][utils.Platform.name()]["global"]
+    del alias["cmd"]
+
+    with pytest.raises(errors.HabError) as excinfo:
+        cfg.write_script(str(tmpdir), launch="global", **kwargs)
+    assert str(excinfo.value) == 'Alias "global" does not have "cmd" defined'

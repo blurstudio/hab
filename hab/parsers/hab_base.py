@@ -11,7 +11,7 @@ from jinja2 import Environment, FileSystemLoader
 from packaging.version import Version
 
 from .. import NotSet, utils
-from ..errors import DuplicateJsonError
+from ..errors import DuplicateJsonError, HabError
 from ..formatter import Formatter
 from ..site import MergeDict
 from ..solvers import Solver
@@ -589,11 +589,20 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             else:
                 args = ''
 
-            kwargs["launch_info"] = dict(
-                key=launch,
-                value=self.shell_escape(ext, self.aliases.get(launch, "")['cmd']),
-                args=args,
-            )
+            # Get the cmd to launch, raising useful errors if invalid
+            if launch not in self.aliases:
+                raise HabError(f'"{launch}" is not a valid alias name')
+            alias = self.aliases.get(launch, {})
+
+            try:
+                cmd = alias["cmd"]
+            except KeyError:
+                raise HabError(
+                    f'Alias "{launch}" does not have "cmd" defined'
+                ) from None
+
+            cmd = self.shell_escape(ext, cmd)
+            kwargs["launch_info"] = dict(key=launch, value=cmd, args=args)
 
         # Note: jinja2' seems to be inconsistent with its trailing newlines depending
         # on the template and its if statements, so force a single trailing newline
