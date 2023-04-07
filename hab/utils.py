@@ -250,6 +250,28 @@ def load_json_file(filename):
     return data
 
 
+def natural_sort(ls, key=None):
+    """Sort a list in a more natural way by treating contiguous integers as a
+    single number instead of processing each number individually. This function
+    understands that 10 is larger than 1. It also ignores case.
+
+    Source: http://blog.codinghorror.com/sorting-for-humans-natural-sort-order
+    """
+
+    def convert(text):
+        return int(text) if text.isdigit() else text.lower()
+
+    if key is None:
+
+        def key(text):
+            return text
+
+    def alphanum_key(a_key):
+        return [convert(c) for c in re.split(r'([0-9]+)', key(a_key))]
+
+    return sorted(ls, key=alphanum_key)
+
+
 class NotSet(object):
     """The data for this property is not currently set."""
 

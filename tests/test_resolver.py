@@ -102,43 +102,123 @@ def test_closest_config(resolver, path, result, reason):
 
 def test_dump_forest(resolver):
     """Test the dump_forest method on resolver"""
-    result = resolver.dump_forest(resolver.configs)
-    check = "\n".join(
-        (
-            "app",
-            "    hab.parsers.placeholder.Placeholder('app')",
-            "    |-- hab.parsers.config.Config('app/aliased')",
-            "    |   +-- hab.parsers.config.Config('app/aliased/mod')",
-            "    +-- hab.parsers.placeholder.Placeholder('app/houdini')",
-            "        |-- hab.parsers.config.Config('app/houdini/a')",
-            "        +-- hab.parsers.config.Config('app/houdini/b')",
-            "default",
-            "    hab.parsers.config.Config('default')",
-            "    |-- hab.parsers.config.Config('default/Sc1')",
-            "    +-- hab.parsers.config.Config('default/Sc11')",
-            "not_set",
-            "    hab.parsers.config.Config('not_set')",
-            "    |-- hab.parsers.config.Config('not_set/child')",
-            "    |-- hab.parsers.config.Config('not_set/distros')",
-            "    |-- hab.parsers.config.Config('not_set/empty_lists')",
-            "    |-- hab.parsers.config.Config('not_set/env1')",
-            "    |-- hab.parsers.config.Config('not_set/env_path_hab_uri')",
-            "    |-- hab.parsers.config.Config('not_set/env_path_set')",
-            "    |-- hab.parsers.config.Config('not_set/env_path_unset')",
-            "    |-- hab.parsers.config.Config('not_set/no_distros')",
-            "    |-- hab.parsers.config.Config('not_set/no_env')",
-            "    +-- hab.parsers.config.Config('not_set/os')",
-            "place-holder",
-            "    hab.parsers.placeholder.Placeholder('place-holder')",
-            "    |-- hab.parsers.config.Config('place-holder/child')",
-            "    +-- hab.parsers.config.Config('place-holder/inherits')",
-            "project_a",
-            "    hab.parsers.config.Config('project_a')",
-            "    +-- hab.parsers.config.Config('project_a/Sc001')",
-            "        |-- hab.parsers.config.Config('project_a/Sc001/Animation')",
-            "        +-- hab.parsers.config.Config('project_a/Sc001/Rigging')",
-        )
-    )
+    # Test dumping of configs using uri attr.
+    result = list(resolver.dump_forest(resolver.configs))
+    check = [
+        "app",
+        "  app/aliased",
+        "  app/aliased/mod",
+        "  app/houdini",
+        "  app/houdini/a",
+        "  app/houdini/b",
+        "default",
+        "  default/Sc1",
+        "  default/Sc11",
+        "not_set",
+        "  not_set/child",
+        "  not_set/distros",
+        "  not_set/empty_lists",
+        "  not_set/env1",
+        "  not_set/env_path_hab_uri",
+        "  not_set/env_path_set",
+        "  not_set/env_path_unset",
+        "  not_set/no_distros",
+        "  not_set/no_env",
+        "  not_set/os",
+        "place-holder",
+        "  place-holder/child",
+        "  place-holder/inherits",
+        "project_a",
+        "  project_a/Sc001",
+        "  project_a/Sc001/Animation",
+        "  project_a/Sc001/Rigging",
+    ]
+    assert result == check
+
+    # Test dumping distros using name attr
+    result = list(resolver.dump_forest(resolver.distros, attr="name"))
+    check = [
+        "aliased",
+        "  aliased==2.0",
+        "aliased_mod",
+        "  aliased_mod==1.0",
+        "all_settings",
+        "  all_settings==0.1.0.dev1",
+        "houdini18.5",
+        "  houdini18.5==18.5.351",
+        "houdini19.5",
+        "  houdini19.5==19.5.493",
+        "maya2020",
+        "  maya2020==2020.0",
+        "  maya2020==2020.1",
+        "the_dcc",
+        "  the_dcc==1.0",
+        "  the_dcc==1.1",
+        "  the_dcc==1.2",
+        "the_dcc_plugin_a",
+        "  the_dcc_plugin_a==0.9",
+        "  the_dcc_plugin_a==1.0",
+        "  the_dcc_plugin_a==1.1",
+        "the_dcc_plugin_b",
+        "  the_dcc_plugin_b==0.9",
+        "  the_dcc_plugin_b==1.0",
+        "  the_dcc_plugin_b==1.1",
+        "the_dcc_plugin_c",
+        "  the_dcc_plugin_c==0.9",
+        "  the_dcc_plugin_c==1.0",
+        "  the_dcc_plugin_c==1.1",
+        "the_dcc_plugin_d",
+        "  the_dcc_plugin_d==0.9",
+        "  the_dcc_plugin_d==1.0",
+        "  the_dcc_plugin_d==1.1",
+        "the_dcc_plugin_e",
+        "  the_dcc_plugin_e==0.9",
+        "  the_dcc_plugin_e==1.0",
+        "  the_dcc_plugin_e==1.1",
+    ]
+    assert result == check
+
+    # Test truncate feature by dumping distros
+    result = list(resolver.dump_forest(resolver.distros, attr="name", truncate=1))
+    check = [
+        "aliased",
+        "  aliased==2.0",
+        "aliased_mod",
+        "  aliased_mod==1.0",
+        "all_settings",
+        "  all_settings==0.1.0.dev1",
+        "houdini18.5",
+        "  houdini18.5==18.5.351",
+        "houdini19.5",
+        "  houdini19.5==19.5.493",
+        "maya2020",
+        "  maya2020==2020.0",
+        "  maya2020==2020.1",
+        "the_dcc",
+        "  the_dcc==1.0",
+        "  ...",
+        "  the_dcc==1.2",
+        "the_dcc_plugin_a",
+        "  the_dcc_plugin_a==0.9",
+        "  ...",
+        "  the_dcc_plugin_a==1.1",
+        "the_dcc_plugin_b",
+        "  the_dcc_plugin_b==0.9",
+        "  ...",
+        "  the_dcc_plugin_b==1.1",
+        "the_dcc_plugin_c",
+        "  the_dcc_plugin_c==0.9",
+        "  ...",
+        "  the_dcc_plugin_c==1.1",
+        "the_dcc_plugin_d",
+        "  the_dcc_plugin_d==0.9",
+        "  ...",
+        "  the_dcc_plugin_d==1.1",
+        "the_dcc_plugin_e",
+        "  the_dcc_plugin_e==0.9",
+        "  ...",
+        "  the_dcc_plugin_e==1.1",
+    ]
     assert result == check
 
 
@@ -365,3 +445,24 @@ def test_path_expansion(resolver, value, check):
 
     # Check that collapse_paths also works as expected
     assert utils.Platform.collapse_paths('test_string') == str('test_string')
+
+
+def test_natrual_sort():
+    items = ["test10", "test1", "Test3", "test2"]
+    # Double check that our test doesn't sort naturally by default
+    assert sorted(items) == ["Test3", "test1", "test10", "test2"]
+
+    # Test that natural sort ignores case and groups numbers correctly
+    result = utils.natural_sort(items)
+    assert result == ["test1", "test2", "Test3", "test10"]
+
+    # Test natural sorting using a custom sort key
+    class Node:
+        def __init__(self, name):
+            super().__init__()
+            self.name = name
+
+    nodes = [Node(item) for item in items]
+    result = utils.natural_sort(nodes, key=lambda i: i.name)
+    check = [n.name for n in result]
+    assert check == ["test1", "test2", "Test3", "test10"]

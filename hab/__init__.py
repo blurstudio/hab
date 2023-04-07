@@ -182,24 +182,58 @@ class Resolver(object):
         return self._distros
 
     @classmethod
-    def dump_forest(cls, forest, style=None):
-        """Convert a forest dictionary to a readable string"""
+    def dump_forest(
+        cls,
+        forest,
+        attr="uri",
+        fmt="{pre}{attr}",
+        style=None,
+        indent="  ",
+        truncate=None,
+    ):
+        """Convert a forest dictionary to a readable string.
 
-        def sort_foreset(items):
+        Args:
+            forest: A dictionary of hab.parser objects to dump. Common values
+                are `resolver.configs`, or `resolver.distros`.
+            attr (str, optional): The name of the attribute to display for each node.
+            fmt (str, optional): str.format string to control the display of
+                each node in the forest. Accepts (pre, attr) keys.
+            style (anytree.render.AbstractStyle, optional): Controls how anytree
+                renders the branch information. If not set, defaults to a custom
+                style that intents all children(recursively) to the same depth.
+            indent (str, optional): The string to use for indentation. Used only
+                if style is None.
+            truncate (int, optional): The maximum number of results to show for
+                a given tree level. If there are more child nodes than twice this
+                value, only include the first and last number of these results
+                with a "..." placeholder in between. Disable by passing None.
+        """
+
+        def sort_forest(items):
             """Ensures consistent sorting of the forest leaf nodes"""
-            return sorted(items, key=lambda item: item.name)
+            ret = utils.natural_sort(items, key=lambda item: item.name)
+            if truncate and len(ret) > truncate * 2:
+                # Create a anytree node that can be rendered as "..."
+                placeholder = HabBase._placeholder(forest, None)
+                placeholder.name = "..."
+                # replace the excess middle nodes with the placeholder object
+                ret = ret[:truncate] + [placeholder] + ret[-truncate:]
+            return ret
 
+        limit_pre = False
         if style is None:
-            style = anytree.render.AsciiStyle()
-        ret = []
-        for tree_name in sorted(forest):
-            ret.append(tree_name)
-            tree = str(
-                anytree.RenderTree(forest[tree_name], style, childiter=sort_foreset)
-            )
-            for line in tree.split("\n"):
-                ret.append("    {}".format(line))
-        return "\n".join(ret)
+            style = anytree.render.AbstractStyle(indent, indent, indent)
+            limit_pre = True
+
+        for tree_name in utils.natural_sort(forest):
+            for row in anytree.RenderTree(
+                forest[tree_name], style=style, childiter=sort_forest
+            ):
+                pre = row.pre
+                if limit_pre:
+                    pre = row.pre[: len(indent)]
+                yield fmt.format(pre=pre, attr=getattr(row.node, attr))
 
     def find_distro(self, requirement):
         """Returns the DistroVersion matching the requirement or None"""
