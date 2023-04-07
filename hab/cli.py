@@ -222,8 +222,10 @@ def env(settings, uri, unfreeze, launch):
     "-t",
     "--type",
     "report_type",
-    type=click.Choice(["config", "c", "forest", "f", "site", "s"]),
-    default="config",
+    type=click.Choice(
+        ["nice", "site", "s", "uris", "u", "versions", "v", "forest", "f"]
+    ),
+    default="nice",
     help="Type of report.",
 )
 @click.option(
@@ -257,12 +259,33 @@ def dump(
 ):
     """Resolves and prints the requested setup."""
     logger.info("Context: {}".format(uri))
-    if report_type in ("forest", "f"):
-        click.echo(" Configs ".center(50, "-"))
-        click.echo(settings.resolver.dump_forest(settings.resolver.configs))
-        click.echo(" Distros ".center(50, "-"))
-        click.echo(settings.resolver.dump_forest(settings.resolver.distros))
-    elif report_type in ("site", "s"):
+    # Convert report_tupe short names to long names for ease of processing
+    report_map = {"u": "uris", "v": "versions", "f": "forest", "s": "site"}
+    report_type = report_map.get(report_type, report_type)
+
+    if report_type in ("uris", "versions", "forest"):
+        # Allow the user to disable truncation of versions with verbosity flag
+        truncate = None if verbosity else 3
+
+        def echo_line(line):
+            if line.strip() == line:
+                click.echo(f'{Fore.GREEN}{line}{Fore.RESET}')
+            else:
+                click.echo(line)
+
+        if report_type in ("uris", "forest"):
+            click.echo(f'{Fore.YELLOW}{" URIs ".center(50, "-")}{Fore.RESET}')
+            for line in settings.resolver.dump_forest(settings.resolver.configs):
+                echo_line(line)
+        if report_type in ("versions", "forest"):
+            click.echo(f'{Fore.YELLOW}{" Versions ".center(50, "-")}{Fore.RESET}')
+            for line in settings.resolver.dump_forest(
+                settings.resolver.distros,
+                attr="name",
+                truncate=truncate,
+            ):
+                echo_line(line)
+    elif report_type == "site":
         click.echo(settings.resolver.site.dump(verbosity=verbosity))
     else:
         if unfreeze:
