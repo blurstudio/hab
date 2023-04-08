@@ -753,8 +753,10 @@ def test_alias_mods_as_dict(resolver):
     env = alias["environment"]
 
     # Check alias_mod is prepended to alias defined env var
-    assert env['ALIASED_LOCAL'][0].endswith("modified")
-    assert env['ALIASED_LOCAL'][1].endswith('test')
+    # Also check that the alias_mods {relative_root} path is resolved to the directory
+    assert env['ALIASED_LOCAL'][0].endswith("distros/aliased_mod/1.0/modified")
+    # Check that the alias {relative_root} path is resolved to it's directory
+    assert env['ALIASED_LOCAL'][1].endswith('distros/aliased/2.0/test')
     # Env var can be set by alias_mod without any other hab management
     assert env['ALIASED_MOD_LOCAL_A'] == ['Local Mod A']
 
