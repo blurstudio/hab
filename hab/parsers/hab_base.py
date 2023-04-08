@@ -391,6 +391,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 k: self.format_environment_value(v, ext=ext, platform=platform)
                 for k, v in value.items()
             }
+        elif isinstance(value, bool):
+            # Just return boolean values, no need to format
+            return value
 
         # Expand and format any variables like "relative_root" using the current
         # platform for paths.

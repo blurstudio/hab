@@ -157,9 +157,6 @@ class FlatConfig(Config):
     def aliases(self):
         """List of the names and commands that need created to launch desired
         applications."""
-        if "aliases" in self.frozen_data:
-            return self.frozen_data.get("aliases", {}).get(utils.Platform.name(), {})
-
         return self.frozen_data.get("aliases", {}).get(utils.Platform.name(), {})
 
     @property
@@ -236,7 +233,11 @@ class FlatConfig(Config):
 
                 # If this version defines any alias_mods, store them for later
                 if version.alias_mods:
-                    for name, mod in version.alias_mods.items():
+                    # Format the alias environment at this point so any path
+                    # based variables like {relative_root} are resolved against
+                    # the version's directory not the alias being modified
+                    mods = version.format_environment_value(version.alias_mods)
+                    for name, mod in mods.items():
                         self._alias_mods.setdefault(name, []).append(mod)
 
         return self.frozen_data["versions"]
