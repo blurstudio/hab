@@ -125,6 +125,19 @@ TODO
 Hab is configured by json files found with glob strings passed to the cli or defined
 by an environment variable.
 
+
+### Duplicate definitions
+
+The general rule for when hab encounters duplicated definitions is that the first
+encountered object is used and any duplicates are ignored. Here are some examples
+that follow that rule and links to details:
+
+* **Aliases:** [Multiple app versions](#multiple-app-versions)
+* **Site:** [Site](#site)
+
+`config_paths` and `distro_paths` have [more complex rules](#common-settings).
+
+
 ### Site
 
 Hab uses the `HAB_PATH` environment variable to point to one or more site
@@ -294,6 +307,8 @@ Example .hab.json:
 In most cases  you will not define version in `.hab.json`. If not defined, the
 parent folder is used as the version. This makes it easy for automated deployments
 without needing to modify a file checked into version control.
+
+##### Multiple app versions
 
 You will note that we are using the version of maya in name. This allows you to
 provide access to multiple versions of the Maya application. Only one version of
@@ -647,7 +662,9 @@ Hab does its best to remove these temp script files on exit so inspecting them c
 difficult. The best way to view them is to run a `hab env` or `hab launch` command
 this will leave the hab process running while you find and view the config and launch
 scripts in the temp directory. Once you are finished exit the hab process and they
-will be removed.
+will be removed. Alternatively if you use the `--dump-scripts` flag on hab commands
+that write scripts, to make it print the contents of every file to the shell
+instead of writing them to disk.
 
 # Caveats
 
