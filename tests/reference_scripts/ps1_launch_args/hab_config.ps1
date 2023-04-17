@@ -30,6 +30,21 @@ function as_dict() {
     $hab_bac_as_dict | % { Set-Item "env:$($_.Name)" $_.Value }
 }
 
+function inherited() {
+    # Set alias specific environment variables. Backup the previous variable
+    # value and export status, and add the hab managed variables
+    $hab_bac_inherited = Get-ChildItem env:
+    $env:PATH="$env:PATH;{{ config_root }}/distros/aliased/2.0/test"
+
+    # Run alias command
+    python {{ config_root }}/distros/aliased/2.0/list_vars.py $args
+
+    # Restore the previous environment without alias specific hab variables by
+    # removing variables hab added, then restore the original variable values.
+    Remove-Item Env:\\PATH -ErrorAction SilentlyContinue
+    $hab_bac_inherited | % { Set-Item "env:$($_.Name)" $_.Value }
+}
+
 function as_list() {
     python {{ config_root }}/distros/aliased/2.0/list_vars.py $args
 }

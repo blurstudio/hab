@@ -100,6 +100,11 @@ class FlatConfig(Config):
 
             for i, alias in enumerate(aliases_def):
                 alias_name = alias[0]
+
+                # Configure the merger for this version
+                merger.formatter = version.format_environment_value
+                merger.validator = self.check_environment
+
                 # Only process an alias the first time it is encountered
                 if existing and alias_name in existing.get(platform, {}):
                     logger.info(

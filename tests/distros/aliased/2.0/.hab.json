@@ -12,6 +12,16 @@
                     }
                 }
             ],
+            [
+                "inherited", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "append": {
+                            "PATH": ["{PATH!e}", "{relative_root}/test"]
+                        }
+                    }
+                }
+            ],
             ["as_list", ["python", "{relative_root}/list_vars.py"]],
             ["as_str", "python"],
             [
@@ -41,6 +51,16 @@
                     "environment": {
                         "prepend": {
                             "ALIASED_LOCAL": "{relative_root}/test"
+                        }
+                    }
+                }
+            ],
+            [
+                "inherited", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "append": {
+                            "PATH": ["{PATH!e}", "{relative_root}/test"]
                         }
                     }
                 }
