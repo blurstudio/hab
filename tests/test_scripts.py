@@ -111,6 +111,8 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
             print(f"Generated: {generated}")
             raise
 
+    reference_paths = []
+
     def walk_dir(current):
         found_script = False
         for item in current.iterdir():
@@ -122,11 +124,23 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
                 found_script = True
             else:
                 walk_dir(item)
+            # Include the directory name so we match the rglob results below
+            reference_paths.append(item)
         assert (
             found_script
         ), f"Reference dir needs to contain at least one script. {reference}"
 
     walk_dir(reference)
+
+    # Check that we created the same number of files as the template
+    processed_paths = sorted(Path(tmpdir).rglob('*'))
+    reference_paths = sorted(reference_paths)
+
+    total_processed = len(processed_paths)
+    total_reference = len(reference_paths)
+    assert (
+        total_reference == total_processed
+    ), "Reference file count doesn't match generated"
 
 
 @pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
