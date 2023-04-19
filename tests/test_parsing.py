@@ -63,7 +63,9 @@ def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch):
         m.setitem(sys.modules, "setuptools_scm", None)
         with pytest.raises(InvalidVersionError) as excinfo:
             app.load(path)
-    assert str(excinfo.value).startswith("import of setuptools_scm halted")
+    assert str(excinfo.value).startswith(
+        "[ModuleNotFoundError] import of setuptools_scm halted"
+    )
 
     # Test that setuptools_scm is able to resolve the version.
     # This env var forces setuptools_scm to this version so we don't have to
