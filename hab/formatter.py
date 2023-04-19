@@ -1,3 +1,4 @@
+import os
 import string
 
 from . import utils
@@ -38,7 +39,7 @@ class Formatter(string.Formatter):
         # Using bash on windows
         'shwin': {
             'env_var': '${}',
-            ';': ';',
+            ';': ':',
         },
         # Delay the format for future calls. This allows us to process the environment
         # without changing these, and then when write_script is called the target
@@ -96,8 +97,6 @@ class Formatter(string.Formatter):
         still allows us to override them if required
         """
         ret = dict(self.shell_formats[self.language], **kwargs)
-        import os
-
         ret = dict(os.environ, **ret)
         return ret
 

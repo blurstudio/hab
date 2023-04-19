@@ -447,6 +447,93 @@ def test_path_expansion(resolver, value, check):
     assert utils.Platform.collapse_paths('test_string') == str('test_string')
 
 
+class TestPlatform:
+    def test_collapse_paths(self):
+        # Passing strings
+        arg = "test case"
+        assert utils.LinuxPlatform.collapse_paths(arg) == "test case"
+        assert utils.OsxPlatform.collapse_paths(arg) == "test case"
+        assert utils.WinPlatform.collapse_paths(arg) == "test case"
+        assert utils.WinPlatform.collapse_paths(arg, ext="") == "test case"
+        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "test case"
+
+        # Passing lists that are not paths
+        arg = ["test", "case"]
+        assert utils.LinuxPlatform.collapse_paths(arg) == "test:case"
+        assert utils.OsxPlatform.collapse_paths(arg) == "test:case"
+        assert utils.WinPlatform.collapse_paths(arg) == "test;case"
+        assert utils.WinPlatform.collapse_paths(arg, ext="") == "test:case"
+        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "test:case"
+
+        # Passing lists that are windows paths
+        arg = ["c:\\test", "C:\\case"]
+        assert utils.LinuxPlatform.collapse_paths(arg) == "c:\\test:C:\\case"
+        assert utils.OsxPlatform.collapse_paths(arg) == "c:\\test:C:\\case"
+        assert utils.WinPlatform.collapse_paths(arg) == "c:\\test;C:\\case"
+        assert utils.WinPlatform.collapse_paths(arg, ext="") == "/c/test:/C/case"
+        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "/c/test:/C/case"
+
+        # Passing lists that are linux paths
+        arg = ["/test", "/case"]
+        assert utils.LinuxPlatform.collapse_paths(arg) == "/test:/case"
+        assert utils.OsxPlatform.collapse_paths(arg) == "/test:/case"
+        assert utils.WinPlatform.collapse_paths(arg) == "/test;/case"
+        assert utils.WinPlatform.collapse_paths(arg, ext="") == "/test:/case"
+        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "/test:/case"
+
+    def test_pathsep(self):
+        assert utils.LinuxPlatform.pathsep() == ":"
+        assert utils.OsxPlatform.pathsep() == ":"
+        assert utils.WinPlatform.pathsep() == ";"
+        # Ext is not ignored for windows
+        assert utils.WinPlatform.pathsep(ext="") == ":"
+        assert utils.WinPlatform.pathsep(ext=".sh") == ":"
+
+
+def test_cygpath():
+    # Check space handling
+    assert utils.cygpath("test case") == "test case"
+    assert utils.cygpath("test  case") == "test  case"
+    assert utils.cygpath("test case", spaces=True) == "test\\ case"
+    assert utils.cygpath("test  case", spaces=True) == "test\\ \\ case"
+    assert utils.cygpath("more test  case", spaces=True) == "more\\ test\\ \\ case"
+    assert utils.cygpath("\\test case\\") == "/test case/"
+    assert utils.cygpath("\\test case\\", spaces=True) == "/test\\ case/"
+
+    # Check converting back-slashes to forward-slashes and drive letter handling
+    assert utils.cygpath("c:\\test\\case") == "/c/test/case"
+    assert utils.cygpath("C:\\test\\case") == "/C/test/case"
+    assert utils.cygpath("\\\\server\\share\\dir") == "//server/share/dir"
+    assert utils.cygpath("//server/share/dir") == "//server/share/dir"
+    assert utils.cygpath("\\\\server/share/dir") == "//server/share/dir"
+    assert utils.cygpath("/C/test/case") == "/C/test/case"
+
+    # Check paths with spaces
+    def cyg_space(path):
+        return utils.cygpath(path, spaces=True)
+
+    assert utils.cygpath("c:\\test\\spaces  are bad") == "/c/test/spaces  are bad"
+    assert cyg_space("c:\\test\\spaces  are bad") == "/c/test/spaces\\ \\ are\\ bad"
+    assert (
+        utils.cygpath("//server/share/spaces  are bad")
+        == "//server/share/spaces  are bad"
+    )
+    assert (
+        cyg_space("//server/share/spaces  are bad")
+        == "//server/share/spaces\\ \\ are\\ bad"
+    )
+    assert (
+        utils.cygpath("\\\\server/share/spaces  are bad")
+        == "//server/share/spaces  are bad"
+    )
+    assert (
+        cyg_space("\\\\server/share/spaces  are bad")
+        == "//server/share/spaces\\ \\ are\\ bad"
+    )
+    assert utils.cygpath("/C/test/spaces  are bad") == "/C/test/spaces  are bad"
+    assert cyg_space("/C/test/spaces  are bad") == "/C/test/spaces\\ \\ are\\ bad"
+
+
 def test_natrual_sort():
     items = ["test10", "test1", "Test3", "test2"]
     # Double check that our test doesn't sort naturally by default

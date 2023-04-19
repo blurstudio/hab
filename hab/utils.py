@@ -1,6 +1,7 @@
 import base64
 import errno
 import json as _json
+import ntpath
 import os
 import re
 import sys
@@ -29,6 +30,50 @@ colorama.init()
 
 re_windows_single_path = re.compile(r'^([a-zA-Z]:[\\\/][^:;]+)$')
 """A regex that can be used to check if a string is a single windows file path."""
+
+
+def cygpath(path, spaces=False):
+    """Convert a windows path to a cygwin compatible path. For example `c:\\test`
+    converts to `/c/test`. This also works for unc file paths.
+
+    Note: This doesn't use cygpath.exe for greater portability. Ie its accessible
+    even if the current shell doesn't have access to cygpath.exe. It also doesn't
+    require extra suprocess calls.
+
+    Args:
+        path (str): The file path to convert.
+        spaces (bool, optional): Add a backslash before every non-escaped space.
+    """
+    path = str(path)
+
+    # Escape spaces and convert any remaining backslashes to forward slashes
+    def process_separator(match):
+        sep = path[match.start() : match.end()]
+        slash_count = sep.count('\\')
+        if " " not in sep:
+            # It's not a space, simply replace with forward-slash
+            return sep.replace('\\', '/')
+        # Treat odd numbers of slashes as already escaped not directories.
+        elif not spaces or slash_count % 2:
+            return sep
+        # Add a backslash to escape spaces if enabled
+        return sep.replace(' ', '\\ ')
+
+    pattern = (
+        # Capture spaces including any leading backslashes to escape
+        r"(\\* )"
+        # If we can't find any spaces, capture backslashes to convert to forward-slash
+        r"|(\\+)"
+    )
+    path = re.sub(pattern, process_separator, path)
+
+    # Finally, convert `C:\` drive specifier to `/c/`. Unc paths don't need any
+    # additional processing, just converting \ to / which was done previously.
+    drive, tail = ntpath.splitdrive(path)
+    if len(drive) == 2 and drive[1] == ":":
+        # It's a drive letter
+        path = f'/{drive[0]}{tail}'
+    return path
 
 
 def decode_freeze(txt):
@@ -320,11 +365,11 @@ class BasePlatform(ABC):
         """Checks if the provided name is valid for this class"""
 
     @classmethod
-    def collapse_paths(cls, paths):
+    def collapse_paths(cls, paths, ext=None):
         """Converts a list of paths into a string compatible with the os."""
         if isinstance(paths, str):
             return paths
-        return cls.pathsep().join([str(p) for p in paths])
+        return cls.pathsep(ext=ext).join([str(p) for p in paths])
 
     @classmethod
     def expand_paths(cls, paths):
@@ -379,7 +424,7 @@ class BasePlatform(ABC):
         return path.split(pathsep)
 
     @classmethod
-    def pathsep(cls):
+    def pathsep(cls, ext=None):
         """The path separator used by this platform."""
         return cls._sep
 
@@ -400,6 +445,25 @@ class WinPlatform(BasePlatform):
     @classmethod
     def check_name(cls, name):
         return name in ("win32", "windows")
+
+    @classmethod
+    def collapse_paths(cls, paths, ext=None):
+        """Converts a list of paths into a string compatible with the os."""
+        if isinstance(paths, str):
+            return paths
+        if ext in (".sh", ""):
+            paths = [cygpath(p) for p in paths]
+        else:
+            paths = [str(p) for p in paths]
+        return cls.pathsep(ext=ext).join(paths)
+
+    @classmethod
+    def pathsep(cls, ext=None):
+        """The path separator used by this platform."""
+        if ext in (".sh", ""):
+            # For shwin scripts we should use linux style pathsep
+            return ":"
+        return cls._sep
 
 
 class LinuxPlatform(BasePlatform):

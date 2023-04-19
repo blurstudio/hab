@@ -17,7 +17,7 @@
                     "cmd": ["python", "{relative_root}/list_vars.py"],
                     "environment": {
                         "append": {
-                            "PATH": ["{PATH!e}", "{relative_root}/test"]
+                            "PATH": ["{PATH!e}", "{relative_root}/PATH/env/with  spaces"]
                         }
                     }
                 }
@@ -60,7 +60,7 @@
                     "cmd": ["python", "{relative_root}/list_vars.py"],
                     "environment": {
                         "append": {
-                            "PATH": ["{PATH!e}", "{relative_root}/test"]
+                            "PATH": ["{PATH!e}", "{relative_root}/PATH/env/with  spaces"]
                         }
                     }
                 }

@@ -74,6 +74,12 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
         args=spec["args"],
         create_launch=spec["create_launch"],
     )
+
+    # Generate the correct testing path for the shell this test is targeting
+    func = utils.path_forward_slash
+    if platform == "win32" and ext == ".sh":
+        func = utils.cygpath
+
     # Test specific values to update the reference templates with for comparison
     replacements = {
         "freeze": utils.encode_freeze(cfg.freeze()),
@@ -81,7 +87,11 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
         "tmpdir": tmpdir,
         # Replace the path to your checkout's tests directory with
         # `{{ config_root }}` making sure to convert back slashes to forward slashes
-        "config_root": utils.path_forward_slash(config_root),
+        "config_root": func(config_root),
+        # For bash on windows, we are not converting "cmd" to cygpaths as it's
+        # not required and we would then need to account for multiple paths in
+        # the same string.
+        "config_root_alias": utils.path_forward_slash(config_root),
     }
 
     def check_file(item):
@@ -141,6 +151,22 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
     assert (
         total_reference == total_processed
     ), "Reference file count doesn't match generated"
+
+    # File paths should only be converted to the scripting language(cygpath)
+    # only when generating a script, not before that. Check that the path was
+    # not converted while building frozen data.
+    # This check exists to ensure that we don't accidentally break this
+    # requirement at some point in the future.
+    freeze = cfg.freeze()
+    for plat in ("linux", "windows"):
+        alias = freeze["aliases"][plat]["inherited"]
+        env = alias["environment"]["PATH"]
+        distro = config_root / "distros" / "aliased" / "2.0"
+
+        assert Path(alias["cmd"][1]) == distro / "list_vars.py"
+
+        assert env[0] == "{PATH!e}"
+        assert Path(env[1]) == distro / "PATH" / "env" / "with  spaces"
 
 
 @pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
