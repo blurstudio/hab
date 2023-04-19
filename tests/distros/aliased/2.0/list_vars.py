@@ -22,4 +22,10 @@ print_var("ALIASED_GLOBAL_C")
 print_var("ALIASED_GLOBAL_D")
 print_var("ALIASED_GLOBAL_E")
 print_var("ALIASED_LOCAL")
+print("")
+
+print(' PATH env var '.center(80, '-'))
+for p in os.environ["PATH"].split(os.path.pathsep):
+    print(p)
+
 print(''.center(80, '-'))

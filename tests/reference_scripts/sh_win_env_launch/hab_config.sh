@@ -4,7 +4,7 @@ export PS1="[not_set/child] $PS1"
 # Setting global environment variables:
 unset UNSET_VARIABLE
 export TEST="case"
-export FMT_FOR_OS="a;b;c:$PATH;d"
+export FMT_FOR_OS="a:b;c:$PATH:d"
 unset ALIASED_GLOBAL_E
 export ALIASED_GLOBAL_B="Global B"
 export ALIASED_GLOBAL_C="Global C"
@@ -22,7 +22,7 @@ function as_dict() {
     export ALIASED_LOCAL="{{ config_root }}/distros/aliased/2.0/test"
 
     # Run alias command
-    python {{ config_root }}/distros/aliased/2.0/list_vars.py "$@";
+    python {{ config_root_alias }}/distros/aliased/2.0/list_vars.py "$@";
 
     # Restore the previous environment without alias specific hab variables by
     # removing variables hab added, then restore the original variable values.
@@ -37,10 +37,10 @@ function inherited() {
     # Set alias specific environment variables. Backup the previous variable
     # value and export status, and add the hab managed variables
     hab_bac_inherited=`export -p`
-    export PATH="$PATH;{{ config_root }}/distros/aliased/2.0/test"
+    export PATH="$PATH:{{ config_root }}/distros/aliased/2.0/PATH/env/with  spaces"
 
     # Run alias command
-    python {{ config_root }}/distros/aliased/2.0/list_vars.py "$@";
+    python {{ config_root_alias }}/distros/aliased/2.0/list_vars.py "$@";
 
     # Restore the previous environment without alias specific hab variables by
     # removing variables hab added, then restore the original variable values.
@@ -52,7 +52,7 @@ function inherited() {
 export -f inherited;
 
 function as_list() {
-    python {{ config_root }}/distros/aliased/2.0/list_vars.py "$@";
+    python {{ config_root_alias }}/distros/aliased/2.0/list_vars.py "$@";
 }
 export -f as_list;
 
@@ -65,12 +65,12 @@ function global() {
     # Set alias specific environment variables. Backup the previous variable
     # value and export status, and add the hab managed variables
     hab_bac_global=`export -p`
-    export ALIASED_GLOBAL_A="Local A Prepend;Global A;Local A Append"
+    export ALIASED_GLOBAL_A="Local A Prepend:Global A:Local A Append"
     export ALIASED_GLOBAL_C="Local C Set"
     unset ALIASED_GLOBAL_D
 
     # Run alias command
-    python {{ config_root }}/distros/aliased/2.0/list_vars.py "$@";
+    python {{ config_root_alias }}/distros/aliased/2.0/list_vars.py "$@";
 
     # Restore the previous environment without alias specific hab variables by
     # removing variables hab added, then restore the original variable values.

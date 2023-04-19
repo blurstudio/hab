@@ -8,7 +8,7 @@ def test_e_format():
     assert Formatter('sh').format('-{;}-') == '-:-'
     # Bash formatting is different on windows for env vars
     assert Formatter('shwin').format('-{PATH!e}-') == '-$PATH-'
-    assert Formatter('shwin').format('-{;}-') == '-;-'
+    assert Formatter('shwin').format('-{;}-') == '-:-'
 
     assert Formatter('ps').format('-{PATH!e}-') == '-$env:PATH-'
     assert Formatter('ps').format('-{;}-') == '-;-'

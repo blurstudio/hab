@@ -34,7 +34,7 @@ function inherited() {
     # Set alias specific environment variables. Backup the previous variable
     # value and export status, and add the hab managed variables
     $hab_bac_inherited = Get-ChildItem env:
-    $env:PATH="$env:PATH;{{ config_root }}/distros/aliased/2.0/test"
+    $env:PATH="$env:PATH;{{ config_root }}/distros/aliased/2.0/PATH/env/with  spaces"
 
     # Run alias command
     python {{ config_root }}/distros/aliased/2.0/list_vars.py $args

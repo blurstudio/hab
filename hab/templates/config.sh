@@ -4,7 +4,7 @@ export PS1="[{{ hab_cfg.uri }}] $PS1"
 # Setting global environment variables:
 {% for key, value in hab_cfg.environment.items() %}
 {% if value %}
-    {% set value = utils.Platform.collapse_paths(value) %}
+    {% set value = utils.Platform.collapse_paths(value, ext=ext) %}
     {% set value = formatter.format(value, key=key, value=value) %}
 export {{ key }}="{{ value }}"
 {% else %}
@@ -27,7 +27,7 @@ function {{ alias }}() {
     hab_bac_{{ alias_norm }}=`export -p`
     {% for k, v in alias_env.items() %}
     {% if v %}
-        {% set v = utils.Platform.collapse_paths(v) %}
+        {% set v = utils.Platform.collapse_paths(v, ext=ext) %}
         {% set v = formatter.format(v, key=key, value=v) %}
     export {{ k }}="{{ v }}"
     {% else %}
