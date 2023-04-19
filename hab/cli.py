@@ -1,6 +1,7 @@
 import logging
 import re
 import sys
+import traceback
 from pathlib import Path
 
 import click
@@ -119,6 +120,13 @@ class SharedSettings(object):
         )
 
 
+# This variable is used to keep track of the user enabled verbose hab output
+# using `hab -v ...`. If they do, the full traceback is printed to the shell,
+# otherwise just the last part of the traceback is printed so its easier to
+# report and hopefully more descriptive.
+_verbose_errors = False
+
+
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(__version__, prog_name="hab")
 @click.option(
@@ -135,7 +143,8 @@ class SharedSettings(object):
     "--verbose",
     "verbosity",
     count=True,
-    help="Increase the verbosity of the output. Can be used up to 3 times.",
+    help="Increase the verbosity of the output. Can be used up to 3 times. "
+    "This also enables showing a full traceback if an exception is raised.",
 )
 @click.option(
     "--script-dir",
@@ -169,19 +178,23 @@ class SharedSettings(object):
     ),
 )
 @click.pass_context
-def cli(
+def _cli(
     ctx, site_paths, verbosity, script_dir, script_ext, pre, requirement, dump_scripts
 ):
+    global _verbose_errors
+
     ctx.obj = SharedSettings(
         site_paths, verbosity, script_dir, script_ext, pre, requirement, dump_scripts
     )
     if verbosity > 2:
         verbosity = 2
+    _verbose_errors = bool(verbosity)
+
     level = [logging.WARNING, logging.INFO, logging.DEBUG][verbosity]
     logging.basicConfig(level=level)
 
 
-@cli.command()
+@_cli.command()
 @click.argument("uri", required=False)
 @click.option(
     "-u",
@@ -202,7 +215,7 @@ def env(settings, uri, unfreeze, launch):
     settings.write_script(uri, unfreeze=unfreeze, create_launch=True, launch=launch)
 
 
-@cli.command()
+@_cli.command()
 # If the report_type and unfreeze options are used, uri is not required. This
 # is manually checked in the code below where it raises `click.UsageError`.
 @click.argument("uri", required=False)
@@ -316,7 +329,7 @@ def dump(
         click.echo(ret)
 
 
-@cli.command()
+@_cli.command()
 @click.argument("uri", required=False)
 @click.option(
     "-u",
@@ -356,7 +369,7 @@ def activate(settings, uri, unfreeze, launch):
     settings.write_script(uri, unfreeze=unfreeze, launch=launch)
 
 
-@cli.command(
+@_cli.command(
     context_settings=dict(
         ignore_unknown_options=True,
     )
@@ -401,6 +414,24 @@ def launch(settings, uri, unfreeze, alias, args):
     settings.write_script(
         uri, unfreeze=unfreeze, create_launch=True, launch=alias, exit=True, args=args
     )
+
+
+def cli(*args, **kwargs):
+    """Runs the hab cli. If an exception is raised, only the exception message
+    is printed and the stack trace is hidden. Use `hab -v ...` to enable showing
+    the entire stack trace.
+    """
+    try:
+        return _cli(*args, **kwargs)
+    except Exception:
+        click.echo(f'{Fore.RED}Hab encountered an error:{Fore.RESET}')
+        if _verbose_errors:
+            # In verbose mode show the full traceback
+            raise
+
+        # Print the traceback message without the stack trace.
+        click.echo(traceback.format_exc(limit=0))
+        return 1
 
 
 if __name__ == "__main__":
