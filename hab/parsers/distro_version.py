@@ -76,6 +76,9 @@ class DistroVersion(HabBase):
                             )
                         ) from None
                     raise InvalidVersionError(self.filename) from None
+                except Exception as error:
+                    # To make debugging easier include the original exception
+                    raise InvalidVersionError(self.filename, error=error) from None
 
         # The name should be the version == specifier.
         self.distro_name = data.get("name")

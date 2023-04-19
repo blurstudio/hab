@@ -46,5 +46,5 @@ class InvalidVersionError(LookupError):
     def __str__(self):
         ret = self.message.format(filename=self.filename)
         if self.error:
-            ret = f'{self.error}\n{ret}'
+            ret = f'[{type(self.error).__name__}] {self.error}\n{ret}'
         return ret
