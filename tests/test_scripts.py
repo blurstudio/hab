@@ -263,14 +263,14 @@ def test_invalid_alias(resolver, tmpdir, ext):
 
     # Check that calling a bad alias name raises a useful error message
     cfg = resolver.resolve("not_set/child")
-    with pytest.raises(errors.HabError) as excinfo:
+    with pytest.raises(errors.HabError, match=r'"bad-alias" is not a valid alias name'):
         cfg.write_script(str(tmpdir), launch="bad-alias", **kwargs)
-    assert str(excinfo.value) == '"bad-alias" is not a valid alias name'
 
     # Remove the "cmd" value to test an invalid configuration
     alias = cfg.frozen_data["aliases"][utils.Platform.name()]["global"]
     del alias["cmd"]
 
-    with pytest.raises(errors.HabError) as excinfo:
+    with pytest.raises(
+        errors.HabError, match='Alias "global" does not have "cmd" defined'
+    ):
         cfg.write_script(str(tmpdir), launch="global", **kwargs)
-    assert str(excinfo.value) == 'Alias "global" does not have "cmd" defined'

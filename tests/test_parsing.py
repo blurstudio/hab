@@ -54,19 +54,18 @@ def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch, tmp
 
     # Test that an error is raised if the version could not be determined
     path = config_root / "distros_version" / "not_scm" / ".hab.json"
-    with pytest.raises(InvalidVersionError) as excinfo:
+    with pytest.raises(InvalidVersionError, match=r"Hab was unable to determine"):
         app.load(path)
-    assert str(excinfo.value).startswith("Hab was unable to determine")
 
     # Test that an nice error is raised if setuptools_scm is not installed
     with monkeypatch.context() as m:
         # Simulate that setuptools-scm is not installed
         m.setitem(sys.modules, "setuptools_scm", None)
-        with pytest.raises(InvalidVersionError) as excinfo:
+        with pytest.raises(
+            InvalidVersionError,
+            match=r"\[ModuleNotFoundError\] import of setuptools_scm halted",
+        ):
             app.load(path)
-    assert str(excinfo.value).startswith(
-        "[ModuleNotFoundError] import of setuptools_scm halted"
-    )
 
     # Test that setuptools_scm is able to resolve the version.
     # This env var forces setuptools_scm to this version so we don't have to
@@ -88,7 +87,9 @@ def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch, tmp
     # Test that if the dirname matches `resolver.ignored`, the folder is
     # skipped by raising an _IgnoredVersionError exception.
     path = config_root / "distros_version" / "release" / ".hab.json"
-    with pytest.raises(_IgnoredVersionError) as excinfo:
+    with pytest.raises(
+        _IgnoredVersionError, match=r"its dirname is in the ignored list"
+    ):
         app.load(path)
 
     # Check that `resolver.ignored` is also respected for arbitrary
@@ -340,26 +341,24 @@ class TestDump:
 def test_environment(resolver):
     # Check that the correct errors are raised
     cfg = resolver.closest_config("not_set/env_path_set")
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(
+        ValueError, match=r'You can not use PATH for the set operation: "path_variable"'
+    ):
         cfg.environment
-    assert (
-        str(excinfo.value)
-        == 'You can not use PATH for the set operation: "path_variable"'
-    )
 
     cfg = resolver.closest_config("not_set/env_path_unset")
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match=r"You can not unset PATH"):
         cfg.environment
-    assert str(excinfo.value) == "You can not unset PATH"
 
     # Attempting to use a reserved env var raises an exception
-    cfg = resolver.closest_config("not_set/env_path_hab_uri")
-    with pytest.raises(KeyError) as excinfo:
-        cfg.environment
     # Note: KeyError always adds quotes around the message passed so we need to
     # add them when checking the exception text
     # https://stackoverflow.com/a/24999035
-    assert str(excinfo.value) == "'\"HAB_URI\" is a reserved environment variable'"
+    cfg = resolver.closest_config("not_set/env_path_hab_uri")
+    with pytest.raises(
+        KeyError, match=r"'\"HAB_URI\" is a reserved environment variable'"
+    ):
+        cfg.environment
 
     # Check environment variable resolving
     cfg = resolver.closest_config("not_set/env1")

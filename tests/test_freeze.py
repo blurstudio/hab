@@ -153,17 +153,14 @@ def test_decode_freeze(config_root, resolver):
         # Missing `v'
         f'1:{v1[3:]}',
     ):
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(
+            ValueError, match=r"Missing freeze version information in format `v0:...`"
+        ):
             utils.decode_freeze(check)
-        assert (
-            str(excinfo.value)
-            == "Missing freeze version information in format `v0:...`"
-        )
 
     # Check that versions other than numbers raise a helpful exception
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match=r'Version INVALID is not valid.'):
         utils.decode_freeze(f'vINVALID:{v1[3:]}')
-    assert str(excinfo.value) == 'Version INVALID is not valid.'
 
     # check that other version encodings return nothing
     assert utils.decode_freeze(f'v3:{v1[3:]}') is None
