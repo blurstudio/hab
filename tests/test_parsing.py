@@ -5,6 +5,7 @@ import sys
 
 import anytree
 import pytest
+import setuptools_scm
 from packaging.version import Version
 
 from hab import NotSet, utils
@@ -41,7 +42,7 @@ def test_distro_parse(config_root, resolver):
     assert app.version == Version("2020.0")
 
 
-def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch):
+def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch, tmpdir):
     """Check the various methods for DistroVersion.version to be populated."""
 
     # Test that `.hab_version.txt` is respected if it exists.
@@ -75,12 +76,29 @@ def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch):
         app.load(path)
         assert app.version == Version("1.9")
 
+    # Check that we add debug info to arbitrary setuptools_scm Exceptions.
+    def get_ver(*args, **kwargs):
+        raise OSError("Simulate a arbitrary error in setuptools_scm.get_version")
+
+    with monkeypatch.context() as m:
+        m.setattr(setuptools_scm, 'get_version', get_ver)
+        with pytest.raises(InvalidVersionError, match=r"\[OSError\] Simulate"):
+            app.load(path)
+
     # Test that if the dirname matches `resolver.ignored`, the folder is
     # skipped by raising an _IgnoredVersionError exception.
     path = config_root / "distros_version" / "release" / ".hab.json"
     with pytest.raises(_IgnoredVersionError) as excinfo:
         app.load(path)
-    assert "its dirname is in the ignored list." in str(excinfo.value)
+
+    # Check that `resolver.ignored` is also respected for arbitrary
+    # setuptools_scm Exceptions.
+    with monkeypatch.context() as m:
+        m.setattr(setuptools_scm, 'get_version', get_ver)
+        with pytest.raises(
+            _IgnoredVersionError, match=r"its dirname is in the ignored list"
+        ):
+            app.load(path)
 
 
 def test_distro_version(resolver):

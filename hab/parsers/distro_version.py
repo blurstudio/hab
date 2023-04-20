@@ -63,11 +63,7 @@ class DistroVersion(HabBase):
                 except ImportError as error:
                     raise InvalidVersionError(self.filename, error=error) from None
 
-                try:
-                    self.version = get_version(
-                        root=self.dirname, version_scheme="release-branch-semver"
-                    )
-                except LookupError:
+                def check_ignored_version():
                     if self.dirname.name in self.resolver.ignored:
                         # This object is not added to the forest until super is called
                         raise _IgnoredVersionError(
@@ -75,8 +71,16 @@ class DistroVersion(HabBase):
                                 filename
                             )
                         ) from None
+
+                try:
+                    self.version = get_version(
+                        root=self.dirname, version_scheme="release-branch-semver"
+                    )
+                except LookupError:
+                    check_ignored_version()
                     raise InvalidVersionError(self.filename) from None
                 except Exception as error:
+                    check_ignored_version()
                     # To make debugging easier include the original exception
                     raise InvalidVersionError(self.filename, error=error) from None
 
