@@ -680,6 +680,10 @@ You can administratively default the execution policy to unrestricted for window
 * To use `hab activate` in bash or Powershell you need to use `.` or `source`. Powershell
 has the `.` operator so I would use that for both Powershell and bash.
 `. hab activate default`.
+* Jinja2 and MarkupSafe minimum requirements should be respected. This allows hab
+to work with Houdini 19.5 that ships with very dated versions of these packages.
+In practice this just means that we have to cast pathlib objects to strings before
+passing them to Jinja2.
 
 # Glosary
 

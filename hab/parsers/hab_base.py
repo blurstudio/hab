@@ -564,7 +564,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         """
 
         environment = Environment(
-            loader=FileSystemLoader(TEMPLATES), trim_blocks=True, lstrip_blocks=True
+            loader=FileSystemLoader(str(TEMPLATES)),
+            trim_blocks=True,
+            lstrip_blocks=True,
         )
         template = environment.get_template(f"{template}{ext}")
         kwargs = dict(
@@ -624,7 +626,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             str: The rendered script.
         """
         environment = Environment(
-            loader=FileSystemLoader(TEMPLATES), trim_blocks=True, lstrip_blocks=True
+            loader=FileSystemLoader(str(TEMPLATES)),
+            trim_blocks=True,
+            lstrip_blocks=True,
         )
         template = environment.get_template(f"{template}{ext}")
         kwargs = dict(

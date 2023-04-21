@@ -103,7 +103,9 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
         # Using Jinja for this because other python str formatting methods require
         # too much manipulation of the reference files.
         environment = Environment(
-            loader=FileSystemLoader(item.parent), trim_blocks=True, lstrip_blocks=True
+            loader=FileSystemLoader(str(item.parent)),
+            trim_blocks=True,
+            lstrip_blocks=True,
         )
         template = environment.get_template(item.name)
         # Note: jinja2' seems to be inconsistent with its trailing newlines depending
