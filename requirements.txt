@@ -2,7 +2,8 @@ anytree
 click>=7.1.2
 colorama
 future>=0.18.2
-Jinja2
+Jinja2>=2.10.1
+MarkupSafe>=0.23
 packaging>=20.0
 Pygments
 setuptools>=44.1.1
