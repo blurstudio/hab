@@ -22,6 +22,152 @@ A git checkout can be found and the version of a distro can be dynamically gener
 using setuptools_scm, or explicitly set by adding a `.hab_version.txt` that is not
 committed to the repo.
 
+# Quickstart
+
+## Using hab
+
+The general workflow for using hab is to use `hab env` to configure your shell, then
+launch one or more aliases to work in. When done with that environment you exit it
+with the shells exit command. Then you can enable another hab config with a
+different URI.
+
+You should be choosing the correct URI for your current task. This makes it so if
+required the underlying configuration for each task you are working on can be
+configured you don't need to know that something was changed.
+
+#### Bash (Linux and Windows)
+
+```bash
+$ hab env project_a/Seq001/S0010     # Enable this environment
+[project_a/Seq001/S0010] $ maya      # Launch a hab defined alias
+[project_a/Seq001/S0010] $ houdini   # Launch a hab defined alias
+[project_a/Seq001/S0010] $ exit      # Exit out of the current hab environment
+$                                    # Back at the original shell without hab config
+$ hab env project_a/Seq001/S0020     # Switch to another task with its own config ...
+```
+
+#### Command Prompt (Windows)
+
+```batch
+C:\>hab env project_a/Seq001/S0010      # Enable this environment
+[project_a/Seq001/S0010] C:\>maya       # Launch a hab defined alias
+[project_a/Seq001/S0010] C:\>houdini    # Launch a hab defined alias
+[project_a/Seq001/S0010] C:\>exit       # Exit out of the current hab environment
+C:\>                                    # Back at the original shell without hab config
+C:\>hab env project_a/Seq001/S0020      # Switch to another task with its own config ...
+```
+
+#### PowerShell  (Windows)
+
+```ps1
+PS C:\> hab env project_a/Seq001/S0010  # Enable this environment
+[project_a/Seq001/S0010] C:\>maya       # Launch a hab defined alias
+[project_a/Seq001/S0010] C:\>houdini    # Launch a hab defined alias
+[project_a/Seq001/S0010] C:\>exit       # Exit out of the current hab environment
+PS C:\>                                 # Back at the original shell without hab config
+PS C:\> hab env project_a/Seq001/S0020  # Switch to another task with its own config ...
+```
+
+In the above examples the user is enabling the hab environment for the
+URI:`project_a/Seq001/S0010`, then launching the Maya and Houdini aliases.
+Finally they are exiting the current URI so they can enable another URI. The user
+doesn't need to worry about which version of the Maya or Houdini applications they
+should launch, that is configured for them by the URI they pass to `hab env`.
+
+### Looking up aliases
+
+In the previous section the use knew that they could run maya and houdini. You can
+lookup the aliases for a given URI with the `hab dump` command. An alias is a hab
+controlled way to launch a application.
+
+```bash
+$ hab dump project_a/Seq001/S0010
+Dump of FlatConfig('project_a')
+------------------------------------------------------
+aliases:  maya mayapy pip houdini houdini18.5
+------------------------------------------------------
+```
+
+This shows that a user has access to `maya`, `mayapy`, `pip`, `houdini`, and
+`houdini18.5` aliases. For this config the `houdini` and `houdini18.5` aliases
+end up launching the same application, See [Multiple app versions](#multiple-app-versions)
+
+### User Prefs
+
+To support reusable alias shortcuts, hab has the ability to remember a URI and
+reuse it for the next run. Anywhere you pass a uri to the cli, you can pass a
+dash `-` instead. Hab will use the saved uri.
+
+```bash
+$ hab env -
+```
+
+This feature has to be enabled by the site configuration. Depending on the site config
+you may need to enable it by adding `--prefs` after `hab`.
+```bash
+hab --prefs dump -
+```
+
+The site configuration may also configure a timeout that will require you to re-specify
+the uri after a while.
+
+To update the URI used when you pass `-`, pass `--save-prefs` after hab. You can
+not use `-` when using this option.
+```bash
+hab --save-prefs dump project_a/Seq001/S0010
+```
+
+## Installing
+
+Hab is installed using pip. It requires python 3.6 or above. It's recommended
+that you add the path to your python's bin or Scripts folder to the `PATH`
+environment variable so you can simply run the `hab` command.
+
+```
+pip3 install hab
+```
+
+If you want to make use of (json5)[https://pypi.org/project/pyjson5/] formatting
+when creating the various json files that drives hab, you should use the optional
+json5 dependency. This lets you add comments and allows for trailing commas.
+
+```
+pip3 install hab[json5]
+```
+
+Once hab is installed you need to point it to one or more [site configurations](#site)
+using the HAB_PATHS environment variable. Each shell/platform assigns environment
+variables differently. These set the env variable for the current shell only.
+
+#### Bash (Linux)
+
+```bash
+export HAB_PATHS="/path/to/site_b.json:/path/to/site_a.json"
+```
+
+#### Bash (Windows, cygwin)
+
+You can use windows style paths by adding double quotes around the path(s). If
+specifying a unc path with backslashes, you need to escape the leading slashes,
+but can leave the remaining backslashes(when double quoted). Use `;` for the pathsep.
+```bash
+export HAB_PATHS="c:\path\to\site_b.json;/c/path/to/site_a.json;\\\\server\share\path\to\site_a.json"
+```
+
+#### Command Prompt (Windows)
+
+```batch
+set "HAB_PATHS=c:\path\to\site_b.json;/c/path/to/site_a.json"
+```
+
+#### PowerShell (Windows)
+
+```ps1
+$env:HAB_PATHS="c:\path\to\site_b.json;c:\path\to\site_a.json"
+```
+
+# Overview
+
 ## URI
 
 `identifier1/identifier2/...`
@@ -226,6 +372,16 @@ unfrozen on another platform it will still work.
 When using freeze, all of these platforms will be stored. Defaults to linux, osx, windows.
 * `prereleases`: If pre-release distros should be allowed. Works the same as
 `pip install --pre ...`.
+* `prefs_default`: Controls if [user prefs](#user-prefs) can be used and if they
+are enabled by default. Ie if you can pass `-` for a URI. If this is set to
+`disabled`(the default), user prefs can not be used. If set to `--prefs`, then
+user prefs are enabled by default. Conversely, if set to `--no-prefs` then user
+prefs are disabled by default. Users can pass either of these cli flags to hab
+to override the default(as long as its not disabled.) `hab --prefs dump ...`.
+* `prefs_uri_timeout`: If a URI [user preference](#user-prefs) was set longer
+than this duration, force the user to re-save the URI returned for `-` when using
+the `--save-prefs` flag. To enable a timeout set this to a dictionary of kwargs
+to initialize a `datetime.timedelta` object.
 
 `config_paths` and `distro_paths` take a list of glob paths. For a given glob
 string in these variables you can not have duplicate values. For configs a

@@ -27,6 +27,7 @@ from .errors import _IgnoredVersionError
 from .parsers import Config, DistroVersion, HabBase
 from .site import Site
 from .solvers import Solver
+from .user_prefs import UserPrefs
 from .version import version as __version__
 
 logger = logging.getLogger(__name__)
@@ -281,3 +282,19 @@ class Resolver(object):
 
         solver = Solver(requirements, self, forced=self.forced_requirements)
         return solver.resolve()
+
+    def user_prefs(self, load=False):
+        """Returns the `hab.user_prefs.UserPrefs` object for this resolver.
+
+        Args:
+            load (bool, optional): If True, calls `UserPrefs.load()` before
+                returning the UserPrefs object.
+        """
+        try:
+            self._user_prefs
+        except AttributeError:
+            self._user_prefs = UserPrefs(self)
+
+        if load:
+            self._user_prefs.load()
+        return self._user_prefs
