@@ -10,6 +10,7 @@ import zlib
 from abc import ABC, abstractmethod
 from collections import UserDict
 from collections.abc import KeysView
+from datetime import date, datetime
 from pathlib import Path, PurePath
 
 import colorama
@@ -258,6 +259,10 @@ class HabJsonEncoder(_json.JSONEncoder):
         if obj is NotSet:
             # Convert NotSet to None for json storage
             return None
+        # Handle date and datetime conversion
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+
         # Let the base class default method raise the TypeError
         return _json.JSONEncoder.default(self, obj)
 
@@ -446,6 +451,11 @@ class BasePlatform(ABC):
             return "windows"
         return "linux"
 
+    @classmethod
+    def user_prefs_filename(cls):
+        """Returns the filename that contains the hab user preferences."""
+        return Path.home() / ".hab_user_prefs.json"
+
 
 class WinPlatform(BasePlatform):
     _name = "windows"
@@ -488,6 +498,11 @@ class WinPlatform(BasePlatform):
             # For shwin scripts we should use linux style pathsep
             return ":"
         return cls._sep
+
+    @classmethod
+    def user_prefs_filename(cls):
+        """Returns the filename that contains the hab user preferences."""
+        return Path(os.path.expandvars("$LOCALAPPDATA")) / ".hab_user_prefs.json"
 
 
 class LinuxPlatform(BasePlatform):

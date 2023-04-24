@@ -18,36 +18,107 @@ logger = logging.getLogger(__name__)
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-class UnfrozenType(click.Path):
-    """Accepts a hab frozen string, or a file path to a document containing a
-    frozen hab configuration. Returns the decoded python dictionary.
+class UriArgument(click.Argument):
+    """Accepts a URI string, frozen string or path to frozen json file.
+
+    - If a frozen string or json file path is passed returns the unfrozen data
+        dictionary.
+    - If a uri is provided, the string is returned unmodified.
+    - If a `-` is passed and user prefs are enabled, the stored uri in the
+        current user's prefs is returned. If a stored uri is not resolved a
+        UsageError is raised if required, or returned for later error handling.
+        When using a user pref, a message is written to the error stream to
+        ensure the user can see what uri was resolved. It is written to the error
+        stream so it doesn't interfere with capturing output to a file(json).
+
+    This also handles saving the provided uri to user prefs if enabled by
+    `SharedSettings.enable_user_prefs_save`. This is only respected if an uri is
+    provided. Ie if a frozen uri, json file or `-` are passed, prefs are not saved.
     """
 
-    name = "unfrozen"
+    def type_cast_value(self, ctx, value):
+        """Convert and validate the uri value. This override handles saving the
+        uri to user prefs if enabled by the cli.
+        """
+        # User didn't specify a URI, return/raise an UsageError
+        if value is None:
+            result = click.UsageError("Missing argument 'URI'")
+            if self.required:
+                raise result
+            return result
 
-    def __init__(
-        self, exists=True, path_type=Path, file_okay=True, resolve_path=True, **kwargs
-    ):
-        super().__init__(
-            exists=exists,
-            path_type=path_type,
-            file_okay=file_okay,
-            resolve_path=resolve_path,
-            **kwargs,
-        )
+        # User wants to use saved user prefs for the uri
+        if value == "-":
+            value, reason = ctx.obj.resolver.user_prefs().uri_reason()
 
-    def convert(self, value, param, ctx):
+            if value is None:
+                # If there isn't a valid uri preference, raise a UsageError if its
+                # required, otherwise return the UsageError to the command so it
+                # can handle it
+                result = click.UsageError(f"Invalid 'URI' preference: {reason}")
+                if self.required:
+                    raise result
+                return result
+            else:
+                # Indicate to the user that they are using a user pref, and make
+                # it easy to know what uri they are using when debugging the output.
+                # Note: Using `err=True` so this output doesn't affect capturing
+                # of hab output from cmds like `hab dump - --format json`.
+                click.echo(
+                    f'Using "{Fore.GREEN}{value}{Fore.RESET}" from user prefs.',
+                    err=True,
+                )
+                # Don't allow users to re-save the user prefs value when using
+                # a user prefs value so they don't constantly reset the timeout.
+                return value
+
+        # User passed a frozen hab string
         if re.match(r'^v\d+:', value):
             return decode_freeze(value)
 
-        # If its not a string, convert to a Path object matching requirements
+        # If its not a string, convert to a Path object, if the path exists,
+        # return the extracted dictionary assuming it was a json file.
         try:
-            data = super().convert(value, param, ctx)
+            cpath = click.Path(path_type=Path, file_okay=True, resolve_path=True)
+            data = cpath.convert(value, None, ctx=ctx)
+            if data.exists():
+                return json.load(data.open())
         except ValueError:
-            self.fail(
-                f"{value!r} is not a valid frozen version or file path.", param, ctx
-            )
-        return json.load(data.open())
+            self.fail(f"{value!r} is not a valid frozen file path.", ctx)
+
+        # Use standard click type casting on value.
+        value = super().type_cast_value(ctx, value)
+
+        # Save the uri to user prefs if requested. This should only happen if the
+        # user actually provided a uri, not for other valid inputs on this class.
+        if ctx.obj.enable_user_prefs_save:
+            ctx.obj.resolver.user_prefs().uri = value
+
+        return value
+
+
+class UriHelpClass(click.Command):
+    """Adds info about user prefs to the help text of commands that take a uri."""
+
+    # Note: the leading whitespace is important to ensure the help text formats
+    # correctly when merged with multi-line docstrings like activate.
+    uri_text = """
+    If you pass a dash `-` for URI, it will use the last URI you saved. You can
+    update the saved uri by adding `--save-prefs` to a hab call. For example:
+    `hab --save-prefs {subcmd} a/uri`.
+    """
+    timeout_text = (
+        "The saved uri will periodically timeout requiring you to re-save your uri."
+    )
+
+    def get_help(self, ctx):
+        prefs = ctx.obj.resolver.user_prefs()
+        if prefs.enabled:
+            self.help += f"\n\n{self.uri_text}".format(subcmd=self.name)
+            # Only show timeout info if timeout is enabled
+            if prefs.uri_timeout:
+                self.help += self.timeout_text
+        return super().get_help(ctx)
 
 
 class SharedSettings(object):
@@ -60,6 +131,8 @@ class SharedSettings(object):
         pre=None,
         forced_requirements=None,
         dump_scripts=False,
+        enable_user_prefs=None,
+        enable_user_prefs_save=False,
     ):
         self.verbosity = verbosity
         self.script_dir = Path(script_dir or ".").resolve()
@@ -69,6 +142,16 @@ class SharedSettings(object):
         self.forced_requirements = forced_requirements
         self.dump_scripts = dump_scripts
         self.site = Site([Path(p) for p in site_paths])
+        self.enable_user_prefs = enable_user_prefs
+        self.enable_user_prefs_save = enable_user_prefs_save
+
+    @classmethod
+    def log_context(cls, uri):
+        """Writes a logger.info call for the given uri string or dictionary."""
+        if isinstance(uri, dict):
+            logger.info("Context: {}".format(uri["uri"]))
+        else:
+            logger.info("Context: {}".format(uri))
 
     @property
     def resolver(self):
@@ -79,32 +162,31 @@ class SharedSettings(object):
                 forced_requirements=self.forced_requirements,
             )
             self._resolver.dump_scripts = self.dump_scripts
+            self._resolver.user_prefs().enabled = self.enable_user_prefs
         return self._resolver
 
     def write_script(
         self,
         uri,
-        unfreeze=None,
         launch=None,
         exit=False,
         args=None,
         create_launch=False,
     ):
         """Generate the script the calling shell scripts expect to setup the environment"""
-        logger.info(f"Context: {uri}")
+        self.log_context(uri)
         logger.debug(f"Script dir: {self.script_dir} ext: {self.script_ext}")
 
         if args:
             # convert to list, subprocess.list2cmdline does not like tuples
             args = list(args)
 
-        if unfreeze:
+        if isinstance(uri, dict):
             # Load frozen json data instead of processing the URI
-            ret = UnfrozenConfig(unfreeze, self.resolver)
+            ret = UnfrozenConfig(uri, self.resolver)
         elif uri is None:
-            # If the user didn't choose a different report type, or use the
-            # unfreeze option, raise the exception click would raise if
-            # uri didn't have `required=False`.
+            # If a uri wasn't provided by the user raise the exception click
+            # would have raised if uri didn't have `required=False`.
             raise click.UsageError("Missing argument 'URI'.")
         else:
             # Otherwise just process the uri like normal
@@ -177,14 +259,41 @@ _verbose_errors = False
         "running them. This does not work for dump."
     ),
 )
+@click.option(
+    "--prefs/--no-prefs",
+    default=None,
+    help="If you don't pass a URI, allow looking it up from user prefs.",
+)
+@click.option(
+    "--save-prefs/--no-save-prefs",
+    default=None,
+    help="Update the uri stored in prefs if the uri is provided.",
+)
 @click.pass_context
 def _cli(
-    ctx, site_paths, verbosity, script_dir, script_ext, pre, requirement, dump_scripts
+    ctx,
+    site_paths,
+    verbosity,
+    script_dir,
+    script_ext,
+    pre,
+    requirement,
+    dump_scripts,
+    prefs,
+    save_prefs,
 ):
     global _verbose_errors
 
     ctx.obj = SharedSettings(
-        site_paths, verbosity, script_dir, script_ext, pre, requirement, dump_scripts
+        site_paths,
+        verbosity,
+        script_dir,
+        script_ext,
+        pre,
+        requirement,
+        dump_scripts,
+        prefs,
+        save_prefs,
     )
     if verbosity > 2:
         verbosity = 2
@@ -194,14 +303,8 @@ def _cli(
     logging.basicConfig(level=level)
 
 
-@_cli.command()
-@click.argument("uri", required=False)
-@click.option(
-    "-u",
-    "--unfreeze",
-    type=UnfrozenType(),
-    help="Path to frozen json file to load instead of specifying a URI.",
-)
+@_cli.command(cls=UriHelpClass)
+@click.argument("uri", cls=UriArgument)
 @click.option(
     "-l",
     "--launch",
@@ -209,16 +312,15 @@ def _cli(
     help="Run this alias after activating. This leaves the new shell active.",
 )
 @click.pass_obj
-def env(settings, uri, unfreeze, launch):
+def env(settings, uri, launch):
     """Configures and launches a new shell with the resolved setup."""
+    settings.write_script(uri, create_launch=True, launch=launch)
 
-    settings.write_script(uri, unfreeze=unfreeze, create_launch=True, launch=launch)
 
-
-@_cli.command()
-# If the report_type and unfreeze options are used, uri is not required. This
-# is manually checked in the code below where it raises `click.UsageError`.
-@click.argument("uri", required=False)
+@_cli.command(cls=UriHelpClass)
+# For specific report_types uri is not required. This is manually checked in
+# the code below where it raises `uri_error`.
+@click.argument("uri", required=False, cls=UriArgument)
 @click.pass_obj
 @click.option(
     "--env/--no-env",
@@ -254,12 +356,6 @@ def env(settings, uri, unfreeze, launch):
     help="Show increasingly detailed output. Can be used up to 3 times.",
 )
 @click.option(
-    "-u",
-    "--unfreeze",
-    type=UnfrozenType(),
-    help="Path to frozen json file to load instead of specifying a URI.",
-)
-@click.option(
     "-f",
     "--format",
     "format_type",
@@ -267,11 +363,16 @@ def env(settings, uri, unfreeze, launch):
     default="nice",
     help="Choose how the output is formatted.",
 )
-def dump(
-    settings, uri, env, env_config, report_type, flat, verbosity, unfreeze, format_type
-):
+def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_type):
     """Resolves and prints the requested setup."""
-    logger.info("Context: {}".format(uri))
+
+    # Convert uri argument to handle if a uri was not provided/loaded
+    uri_error = None
+    if isinstance(uri, click.UsageError):
+        uri_error = uri
+        uri = None
+
+    settings.log_context(uri)
     # Convert report_tupe short names to long names for ease of processing
     report_map = {"u": "uris", "v": "versions", "f": "forest", "s": "site"}
     report_type = report_map.get(report_type, report_type)
@@ -301,13 +402,15 @@ def dump(
     elif report_type == "site":
         click.echo(settings.resolver.site.dump(verbosity=verbosity))
     else:
-        if unfreeze:
-            ret = UnfrozenConfig(unfreeze, settings.resolver)
-        elif uri is None:
-            # If the user didn't choose a different report type, or use the
-            # unfreeze option, raise the exception click would raise if
-            # uri didn't have `required=False`.
-            raise click.UsageError("Missing argument 'URI'.")
+        if isinstance(uri, dict):
+            # Load frozen json data instead of processing the URI
+            ret = UnfrozenConfig(uri, settings.resolver)
+        elif uri_error:
+            # If the user didn't choose a report type that doesn't require a uri
+            # and a uri wasn't specified, raise a UsageError  similar to the one
+            # click normally raises. UriArgument likely has augmented the
+            # exception to make it easier to debug the issue.
+            raise uri_error
         elif flat:
             ret = settings.resolver.resolve(uri)
         else:
@@ -329,14 +432,8 @@ def dump(
         click.echo(ret)
 
 
-@_cli.command()
-@click.argument("uri", required=False)
-@click.option(
-    "-u",
-    "--unfreeze",
-    type=UnfrozenType(),
-    help="Path to frozen json file to load instead of specifying a URI.",
-)
+@_cli.command(cls=UriHelpClass)
+@click.argument("uri", cls=UriArgument)
 @click.option(
     "-l",
     "--launch",
@@ -344,7 +441,7 @@ def dump(
     help="Run this alias after activating. This leaves the new shell activated.",
 )
 @click.pass_obj
-def activate(settings, uri, unfreeze, launch):
+def activate(settings, uri, launch):
     """Resolves the setup and updates in the current shell.
 
     In powershell and bash you must use the source dot: ". hab activate ..."
@@ -366,54 +463,28 @@ def activate(settings, uri, unfreeze, launch):
         )
         sys.exit(1)
 
-    settings.write_script(uri, unfreeze=unfreeze, launch=launch)
+    settings.write_script(uri, launch=launch)
 
 
 @_cli.command(
     context_settings=dict(
         ignore_unknown_options=True,
-    )
+    ),
+    cls=UriHelpClass,
 )
-@click.argument("uri", required=False)
-@click.option(
-    "-u",
-    "--unfreeze",
-    type=UnfrozenType(),
-    help="Path to frozen json file to load instead of specifying a URI.",
-)
-@click.argument("alias", required=False)
+@click.argument("uri", cls=UriArgument)
+@click.argument("alias")
 # Pass all remaining arguments to the requested alias
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_obj
-def launch(settings, uri, unfreeze, alias, args):
-    """Configure and launch an alias without modifying the current shell.
-    The first argument is a URI, The second argument is the ALIAS to launch. Any
-    additional arguments are passed as launch arguments to the alias. Note, if using
-    bash on windows you may need to pass file paths correctly for bash as any quotes
-    used may not make it to the alias launch arguments.
-    (ie: '/c/Program\\ Files').
+def launch(settings, uri, alias, args):
+    """Configure and launch an alias without modifying the current shell. The
+    first argument is a URI, The second argument is the ALIAS to launch. Any
+    additional arguments are passed as launch arguments to the alias. Note, if
+    using bash on windows you may need to pass file paths correctly for bash as
+    any quotes used may not make it to the alias launch arguments. (ie: '/c/Program\\ Files').
     """
-    # To support making URI not required if unfreeze is specified, we have to
-    # do all of the validation click would normally do ourselves.
-    if unfreeze:
-        # If using --unfreeze, uri contains the alias, and alias contains
-        # the first argument if provided, and args contains any remaining
-        # arguments. Rebuild them so they are the correct values.
-        if alias is not None:
-            args = (alias,) + args
-        alias = uri
-        uri = None
-    elif not uri:
-        # Provide user feedback if a neither uri or unfreeze are provided
-        raise click.UsageError("Missing argument 'URI'.")
-
-    if not alias:
-        # If alias was not provided, replicate the error click normally raises
-        raise click.UsageError("Missing argument 'ALIAS'.")
-
-    settings.write_script(
-        uri, unfreeze=unfreeze, create_launch=True, launch=alias, exit=True, args=args
-    )
+    settings.write_script(uri, create_launch=True, launch=alias, exit=True, args=args)
 
 
 def cli(*args, **kwargs):
