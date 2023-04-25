@@ -449,6 +449,10 @@ def test_path_expansion(resolver, value, check):
 
 class TestPlatform:
     def test_collapse_paths(self):
+        # NOTE: The `ext=".sh", key="PATH"` checks are covering the special case
+        # that exists for PATH when using cygwin that doesn't apply to other
+        # environment variables. See `utils.WinPlatform.collapse_paths` for details.
+
         # Passing strings
         arg = "test case"
         assert utils.LinuxPlatform.collapse_paths(arg) == "test case"
@@ -456,38 +460,53 @@ class TestPlatform:
         assert utils.WinPlatform.collapse_paths(arg) == "test case"
         assert utils.WinPlatform.collapse_paths(arg, ext="") == "test case"
         assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "test case"
+        assert (
+            utils.WinPlatform.collapse_paths(arg, ext=".sh", key="PATH") == "test case"
+        )
 
         # Passing lists that are not paths
         arg = ["test", "case"]
         assert utils.LinuxPlatform.collapse_paths(arg) == "test:case"
         assert utils.OsxPlatform.collapse_paths(arg) == "test:case"
         assert utils.WinPlatform.collapse_paths(arg) == "test;case"
-        assert utils.WinPlatform.collapse_paths(arg, ext="") == "test:case"
-        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "test:case"
+        assert utils.WinPlatform.collapse_paths(arg, ext="") == "test;case"
+        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "test;case"
+        assert (
+            utils.WinPlatform.collapse_paths(arg, ext=".sh", key="PATH") == "test:case"
+        )
 
         # Passing lists that are windows paths
         arg = ["c:\\test", "C:\\case"]
         assert utils.LinuxPlatform.collapse_paths(arg) == "c:\\test:C:\\case"
         assert utils.OsxPlatform.collapse_paths(arg) == "c:\\test:C:\\case"
         assert utils.WinPlatform.collapse_paths(arg) == "c:\\test;C:\\case"
-        assert utils.WinPlatform.collapse_paths(arg, ext="") == "/c/test:/C/case"
-        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "/c/test:/C/case"
+        assert utils.WinPlatform.collapse_paths(arg, ext="") == "c:\\test;C:\\case"
+        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "c:\\test;C:\\case"
+        assert (
+            utils.WinPlatform.collapse_paths(arg, ext=".sh", key="PATH")
+            == "/c/test:/C/case"
+        )
 
         # Passing lists that are linux paths
         arg = ["/test", "/case"]
         assert utils.LinuxPlatform.collapse_paths(arg) == "/test:/case"
         assert utils.OsxPlatform.collapse_paths(arg) == "/test:/case"
         assert utils.WinPlatform.collapse_paths(arg) == "/test;/case"
-        assert utils.WinPlatform.collapse_paths(arg, ext="") == "/test:/case"
-        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "/test:/case"
+        assert utils.WinPlatform.collapse_paths(arg, ext="") == "/test;/case"
+        assert utils.WinPlatform.collapse_paths(arg, ext=".sh") == "/test;/case"
+        assert (
+            utils.WinPlatform.collapse_paths(arg, ext=".sh", key="PATH")
+            == "/test:/case"
+        )
 
     def test_pathsep(self):
         assert utils.LinuxPlatform.pathsep() == ":"
         assert utils.OsxPlatform.pathsep() == ":"
         assert utils.WinPlatform.pathsep() == ";"
         # Ext is not ignored for windows
-        assert utils.WinPlatform.pathsep(ext="") == ":"
-        assert utils.WinPlatform.pathsep(ext=".sh") == ":"
+        assert utils.WinPlatform.pathsep(ext="") == ";"
+        assert utils.WinPlatform.pathsep(ext=".sh") == ";"
+        assert utils.WinPlatform.pathsep(ext=".sh", key="PATH") == ":"
 
 
 def test_cygpath():
