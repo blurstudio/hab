@@ -37,7 +37,7 @@ function inherited() {
     # Set alias specific environment variables. Backup the previous variable
     # value and export status, and add the hab managed variables
     hab_bac_inherited=`export -p`
-    export PATH="$PATH:{{ config_root }}/distros/aliased/2.0/PATH/env/with  spaces"
+    export PATH="$PATH:{{ config_root }}/distros/aliased/2.0/PATH/env/with  spaces:/mnt/shared_resources/with spaces"
 
     # Run alias command
     python {{ config_root }}/distros/aliased/2.0/list_vars.py "$@";

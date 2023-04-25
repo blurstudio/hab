@@ -365,8 +365,17 @@ class BasePlatform(ABC):
         """Checks if the provided name is valid for this class"""
 
     @classmethod
-    def collapse_paths(cls, paths, ext=None):
-        """Converts a list of paths into a string compatible with the os."""
+    def collapse_paths(cls, paths, ext=None, key=None):
+        """Converts a list of paths into a string compatible with the os.
+
+        Args:
+            paths: A list of paths that have str called on each of them. If
+                a string is passed, it is returned un-modified.
+            ext (str, optional): Used to apply special formatting rules based on
+                the shell script being written.
+            key (str, optional): Used to apply special formatting rules based on
+                the environment variable this being used to process.
+        """
         if isinstance(paths, str):
             return paths
         return cls.pathsep(ext=ext).join([str(p) for p in paths])
@@ -447,20 +456,35 @@ class WinPlatform(BasePlatform):
         return name in ("win32", "windows")
 
     @classmethod
-    def collapse_paths(cls, paths, ext=None):
-        """Converts a list of paths into a string compatible with the os."""
+    def collapse_paths(cls, paths, ext=None, key=None):
+        """Converts a list of paths into a string compatible with the os.
+
+        If ext is `.sh` and key is `PATH` the paths are converted using cygpath
+        and `:` is used for pathsep instead of `;`. This is necessary due to cygwin
+        converting the PATH env var to linux. It apparently only does this for
+        PATH, so other env var's simply have `str` called on them and uses `;`
+        for pathsep. See https://cygwin.com/cygwin-ug-net/setup-env.html
+
+        Args:
+            paths: A list of paths that have str called on each of them. If
+                a string is passed, it is returned un-modified.
+            ext (str, optional): Used to apply special formatting rules based on
+                the shell script being written.
+            key (str, optional): Used to apply special formatting rules based on
+                the environment variable this being used to process.
+        """
         if isinstance(paths, str):
             return paths
-        if ext in (".sh", ""):
+        if ext in (".sh", "") and key == "PATH":
             paths = [cygpath(p) for p in paths]
         else:
             paths = [str(p) for p in paths]
-        return cls.pathsep(ext=ext).join(paths)
+        return cls.pathsep(ext=ext, key=key).join(paths)
 
     @classmethod
-    def pathsep(cls, ext=None):
+    def pathsep(cls, ext=None, key=None):
         """The path separator used by this platform."""
-        if ext in (".sh", ""):
+        if ext in (".sh", "") and key == "PATH":
             # For shwin scripts we should use linux style pathsep
             return ":"
         return cls._sep
