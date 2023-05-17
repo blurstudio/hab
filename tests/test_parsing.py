@@ -719,6 +719,13 @@ def test_alias_mods_global(resolver):
     assert cfg.environment['ALIASED_GLOBAL_E'] is None
     assert cfg.environment['ALIASED_GLOBAL_F'] == ['Global F']
     assert cfg.environment['ALIASED_MOD_GLOBAL_A'] == ['Global Mod A']
+    # This global env var was defined by the config json file.
+    # Ensure that it did not get lost at some point in the process.
+    assert cfg.environment['CONFIG_DEFINED'] == ['config_variable']
+    # This variable is always added by hab automatically
+    assert cfg.environment['HAB_URI'] == ['app/aliased/mod']
+    # Ensure no extra env vars were defined
+    assert len(cfg.environment) == 9
 
     # Check cmd is expected
     assert alias["cmd"][0] == "python"

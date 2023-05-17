@@ -64,6 +64,11 @@ class FlatConfig(Config):
     def _finalize_values(self):
         """Post processing done after `_collect_values` is run."""
 
+        # `_process_version` needs the global environment variables populated
+        # so populating per-alias env var's properly inherit the global variables.
+        # This call ensures that `self.frozen_data["environment"]` is populated.
+        self.environment
+
         # Process version aliases, merging global env vars.
         platform_aliases = {}
         self.frozen_data["aliases"] = platform_aliases

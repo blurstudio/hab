@@ -127,7 +127,7 @@ environment variable so you can simply run the `hab` command.
 pip3 install hab
 ```
 
-If you want to make use of (json5)[https://pypi.org/project/pyjson5/] formatting
+If you want to make use of [json5](https://pypi.org/project/pyjson5/) formatting
 when creating the various json files that drives hab, you should use the optional
 json5 dependency. This lets you add comments and allows for trailing commas.
 

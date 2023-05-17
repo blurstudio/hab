@@ -49,9 +49,7 @@ def test_freeze(monkeypatch, config_root, platform, pathsep):
     monkeypatch.setattr(os, 'pathsep', pathsep)
     site = Site([config_root / "site_main.json"])
     resolver = Resolver(site=site)
-
     cfg_root = utils.path_forward_slash(config_root)
-    cfg = resolver.resolve("not_set/distros")
 
     # Add a platform_path_maps mapping to convert the current hab checkout path
     # to a generic know path on the other platform for uniform testing.
@@ -66,13 +64,14 @@ def test_freeze(monkeypatch, config_root, platform, pathsep):
     else:
         mappings['local-hab'][site.platform] = PurePosixPath(cfg_root)
 
+    # Resolve the URI for frozen testing
+    cfg = resolver.resolve("not_set/distros")
+
     # Ensure consistent testing across platforms. cfg has the current os's
     # file paths instead of what is stored in frozen.json
     cfg.frozen_data["aliases"]["linux"]["dcc"] = "TEST_DIR_NAME//the_dcc"
     cfg.frozen_data["aliases"]["windows"]["dcc"] = "TEST_DIR_NAME\\the_dcc.exe"
 
-    # Force the lazily loaded `cfg.frozen_data["environment"]` value to be loaded
-    cfg.environment
     # Ensure the HAB_URI environment variable is defined on the FlatConfig object
     # When checking the return from `cfg.freeze()` below HAB_URI is removed to
     # simplify the output json data.
