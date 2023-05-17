@@ -22,6 +22,7 @@ print_var("ALIASED_GLOBAL_C")
 print_var("ALIASED_GLOBAL_D")
 print_var("ALIASED_GLOBAL_E")
 print_var("ALIASED_LOCAL")
+print_var("CONFIG_DEFINED")
 print("")
 
 print(' PATH env var '.center(80, '-'))

@@ -5,5 +5,10 @@
     "distros": [
         "aliased",
         "aliased_mod"
-    ]
+    ],
+    "environment": {
+        "set" : {
+            "CONFIG_DEFINED": "config_variable"
+        }
+    }
 }
