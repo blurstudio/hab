@@ -13,6 +13,9 @@ coverage.xml
 dist/
 htmlcov/
 venv/
+.venv/
 version.py
 *.sublime-project
 *.sublime-workspace
+*.code-workspace
+.vscode/

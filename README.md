@@ -5,7 +5,7 @@ dependency resolution. It provides a habitat for you to work in.
 
 Features:
 
-* [URI](#uri) based configuration resolution with inheritance. Makes it easy to define
+* [URI](#URI) based configuration resolution with inheritance. Makes it easy to define
 generic settings, but override for child URIs.
 * Simple [configuration](#configuration) with json files.
 * Site configuration, code distributions are separate from URI configurations. All of
@@ -95,8 +95,8 @@ end up launching the same application, See [Multiple app versions](#multiple-app
 ### User Prefs
 
 To support reusable alias shortcuts, hab has the ability to remember a URI and
-reuse it for the next run. Anywhere you pass a uri to the cli, you can pass a
-dash `-` instead. Hab will use the saved uri.
+reuse it for the next run. Anywhere you pass a URI to the cli, you can pass a
+dash `-` instead. Hab will use the saved URI.
 
 ```bash
 $ hab env -
@@ -109,9 +109,11 @@ hab --prefs dump -
 ```
 
 The site configuration may also configure a timeout that will require you to re-specify
-the uri after a while.
+the URI after a while.
 
-To update the URI used when you pass `-`, pass `--save-prefs` after hab. You can
+If you try to use `-` with an expired URI, Hab will notify you and prompt you to re-specify a URI.
+
+To update the URI manually, pass `--save-prefs` after hab. You can
 not use `-` when using this option.
 ```bash
 hab --save-prefs dump project_a/Seq001/S0010
@@ -173,7 +175,7 @@ $env:HAB_PATHS="c:\path\to\site_b.json;c:\path\to\site_a.json"
 `identifier1/identifier2/...`
 
 You specify a configuration using a simple URI of identifiers separated by a `/`.
-Currently hab only supports absolute uri's.
+Currently hab only supports absolute URI's.
 
 Examples:
 * projectDummy/Sc001/S0001.00
@@ -181,7 +183,7 @@ Examples:
 * projectDummy/Thug
 * default
 
-If the provided uri has no configurations provided, the default configuration is used.
+If the provided URI has no configurations provided, the default configuration is used.
 This also supports inheritance with some special rules, see
 [config inheritance](#config-inheritance) for more details.
 
@@ -214,7 +216,7 @@ $ hab env projectDummy/Thug
 ```
 
 The cli prompt is updated while inside a hab config is active. It is `[URI] [cwd]`
-Where URI is the uri requested and cwd is the current working directory.
+Where URI is the URI requested and cwd is the current working directory.
 
 ## Restoring resolved configuration
 
