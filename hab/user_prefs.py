@@ -8,6 +8,26 @@ from . import utils
 logger = logging.getLogger(__name__)
 
 
+class UriObj:
+    def __init__(self, uri=None, timedout=False):
+        self._uri = uri
+        self._timedout = timedout
+
+    def __str__(self):
+        if self.uri is None:
+            return ''
+        else:
+            return self.uri
+
+    @property
+    def timedout(self):
+        return self._timedout
+
+    @property
+    def uri(self):
+        return self._uri
+
+
 class UserPrefs(dict):
     """Stores/restores hab user preferences in a json file."""
 
@@ -113,31 +133,22 @@ class UserPrefs(dict):
             iso_format = r"%Y-%m-%dT%H:%M:%S.%f"
             return datetime.datetime.strptime(value, iso_format)
 
-    def uri_reason(self):
+    def uri_check(self):
         """Returns the uri saved in preferences. It will only do that if enabled
         and uri_is_timedout allow it. Returns None otherwise. This will call load
         to ensure the preference file has been loaded.
         """
-        reason = "User preferences are disabled."
         if self.enabled:
             # Ensure the preferences are loaded.
             self.load()
-
             uri = self.get("uri")
-            reason = "No uri preference has been saved."
             if uri:
-                is_timedout = self.uri_is_timedout
-                # Only restore the uri if it hasn't expired and is enabled
-                if is_timedout:
-                    reason = f"The saved uri {self['uri']} expired and needs re-saved."
-                else:
-                    return self["uri"], "Uri was restored."
-
-        return None, reason
+                return UriObj(uri, self.uri_is_timedout)
+        return UriObj()
 
     @property
     def uri(self):
-        return self.uri_reason()[0]
+        return self.uri_check().uri
 
     @uri.setter
     def uri(self, uri):
@@ -147,7 +158,7 @@ class UserPrefs(dict):
             self["uri"] = uri
             self["uri_last_changed"] = datetime.datetime.today()
             self.save()
-            logger.debug(f'User prefs saved to "{self.filename}"')
+            logger.debug(f'User prefs saved to {self.filename}')
 
     @property
     def uri_last_changed(self):

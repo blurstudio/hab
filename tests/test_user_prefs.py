@@ -122,10 +122,10 @@ def test_uri(resolver, tmpdir, monkeypatch):
     prefs_d._enabled = True
     # Timeout has not expired
     resolver.site["prefs_uri_timeout"] = dict(hours=2)
-    assert prefs_d.uri == "app/aliased"
+    assert prefs_d.uri_check().timedout is False
     # Timeout has expired
     resolver.site["prefs_uri_timeout"] = dict(minutes=5)
-    assert prefs_d.uri is None
+    assert prefs_d.uri_check().timedout is True
 
     # Check that uri.setter is processed correctly
     prefs_e = user_prefs.UserPrefs(resolver)
@@ -149,3 +149,11 @@ def test_uri(resolver, tmpdir, monkeypatch):
     # Check that the file was actually written
     assert prefs_e.filename.exists()
     assert prefs_e.filename == utils.Platform.user_prefs_filename()
+
+    # Check if UriObj.__str__() is passing the uri contents
+    prefs_g = user_prefs.UriObj('test/uri')
+    assert prefs_g.__str__() == "test/uri"
+
+    # Check UriObj.__str__ returns a string even if uri is None
+    prefs_g = user_prefs.UriObj()
+    assert isinstance(prefs_g.__str__(), str)

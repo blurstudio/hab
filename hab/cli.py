@@ -30,48 +30,80 @@ class UriArgument(click.Argument):
         When using a user pref, a message is written to the error stream to
         ensure the user can see what uri was resolved. It is written to the error
         stream so it doesn't interfere with capturing output to a file(json).
+    - If the timestamp on the user_prefs.json is lapse, the user will be prompted
+        to address the out of date URI by entering a new path or using the already
+        saved path.
 
     This also handles saving the provided uri to user prefs if enabled by
     `SharedSettings.enable_user_prefs_save`. This is only respected if an uri is
     provided. Ie if a frozen uri, json file or `-` are passed, prefs are not saved.
+
+    Note: Using `err=True` so this output doesn't affect capturing of hab output from
+    cmds like `hab dump - --format json > output.json `.
     """
+
+    def __uri_prompt(self, uri=None):
+        """Wrapper function of click.prompt.
+        Used to get a URI entry from the user"""
+        if uri:
+            response = click.prompt(
+                "Please enter a new URI...\n"
+                "Or press ENTER to reuse the expired URI:"
+                f" [{Fore.LIGHTBLUE_EX}{uri}{Fore.RESET}]",
+                default=uri,
+                show_default=False,
+                type=str,
+                err=True,
+            )
+        else:
+            response = click.prompt(
+                "No URI exists.\nPlease Enter a URI", type=str, err=True
+            )
+        return response
 
     def type_cast_value(self, ctx, value):
         """Convert and validate the uri value. This override handles saving the
         uri to user prefs if enabled by the cli.
         """
-        # User didn't specify a URI, return/raise an UsageError
         if value is None:
             result = click.UsageError("Missing argument 'URI'")
             if self.required:
                 raise result
             return result
-
         # User wants to use saved user prefs for the uri
         if value == "-":
-            value, reason = ctx.obj.resolver.user_prefs().uri_reason()
-
-            if value is None:
-                # If there isn't a valid uri preference, raise a UsageError if its
-                # required, otherwise return the UsageError to the command so it
-                # can handle it
-                result = click.UsageError(f"Invalid 'URI' preference: {reason}")
-                if self.required:
-                    raise result
-                return result
+            uri_check = ctx.obj.resolver.user_prefs().uri_check()
+            # This will indicate that no user_pref.json was saved
+            # and the user will be required to enter a uri path.
+            if uri_check.uri is None:
+                return self.__uri_prompt()
+            # Check if the saved user_prefs.json has an expire timestamp
+            elif uri_check.timedout:
+                logger.info(
+                    f"{Fore.RED}Invalid 'URI' preference: {Fore.RESET}"
+                    f"The saved URI {Fore.LIGHTBLUE_EX}{uri_check.uri}{Fore.RESET} "
+                    f"has expired.",
+                )
+                # The uri is expired so lets ask the user for a new uri
+                value = self.__uri_prompt(uri_check.uri)
+                if value:
+                    # Saving a new user_prefs.json
+                    ctx.obj.resolver.user_prefs().uri = value
+                    click.echo("Saving user_prefs.json", err=True)
+                    return value
+                else:
+                    if self.required:
+                        raise click.UsageError("A URI is required for Hab use.")
+            # user_pref.json is found and its saved uri will be used
             else:
-                # Indicate to the user that they are using a user pref, and make
-                # it easy to know what uri they are using when debugging the output.
-                # Note: Using `err=True` so this output doesn't affect capturing
-                # of hab output from cmds like `hab dump - --format json`.
                 click.echo(
-                    f'Using "{Fore.GREEN}{value}{Fore.RESET}" from user prefs.',
+                    f"Using {Fore.LIGHTBLUE_EX}{uri_check.uri}{Fore.RESET} "
+                    "from user_prefs.json",
                     err=True,
                 )
                 # Don't allow users to re-save the user prefs value when using
                 # a user prefs value so they don't constantly reset the timeout.
-                return value
-
+                return uri_check.uri
         # User passed a frozen hab string
         if re.match(r'^v\d+:', value):
             return decode_freeze(value)
@@ -209,6 +241,7 @@ class SharedSettings(object):
 _verbose_errors = False
 
 
+# Establish CLI command group
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(__version__, prog_name="hab")
 @click.option(
@@ -303,6 +336,7 @@ def _cli(
     logging.basicConfig(level=level)
 
 
+# env command
 @_cli.command(cls=UriHelpClass)
 @click.argument("uri", cls=UriArgument)
 @click.option(
@@ -317,6 +351,7 @@ def env(settings, uri, launch):
     settings.write_script(uri, create_launch=True, launch=launch)
 
 
+# dump command
 @_cli.command(cls=UriHelpClass)
 # For specific report_types uri is not required. This is manually checked in
 # the code below where it raises `uri_error`.
@@ -416,6 +451,8 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
         else:
             ret = settings.resolver.closest_config(uri)
 
+        # This is a seperate set of if/elif/else statements than from above.
+        # I became confused while reading so decided to add this reminder.
         if format_type == "freeze":
             ret = encode_freeze(
                 ret.freeze(), version=settings.resolver.site.get("freeze_version")
@@ -432,6 +469,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
         click.echo(ret)
 
 
+# activate command
 @_cli.command(cls=UriHelpClass)
 @click.argument("uri", cls=UriArgument)
 @click.option(
@@ -466,6 +504,7 @@ def activate(settings, uri, launch):
     settings.write_script(uri, launch=launch)
 
 
+# launch command
 @_cli.command(
     context_settings=dict(
         ignore_unknown_options=True,
