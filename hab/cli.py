@@ -49,28 +49,39 @@ class UriArgument(click.Argument):
 
         # User wants to use saved user prefs for the uri
         if value == "-":
-            value, reason = ctx.obj.resolver.user_prefs().uri_reason()
+            uri_check = ctx.obj.resolver.user_prefs().uri_check()
 
-            if value is None:
-                # If there isn't a valid uri preference, raise a UsageError if its
-                # required, otherwise return the UsageError to the command so it
-                # can handle it
-                result = click.UsageError(f"Invalid 'URI' preference: {reason}")
-                if self.required:
-                    raise result
-                return result
+            # Let's create some messages for later use             
+            warning = (f"{click.style('Invalid ''URI'' preference: ', fg='red')}"
+                f"The saved uri {click.style(uri_check.uri_value, fg='green')} "
+                f"expired and needs re-saved.")
+            okgo = f"Using {Fore.GREEN}{uri_check.uri_value}{Fore.RESET} from user prefs."
+
+            # Check if the saved pref has timed out
+            if uri_check.uri_timedout:
+                # Let's ask the user if they would like to resave their timed out prefs file
+                if click.confirm(f"{warning}"
+                                 f"\nDo you want to resave?"):
+                    ctx.obj.resolver.user_prefs().uri = uri_check.uri_value
+                    click.echo("Saved user_prefs.json.")
+
+                    click.echo(okgo, err=True)
+                    return uri_check.uri_value
+                else:
+                    if self.required:
+                        raise click.UsageError(warning)
             else:
                 # Indicate to the user that they are using a user pref, and make
                 # it easy to know what uri they are using when debugging the output.
                 # Note: Using `err=True` so this output doesn't affect capturing
                 # of hab output from cmds like `hab dump - --format json`.
-                click.echo(
-                    f'Using "{Fore.GREEN}{value}{Fore.RESET}" from user prefs.',
-                    err=True,
-                )
+                click.echo(okgo, err=True)
+                    # f'Using "{Fore.GREEN}{uri_check.uri_value}{Fore.RESET}" from user prefs.',
+                    # err=True,
+                # )
                 # Don't allow users to re-save the user prefs value when using
                 # a user prefs value so they don't constantly reset the timeout.
-                return value
+                return uri_check.uri_value
 
         # User passed a frozen hab string
         if re.match(r'^v\d+:', value):
@@ -209,6 +220,7 @@ class SharedSettings(object):
 _verbose_errors = False
 
 
+# Establish CLI command group
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(__version__, prog_name="hab")
 @click.option(
@@ -303,6 +315,7 @@ def _cli(
     logging.basicConfig(level=level)
 
 
+# env command
 @_cli.command(cls=UriHelpClass)
 @click.argument("uri", cls=UriArgument)
 @click.option(
@@ -317,6 +330,7 @@ def env(settings, uri, launch):
     settings.write_script(uri, create_launch=True, launch=launch)
 
 
+# dump command
 @_cli.command(cls=UriHelpClass)
 # For specific report_types uri is not required. This is manually checked in
 # the code below where it raises `uri_error`.
@@ -365,7 +379,7 @@ def env(settings, uri, launch):
 )
 def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_type):
     """Resolves and prints the requested setup."""
-
+    
     # Convert uri argument to handle if a uri was not provided/loaded
     uri_error = None
     if isinstance(uri, click.UsageError):
@@ -415,7 +429,9 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
             ret = settings.resolver.resolve(uri)
         else:
             ret = settings.resolver.closest_config(uri)
-
+            
+        # This is a seperate set of if/elif/else statements than from above.  I became confused while reading
+        # so decided to add this reminder.
         if format_type == "freeze":
             ret = encode_freeze(
                 ret.freeze(), version=settings.resolver.site.get("freeze_version")
@@ -428,10 +444,11 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
             ret = ret.dump(
                 environment=env, environment_config=env_config, verbosity=verbosity
             )
-
+        
         click.echo(ret)
 
 
+# activate command
 @_cli.command(cls=UriHelpClass)
 @click.argument("uri", cls=UriArgument)
 @click.option(
@@ -466,6 +483,7 @@ def activate(settings, uri, launch):
     settings.write_script(uri, launch=launch)
 
 
+# launch command
 @_cli.command(
     context_settings=dict(
         ignore_unknown_options=True,

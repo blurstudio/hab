@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 from pathlib import Path
+from collections import namedtuple
 
 from . import utils
 
@@ -113,31 +114,31 @@ class UserPrefs(dict):
             iso_format = r"%Y-%m-%dT%H:%M:%S.%f"
             return datetime.datetime.strptime(value, iso_format)
 
-    def uri_reason(self):
-        """Returns the uri saved in preferences. It will only do that if enabled
-        and uri_is_timedout allow it. Returns None otherwise. This will call load
-        to ensure the preference file has been loaded.
-        """
-        reason = "User preferences are disabled."
+    def uri_check(self):
+        # create a dict to store our check data.  This will later
+        # be passed to a namedtuple for ease of use in the cli.py
+        uri_check_dict = {"uri_value":None,
+                          "uri_timedout":False}
         if self.enabled:
             # Ensure the preferences are loaded.
             self.load()
-
             uri = self.get("uri")
-            reason = "No uri preference has been saved."
             if uri:
-                is_timedout = self.uri_is_timedout
-                # Only restore the uri if it hasn't expired and is enabled
-                if is_timedout:
-                    reason = f"The saved uri {self['uri']} expired and needs re-saved."
-                else:
-                    return self["uri"], "Uri was restored."
+                # Grabbing the stored uri then check if the saved prefs json
+                # has timed out.
+                uri_check_dict["uri_value"] = uri
+                uri_check_dict["uri_timedout"] = self.uri_is_timedout
 
-        return None, reason
+        # Declaring a namedtuple to send over to cli.py
+        # A namedtuple provides more user friendly access to it's stored data
+        # than a standard dict.
+        URI_Check = namedtuple("URI_Check", 
+                               (field for field in uri_check_dict.keys()))
+        return URI_Check(**uri_check_dict)
 
     @property
     def uri(self):
-        return self.uri_reason()[0]
+        return self.uri_check()[0]
 
     @uri.setter
     def uri(self, uri):
