@@ -1,8 +1,8 @@
 import datetime
 import json
 import logging
-from pathlib import Path
 from collections import namedtuple
+from pathlib import Path
 
 from . import utils
 
@@ -132,7 +132,7 @@ class UserPrefs(dict):
         # Declaring a namedtuple to send over to cli.py
         # A namedtuple provides more user friendly access to it's stored data
         # than a standard dict.
-        URI_Check = namedtuple("URI_Check", 
+        URI_Check = namedtuple("URI_Check",
                                (field for field in uri_check_dict.keys()))
         return URI_Check(**uri_check_dict)
 

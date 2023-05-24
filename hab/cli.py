@@ -51,7 +51,7 @@ class UriArgument(click.Argument):
         if value == "-":
             uri_check = ctx.obj.resolver.user_prefs().uri_check()
 
-            # Let's create some messages for later use             
+            # Let's create some messages for later use
             warning = (f"{click.style('Invalid ''URI'' preference: ', fg='red')}"
                 f"The saved uri {click.style(uri_check.uri_value, fg='green')} "
                 f"expired and needs re-saved.")
@@ -379,7 +379,7 @@ def env(settings, uri, launch):
 )
 def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_type):
     """Resolves and prints the requested setup."""
-    
+
     # Convert uri argument to handle if a uri was not provided/loaded
     uri_error = None
     if isinstance(uri, click.UsageError):
@@ -429,7 +429,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
             ret = settings.resolver.resolve(uri)
         else:
             ret = settings.resolver.closest_config(uri)
-            
+
         # This is a seperate set of if/elif/else statements than from above.  I became confused while reading
         # so decided to add this reminder.
         if format_type == "freeze":
@@ -444,7 +444,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
             ret = ret.dump(
                 environment=env, environment_config=env_config, verbosity=verbosity
             )
-        
+
         click.echo(ret)
 
 
