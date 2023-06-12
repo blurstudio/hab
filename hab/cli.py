@@ -336,6 +336,17 @@ def _cli(
     logging.basicConfig(level=level)
 
 
+# set uri command
+@_cli.command(cls=UriHelpClass)
+@click.argument("uri", cls=UriArgument)
+@click.pass_obj
+def set_uri(settings, uri):
+    settings.log_context(uri)
+    if uri:
+        click.echo(f"\nSetting default URI to: {Fore.LIGHTBLUE_EX}{uri}{Fore.RESET}\n")
+        settings.resolver.user_prefs().uri = uri
+
+
 # env command
 @_cli.command(cls=UriHelpClass)
 @click.argument("uri", cls=UriArgument)
