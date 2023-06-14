@@ -337,15 +337,21 @@ def _cli(
 
 
 # set uri command
-@_cli.command(cls=UriHelpClass)
+@_cli.command()
 @click.argument("uri", required=False)
 @click.pass_obj
 def set_uri(settings, uri):
-    '''Allows user to save a local URI default'''
+    '''Allows for saving a local URI default by passing
+    a URI argument.  If no argument is passed uri-set
+    will prompt you to enter and argument.'''
     settings.log_context(uri)
+    current_uri = settings.resolver.user_prefs().uri
     if uri is None:
         uri = click.prompt(
-            "Please enter a URI value",
+            "Please enter a URI value"
+            f"[{Fore.LIGHTBLUE_EX}{current_uri}{Fore.RESET}]",
+            default=current_uri,
+            show_default=False,
             type=str,
             err=True,
         )

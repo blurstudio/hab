@@ -207,6 +207,7 @@ configurations and listing the commands available.
 configured shell when the launched application exits. Returning you to your existing
 shell without modification. Useful for quickly testing changes to a configuration
 requiring a running an application.
+5. `hab set-uri`: A command that allows the user to set a default URI. This default will be used with the dash `"-"` flag, which allows the user to quickly recall the saved URI. A argument can be passed to directly set the default. Alternatively, it can be run with no argument which will provide a prompt for the user to enter a URI. This method will display any currently saved URI for reference.
 
 Examples:
 
