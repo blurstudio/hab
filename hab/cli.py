@@ -336,6 +336,29 @@ def _cli(
     logging.basicConfig(level=level)
 
 
+# set uri command
+@_cli.command()
+@click.argument("uri", required=False)
+@click.pass_obj
+def set_uri(settings, uri):
+    '''Allows for saving a local URI default by passing
+    a URI argument.  If no argument is passed uri-set
+    will prompt you to enter and argument.'''
+    settings.log_context(uri)
+    current_uri = settings.resolver.user_prefs().uri
+    if uri is None:
+        uri = click.prompt(
+            "Please enter a URI value"
+            f"[{Fore.LIGHTBLUE_EX}{current_uri}{Fore.RESET}]",
+            default=current_uri,
+            show_default=False,
+            type=str,
+            err=True,
+        )
+    click.echo(f"\nSetting default URI to: {Fore.LIGHTBLUE_EX}{uri}{Fore.RESET}\n")
+    settings.resolver.user_prefs().uri = uri
+
+
 # env command
 @_cli.command(cls=UriHelpClass)
 @click.argument("uri", cls=UriArgument)
