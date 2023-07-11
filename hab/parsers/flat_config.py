@@ -113,8 +113,8 @@ class FlatConfig(Config):
                 # Only process an alias the first time it is encountered
                 if existing and alias_name in existing.get(platform, {}):
                     logger.info(
-                        f'Skipping duplicate alias "{alias_name}" for '
-                        f'"{version.name}" on "{platform}"'
+                        f"Skipping duplicate alias {alias_name!r} for "
+                        f"{version.name!r} on {platform!r}"
                     )
                     continue
 
