@@ -251,7 +251,7 @@ class TestDump:
             "                     unset:  UNSET_VARIABLE",
         ]
         cfg = resolver.closest_config("not_set/child")
-        header = f"Dump of {type(cfg).__name__}('{cfg.fullpath}')"
+        header = f"Dump of {type(cfg).__name__}({cfg.fullpath!r})"
 
         # Check that both environments can be hidden
         result = cfg.dump(
@@ -356,7 +356,8 @@ def test_environment(resolver):
     # https://stackoverflow.com/a/24999035
     cfg = resolver.closest_config("not_set/env_path_hab_uri")
     with pytest.raises(
-        KeyError, match=r"'\"HAB_URI\" is a reserved environment variable'"
+        KeyError,
+        match=r"'HAB_URI' is a reserved environment variable",
     ):
         cfg.environment
 
@@ -580,7 +581,7 @@ def test_invalid_config(config_root, resolver):
 
     if native_json:
         # If built-in json was used, check that filename was appended to the message
-        assert f'Filename("{path}")' in str(excinfo.value)
+        assert f"Filename({path!r})" in str(excinfo.value)
     else:
         # If pyjson5 was used, check that the filename was added to the result dict
         assert excinfo.value.result['filename'] == str(path)
