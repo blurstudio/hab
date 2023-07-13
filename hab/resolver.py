@@ -6,7 +6,6 @@ import logging
 import anytree
 from packaging.requirements import Requirement
 
-
 from . import utils
 from .errors import _IgnoredVersionError
 from .parsers import Config, DistroVersion, HabBase
