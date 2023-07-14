@@ -220,7 +220,7 @@ def test_complex_alias_ps1(tmpdir, config_root, resolver):
     hab_paths = config_root / "site_main.json"
     test = (
         "# Use the correct hab site configuration",
-        f'$env:HAB_PATHS="{hab_paths}"',
+        f"$env:HAB_PATHS={hab_paths!r}",
         "# activate the current hab environment",
         "hab env app/aliased/mod",
         '# At this point the env var is set to "Global A"',
@@ -257,7 +257,7 @@ def test_complex_alias_sh(tmpdir, config_root, resolver):
     hab_paths = config_root / "site_main.json"
     test = (
         "# Use the correct hab site configuration",
-        f'export HAB_PATHS="{hab_paths}"',
+        f"export HAB_PATHS={hab_paths!r}",
         "# activate the current hab environment",
         "hab env app/aliased/mod",
         '# At this point the env var is set to "Global A"',
@@ -291,7 +291,8 @@ def test_invalid_alias(resolver, tmpdir, ext):
 
     # Check that calling a bad alias name raises a useful error message
     cfg = resolver.resolve("not_set/child")
-    with pytest.raises(errors.HabError, match=r'"bad-alias" is not a valid alias name'):
+    # with pytest.raises(errors.HabError, match=r'"bad-alias" is not a valid alias name'):
+    with pytest.raises(errors.HabError, match=r"'bad-alias' is not a valid alias name"):
         cfg.write_script(str(tmpdir), launch="bad-alias", **kwargs)
 
     # Remove the "cmd" value to test an invalid configuration
@@ -299,6 +300,6 @@ def test_invalid_alias(resolver, tmpdir, ext):
     del alias["cmd"]
 
     with pytest.raises(
-        errors.HabError, match='Alias "global" does not have "cmd" defined'
+        errors.HabError, match="Alias 'global' does not have 'cmd' defined"
     ):
         cfg.write_script(str(tmpdir), launch="global", **kwargs)
