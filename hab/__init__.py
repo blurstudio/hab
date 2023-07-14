@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 __all__ = [
     '__version__',
     'Config',

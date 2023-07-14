@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from .config import Config
 from .distro import Distro
 from .distro_version import DistroVersion

@@ -1,7 +1,6 @@
 """ Enables support for calling the hab cli using `python -m hab`
 """
 
-from __future__ import absolute_import
 
 import sys
 
