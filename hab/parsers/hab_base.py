@@ -98,7 +98,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 # These are reserved environment variables that can not be configured
                 # by configs and distros.
                 if key_upper == "HAB_URI":
-                    raise KeyError(f"{key_upper!r} is a reserved environment variable")
+                    raise KeyError(f'"{key_upper}" is a reserved environment variable')
 
                 # We can't clear "PATH" or it would likely break the shell and
                 # application execution.
@@ -288,10 +288,10 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         if color:  # pragma: no cover
             # Only colorize the uri name not the entire title line
             title = (
-                f"Dump of {name}({Fore.GREEN}" f"{self.fullpath!r}{Style.RESET_ALL})"
+                f"Dump of {name}({Fore.GREEN}'" f"{self.fullpath}'{Style.RESET_ALL})"
             )
         else:
-            title = f"Dump of {name}({self.fullpath!r})"
+            title = f"Dump of {name}('{self.fullpath}')"
         return utils.dump_title(title, ret, color=False)
 
     # Note: 'distros' needs to be processed before 'environment'
@@ -594,14 +594,14 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
             # Get the cmd to launch, raising useful errors if invalid
             if launch not in self.aliases:
-                raise HabError(f"{launch!r} is not a valid alias name")
+                raise HabError(f'"{launch}" is not a valid alias name')
             alias = self.aliases.get(launch, {})
 
             try:
                 cmd = alias["cmd"]
             except KeyError:
                 raise HabError(
-                    f"Alias {launch!r} does not have {cmd!r} defined"
+                    f'Alias "{launch}" does not have "cmd" defined'
                 ) from None
 
             cmd = self.shell_escape(ext, cmd)

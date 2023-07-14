@@ -295,7 +295,7 @@ def load_json_file(filename):
             raise e.with_traceback(sys.exc_info()[2]) from None
         except ValueError as e:
             # Using python's native json parser
-            msg = f"{e} Filename({filename!r})"
+            msg = f'{e} Filename("{filename}")'
             raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2]) from None
     return data
 

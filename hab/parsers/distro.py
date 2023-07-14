@@ -14,7 +14,7 @@ class Distro(HabBase):
             version = max(versions)
         except ValueError:
             raise Exception(
-                f"Unable to find a valid version for {specifier!r} in versions "
+                f'Unable to find a valid version for "{specifier}" in versions '
                 f"[{', '.join([str(v) for v in self.versions.keys()])}]"
             ) from None
         return self.versions[version]

@@ -116,7 +116,7 @@ class UriArgument(click.Argument):
             if data.exists():
                 return json.load(data.open())
         except ValueError:
-            self.fail(f"{value!r} is not a valid frozen file path.", ctx)
+            self.fail(f'"{value}" is not a valid frozen file path.', ctx)
 
         # Use standard click type casting on value.
         value = super().type_cast_value(ctx, value)
