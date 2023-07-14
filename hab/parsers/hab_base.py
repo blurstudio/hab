@@ -601,7 +601,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 cmd = alias["cmd"]
             except KeyError:
                 raise HabError(
-                    f"Alias {launch!r} does not have 'cmd' defined"
+                    f"Alias {launch!r} does not have {cmd!r} defined"
                 ) from None
 
             cmd = self.shell_escape(ext, cmd)
