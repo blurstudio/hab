@@ -3,6 +3,7 @@ covdefaults
 coverage
 flake8==5.0.4
 flake8-bugbear==22.12.6
+isort
 pep8-naming==0.13.3
 pytest
 tox
