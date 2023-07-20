@@ -168,6 +168,56 @@ set "HAB_PATHS=c:\path\to\site_b.json;/c/path/to/site_a.json"
 $env:HAB_PATHS="c:\path\to\site_b.json;c:\path\to\site_a.json"
 ```
 
+# Hab Developer Quickstart
+
+Hab has some code quality automated checks and extensive unit testing setup. When
+contributing, you should make sure your changes match the flake8 rules and follow
+the configured [black](https://github.com/psf/black) formatting.
+
+## pre-commit hooks
+
+It's recommended that you install the configured
+[pre-commit](https://pre-commit.com/#3-install-the-git-hook-scripts) hooks.
+These test for and fix black and flake8 issues as well as other file checks.
+
+Use pip to install pre-commit if it's not already installed.
+```
+pip3 install pre-commit
+```
+Install the hab configuration of pre-commit hooks to enable them when using git.
+Run this from the root of your git checkout.
+```
+pre-commit install
+```
+
+From this point forward when you commit changes using git, it will pre-validate
+and fix most code quality issues. Those changes are not staged so you can inspect
+the changes it makes.
+
+## tox
+
+We use tox to do all unit tests using pytest and also run black and flake8 code
+quality checks. You should use tox before you push your code changes to ensure
+that your tests will pass when running on github.
+
+
+Install tox if its not already installed:
+```
+pip3 install tox
+```
+
+To run all tests. Make sure to run tox from the root of your git checkout:
+```
+tox
+```
+
+Examples of running specific tests:
+- `tox -e py37-json`  Run just the py37-json test
+- `tox -e py39-json5`  Run just the py39-json5 test
+- `tox -e begin,py37-json,end`  Show code coverage report for just this test
+- `tox -e flake8`  Run the flake8 tests
+- `tox -e begin,py37-json,end -- -vv`  Enables verbose mode for pytest. Any text after `--` is passed as cli arguments passed to pytest
+
 # Overview
 
 ## URI
