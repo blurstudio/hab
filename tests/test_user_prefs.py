@@ -151,7 +151,7 @@ def test_uri(resolver, tmpdir, monkeypatch):
     assert prefs_e.filename == utils.Platform.user_prefs_filename()
 
     # Check if UriObj.__str__() is passing the uri contents
-    prefs_g = user_prefs.UriObj('test/uri')
+    prefs_g = user_prefs.UriObj("test/uri")
     assert prefs_g.__str__() == "test/uri"
 
     # Check UriObj.__str__ returns a string even if uri is None

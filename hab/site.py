@@ -60,11 +60,11 @@ class Site(UserDict):
             str: The configuration converted to a string
         """
         if color is None:
-            color = self.get('colorize', True)
+            color = self.get("colorize", True)
 
         # Include the paths used to configure this site object
         site_ret = utils.dump_object(
-            {'HAB_PATHS': [str(p) for p in self.paths]}, color=color
+            {"HAB_PATHS": [str(p) for p in self.paths]}, color=color
         )
         # Include all of the resolved site configurations
         ret = []
@@ -73,15 +73,15 @@ class Site(UserDict):
                 # This is too complex for most site dumps, hide the details behind
                 # a higher verbosity setting.
                 txt = utils.dump_object(
-                    f"Dictionary keys: {len(value)}", label=f'{prop}:  ', color=color
+                    f"Dictionary keys: {len(value)}", label=f"{prop}:  ", color=color
                 )
             else:
-                txt = utils.dump_object(value, label=f'{prop}:  ', color=color)
+                txt = utils.dump_object(value, label=f"{prop}:  ", color=color)
 
             ret.append(txt)
 
         ret = "\n".join(ret)
-        return utils.dump_title('Dump of Site', f'{site_ret}\n{ret}', color=color)
+        return utils.dump_title("Dump of Site", f"{site_ret}\n{ret}", color=color)
 
     def load(self):
         """Iterates over each file in self.path. Replacing the value of each key.
@@ -125,7 +125,7 @@ class Site(UserDict):
         else:
             path = PurePosixPath(path)
 
-        mappings = self.get('platform_path_maps', {})
+        mappings = self.get("platform_path_maps", {})
         # Iterate over all mappings and if applicable, apply each of them
         for mapping in mappings.values():
             src = mapping.get(self.platform)

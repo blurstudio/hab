@@ -128,7 +128,7 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
     def walk_dir(current):
         found_script = False
         for item in current.iterdir():
-            if item.name == 'spec.json':
+            if item.name == "spec.json":
                 continue
             elif item.is_file():
                 check_file(item)
@@ -145,7 +145,7 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
     walk_dir(reference)
 
     # Check that we created the same number of files as the template
-    processed_paths = sorted(Path(tmpdir).rglob('*'))
+    processed_paths = sorted(Path(tmpdir).rglob("*"))
     reference_paths = sorted(reference_paths)
 
     total_processed = len(processed_paths)
@@ -191,13 +191,13 @@ def test_complex_alias_bat(tmpdir, config_root, resolver):
         "REM Call the alias, and check its output against the next section.",
         "REM This is showing that the alias process has modified env vars.",
         "global test",
-        'REM After the alias was run, the global env var is restored',
+        "REM After the alias was run, the global env var is restored",
         'echo "after calling function: " %ALIASED_GLOBAL_A%',
     )
 
     print("## Run these commands one at a time in a new bash terminal:")
     print("")
-    print('\n'.join(test))
+    print("\n".join(test))
     print("")
     print("## The output of calling global, should include:")
     print("- The `sys.argv:` line should include the test string passed to global")
@@ -228,13 +228,13 @@ def test_complex_alias_ps1(tmpdir, config_root, resolver):
         "# Call the alias, and check its output against the next section.",
         "# This is showing that the alias process has modified env vars.",
         "global test",
-        '# After the alias was run, the global env var is restored',
+        "# After the alias was run, the global env var is restored",
         'echo "after calling function: " $env:ALIASED_GLOBAL_A',
     )
 
     print("## Run these commands one at a time in a new bash terminal:")
     print("")
-    print('\n'.join(test))
+    print("\n".join(test))
     print("")
     print("## The output of calling global, should include:")
     print("- The `sys.argv:` line should include the test string passed to global")
@@ -265,13 +265,13 @@ def test_complex_alias_sh(tmpdir, config_root, resolver):
         "# Call the alias, and check its output against the next section.",
         "# This is showing that the alias process has modified env vars.",
         "global test",
-        '# After the alias was run, the global env var is restored',
+        "# After the alias was run, the global env var is restored",
         'echo "after calling function: " $ALIASED_GLOBAL_A',
     )
 
     print("## Run these commands one at a time in a new bash terminal:")
     print("")
-    print('\n'.join(test))
+    print("\n".join(test))
     print("")
     print("## The output of calling global, should include:")
     print("- The `sys.argv:` line should include the test string passed to global")

@@ -11,7 +11,7 @@ write_to = "hab/version.py"
 version_scheme = "release-branch-semver"
 
 [tool.black]
-skip-string-normalization = true
+skip-string-normalization = false
 
 [tool.isort]
 profile = "black"

@@ -8,13 +8,13 @@ from .placeholder import Placeholder
 from .unfrozen_config import UnfrozenConfig
 
 __all__ = [
-    'Config',
-    'Distro',
-    'DistroVersion',
-    'FlatConfig',
-    'hab_property',
-    'HabBase',
-    'HabMeta',
-    'Placeholder',
-    'UnfrozenConfig',
+    "Config",
+    "Distro",
+    "DistroVersion",
+    "FlatConfig",
+    "hab_property",
+    "HabBase",
+    "HabMeta",
+    "Placeholder",
+    "UnfrozenConfig",
 ]

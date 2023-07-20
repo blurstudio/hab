@@ -15,7 +15,7 @@ class UriObj:
 
     def __str__(self):
         if self.uri is None:
-            return ''
+            return ""
         else:
             return self.uri
 
@@ -158,7 +158,7 @@ class UserPrefs(dict):
             self["uri"] = uri
             self["uri_last_changed"] = datetime.datetime.today()
             self.save()
-            logger.debug(f'User prefs saved to {self.filename}')
+            logger.debug(f"User prefs saved to {self.filename}")
 
     @property
     def uri_last_changed(self):
