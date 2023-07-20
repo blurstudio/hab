@@ -126,7 +126,7 @@ class MergeDict(object):
             # wildcard platform dict.
             data = data.copy()
             data.pop("os_specific", False)
-            data = {'*': data}
+            data = {"*": data}
             data["os_specific"] = True
         return data
 

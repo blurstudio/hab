@@ -31,38 +31,38 @@ class TestMultipleSites:
 
     def host_left(self):
         return {
-            'linux': PurePosixPath('host-linux_left'),
-            'windows': PureWindowsPath('host-windows_left'),
+            "linux": PurePosixPath("host-linux_left"),
+            "windows": PureWindowsPath("host-windows_left"),
         }
 
     def host_middle(self):
         return {
-            'linux': PurePosixPath('host-linux_middle'),
-            'windows': PureWindowsPath('host-windows_middle'),
+            "linux": PurePosixPath("host-linux_middle"),
+            "windows": PureWindowsPath("host-windows_middle"),
         }
 
     def host_right(self):
         return {
-            'linux': PurePosixPath('host-linux_right'),
-            'windows': PureWindowsPath('host-windows_right'),
+            "linux": PurePosixPath("host-linux_right"),
+            "windows": PureWindowsPath("host-windows_right"),
         }
 
     def mid(self):
         return {
-            'linux': PurePosixPath('mid-linux_middle'),
-            'windows': PureWindowsPath('mid-windows_middle'),
+            "linux": PurePosixPath("mid-linux_middle"),
+            "windows": PureWindowsPath("mid-windows_middle"),
         }
 
     def net(self):
         return {
-            'linux': PurePosixPath('net-linux_right'),
-            'windows': PureWindowsPath('net-windows_right'),
+            "linux": PurePosixPath("net-linux_right"),
+            "windows": PureWindowsPath("net-windows_right"),
         }
 
     def shared_left(self):
         return {
-            'linux': PurePosixPath('shared-linux_left'),
-            'windows': PureWindowsPath('shared-windows_left'),
+            "linux": PurePosixPath("shared-linux_left"),
+            "windows": PureWindowsPath("shared-windows_left"),
         }
 
     def test_left(self, config_root):
@@ -73,7 +73,7 @@ class TestMultipleSites:
         assert site.get("set_value") == ["left"]
         assert site.get("test_paths") == ["left_prepend", "left_append"]
 
-        check = {'host': self.host_left(), 'shared': self.shared_left()}
+        check = {"host": self.host_left(), "shared": self.shared_left()}
 
         assert site.get("platform_path_maps") == check
 
@@ -85,7 +85,7 @@ class TestMultipleSites:
         assert site.get("set_value") == ["middle"]
         assert site.get("test_paths") == ["middle_prepend", "middle_append"]
 
-        check = {'host': self.host_middle(), 'mid': self.mid()}
+        check = {"host": self.host_middle(), "mid": self.mid()}
 
         assert site.get("platform_path_maps") == check
 
@@ -97,7 +97,7 @@ class TestMultipleSites:
         assert site.get("set_value") == ["right"]
         assert site.get("test_paths") == ["right_prepend", "right_append"]
 
-        check = {'host': self.host_right(), 'net': self.net()}
+        check = {"host": self.host_right(), "net": self.net()}
 
         assert site.get("platform_path_maps") == check
 
@@ -118,9 +118,9 @@ class TestMultipleSites:
         ]
 
         check = {
-            'host': self.host_left(),
-            'net': self.net(),
-            'shared': self.shared_left(),
+            "host": self.host_left(),
+            "net": self.net(),
+            "shared": self.shared_left(),
         }
 
         assert site.get("platform_path_maps") == check
@@ -143,9 +143,9 @@ class TestMultipleSites:
         ]
 
         check = {
-            'host': self.host_right(),
-            'net': self.net(),
-            'shared': self.shared_left(),
+            "host": self.host_right(),
+            "net": self.net(),
+            "shared": self.shared_left(),
         }
 
         assert site.get("platform_path_maps") == check
@@ -170,10 +170,10 @@ class TestMultipleSites:
         ]
 
         check = {
-            'host': self.host_left(),
-            'mid': self.mid(),
-            'net': self.net(),
-            'shared': self.shared_left(),
+            "host": self.host_left(),
+            "mid": self.mid(),
+            "net": self.net(),
+            "shared": self.shared_left(),
         }
 
         assert site.get("platform_path_maps") == check
@@ -247,8 +247,8 @@ def test_dump(config_root):
     the colorization settings and ensuring that the desired results are listed
     """
     checks = (
-        '{green}Dump of Site{reset}\n',
-        '{green}ignored_distros:  {reset}release, pre',
+        "{green}Dump of Site{reset}\n",
+        "{green}ignored_distros:  {reset}release, pre",
     )
 
     paths = [config_root / "site_main.json"]

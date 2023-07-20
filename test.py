@@ -4,11 +4,11 @@ from pprint import pprint
 from hab.site import Site
 
 logging.basicConfig()
-logging.getLogger('hab.parsers.site').setLevel(logging.DEBUG)
+logging.getLogger("hab.parsers.site").setLevel(logging.DEBUG)
 
 sites = [
-    r'\\source\source\dev\mikeh\hab_mockup\studio.json',
-    r'\\source\source\dev\mikeh\hab_mockup_dev\net_dev.json',
+    r"\\source\source\dev\mikeh\hab_mockup\studio.json",
+    r"\\source\source\dev\mikeh\hab_mockup_dev\net_dev.json",
     # r'C:\blur\dev\hab\site.json',
 ]
 

@@ -80,7 +80,7 @@ def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch, tmp
         raise OSError("Simulate a arbitrary error in setuptools_scm.get_version")
 
     with monkeypatch.context() as m:
-        m.setattr(setuptools_scm, 'get_version', get_ver)
+        m.setattr(setuptools_scm, "get_version", get_ver)
         with pytest.raises(InvalidVersionError, match=r"\[OSError\] Simulate"):
             app.load(path)
 
@@ -95,7 +95,7 @@ def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch, tmp
     # Check that `resolver.ignored` is also respected for arbitrary
     # setuptools_scm Exceptions.
     with monkeypatch.context() as m:
-        m.setattr(setuptools_scm, 'get_version', get_ver)
+        m.setattr(setuptools_scm, "get_version", get_ver)
         with pytest.raises(
             _IgnoredVersionError, match=r"its dirname is in the ignored list"
         ):
@@ -257,46 +257,46 @@ class TestDump:
         result = cfg.dump(
             environment=False, environment_config=False, verbosity=2, color=False
         )
-        check = [f'{header}\n{line}']
+        check = [f"{header}\n{line}"]
         check.extend(pre)
         check.extend(post)
         check.append(line)
-        check = '\n'.join(check)
+        check = "\n".join(check)
         assert standardize(result) == check
 
         # Check that both environments can be shown
         result = cfg.dump(
             environment=True, environment_config=True, verbosity=2, color=False
         )
-        check = [f'{header}\n{line}']
+        check = [f"{header}\n{line}"]
         check.extend(pre)
         check.extend(env)
         check.extend(env_config)
         check.extend(post)
         check.append(line)
-        check = '\n'.join(check)
+        check = "\n".join(check)
         assert standardize(result) == check
 
         # Check that only environment can be shown
         result = cfg.dump(
             environment=True, environment_config=False, verbosity=2, color=False
         )
-        check = [f'{header}\n{line}']
+        check = [f"{header}\n{line}"]
         check.extend(pre)
         check.extend(env)
         check.extend(post)
         check.append(line)
-        check = '\n'.join(check)
+        check = "\n".join(check)
         # Check that only environment_config can be shown
         result = cfg.dump(
             environment=False, environment_config=True, verbosity=2, color=False
         )
-        check = [f'{header}\n{line}']
+        check = [f"{header}\n{line}"]
         check.extend(pre)
         check.extend(env_config)
         check.extend(post)
         check.append(line)
-        check = '\n'.join(check)
+        check = "\n".join(check)
         assert standardize(result) == check
 
     def test_flat(self, resolver):
@@ -304,8 +304,8 @@ class TestDump:
         cfg = resolver.resolve("not_set/child")
         # Check that dump formats versions nicely
         check = re.compile(
-            r'versions:  (?P<ver>aliased==2\.0, maya2020==2020\.1)'
-            r'(?P<file>:  [\w:\\.\/-]+\.json)?'
+            r"versions:  (?P<ver>aliased==2\.0, maya2020==2020\.1)"
+            r"(?P<file>:  [\w:\\.\/-]+\.json)?"
         )
         # Versions are not shown with verbosity >= 1
         result = cfg.dump(color=False)
@@ -314,18 +314,18 @@ class TestDump:
         # Verbosity 2 shows just the version requirement
         result = cfg.dump(verbosity=2, color=False)
         match = check.search(result)
-        assert match.group('file') is None
-        assert match.group('ver') == "aliased==2.0, maya2020==2020.1"
+        assert match.group("file") is None
+        assert match.group("ver") == "aliased==2.0, maya2020==2020.1"
 
         # Verbosity 3 also shows the json file name
         check = re.compile(
-            r'versions:  (?P<vera>aliased==2\.0)(?P<filea>:  [\w:\\.\/-]+\.json)?\n'
-            r'           (?P<verm>maya2020==2020\.1)(?P<filem>:  [\w:\\.\/-]+\.json)?'
+            r"versions:  (?P<vera>aliased==2\.0)(?P<filea>:  [\w:\\.\/-]+\.json)?\n"
+            r"           (?P<verm>maya2020==2020\.1)(?P<filem>:  [\w:\\.\/-]+\.json)?"
         )
         result = cfg.dump(verbosity=3, color=False)
         match = check.search(result)
-        assert match.group('filea') is not None
-        assert match.group('filem') is not None
+        assert match.group("filea") is not None
+        assert match.group("filem") is not None
 
     @pytest.mark.parametrize("uri", ("not_set/no_distros", "not_set/empty_lists"))
     def test_no_values(self, resolver, uri):
@@ -392,7 +392,7 @@ def test_environment(resolver):
     assert cfg.environment == {
         "TEST": ["case"],
         "FMT_FOR_OS": ["a{;}b;c:{PATH!e}{;}d"],
-        u"UNSET_VARIABLE": None,
+        "UNSET_VARIABLE": None,
     }
 
 
@@ -403,12 +403,12 @@ def test_flat_config(resolver):
         "FMT_FOR_OS": ["a{;}b;c:{PATH!e}{;}d"],
         "UNSET_VARIABLE": None,
         "HAB_URI": ["not_set/child"],
-        'ALIASED_GLOBAL_A': ['Global A'],
-        'ALIASED_GLOBAL_B': ['Global B'],
-        'ALIASED_GLOBAL_C': ['Global C'],
-        'ALIASED_GLOBAL_D': ['Global D'],
-        'ALIASED_GLOBAL_E': None,
-        'ALIASED_GLOBAL_F': ['Global F'],
+        "ALIASED_GLOBAL_A": ["Global A"],
+        "ALIASED_GLOBAL_B": ["Global B"],
+        "ALIASED_GLOBAL_C": ["Global C"],
+        "ALIASED_GLOBAL_D": ["Global D"],
+        "ALIASED_GLOBAL_E": None,
+        "ALIASED_GLOBAL_F": ["Global F"],
     }
 
     assert ret.environment == check
@@ -521,9 +521,9 @@ def test_placeholder_handling(resolver):
 
     # Verify that default configuration settings were loaded because inherits
     # defaults to True.
-    assert 'the_dcc' not in ret.distros.keys()
-    assert 'maya2020' in ret.distros.keys()
-    assert 'the_dcc_plugin_a' in ret.distros.keys()
+    assert "the_dcc" not in ret.distros.keys()
+    assert "maya2020" in ret.distros.keys()
+    assert "the_dcc_plugin_a" in ret.distros.keys()
     # HAB_URI is always added to the environment variables
     assert ret.environment == {"HAB_URI": ["place-holder/undefined"]}
 
@@ -534,14 +534,14 @@ def test_placeholder_handling(resolver):
     assert ret.context == ["place-holder"]
     assert ret.fullpath == "place-holder/child"
 
-    assert 'the_dcc' in ret.distros
-    assert 'maya2020' not in ret.distros
-    assert 'the_dcc_plugin_a' not in ret.distros
+    assert "the_dcc" in ret.distros
+    assert "maya2020" not in ret.distros
+    assert "the_dcc_plugin_a" not in ret.distros
     assert len(ret.environment) == 3
-    assert 'DCC_CONFIG_PATH' in ret.environment
-    assert 'DCC_MODULE_PATH' in ret.environment
+    assert "DCC_CONFIG_PATH" in ret.environment
+    assert "DCC_MODULE_PATH" in ret.environment
     # HAB_URI is always added to the environment variables
-    assert 'HAB_URI' in ret.environment
+    assert "HAB_URI" in ret.environment
 
     # Check that if inherits is True, inheritance happens with Placeholders.
     ret = resolver.resolve("place-holder/inherits")
@@ -551,15 +551,15 @@ def test_placeholder_handling(resolver):
     assert ret.fullpath == "place-holder/inherits"
 
     # Inherits does not define distros, so it inherits distros from default.
-    assert 'the_dcc' not in ret.distros.keys()
-    assert 'maya2020' in ret.distros.keys()
-    assert 'the_dcc_plugin_a' in ret.distros.keys()
+    assert "the_dcc" not in ret.distros.keys()
+    assert "maya2020" in ret.distros.keys()
+    assert "the_dcc_plugin_a" in ret.distros.keys()
     # Inherits defines environment, so its environment settings are not inherited.
     assert len(ret.environment) == 2
-    assert 'DCC_MODULE_PATH' not in ret.environment
+    assert "DCC_MODULE_PATH" not in ret.environment
     # HAB_URI is always added to the environment variables
-    assert 'HAB_URI' in ret.environment
-    assert 'TEST' in ret.environment
+    assert "HAB_URI" in ret.environment
+    assert "TEST" in ret.environment
 
 
 def test_invalid_config(config_root, resolver):
@@ -583,7 +583,7 @@ def test_invalid_config(config_root, resolver):
         assert f'Filename("{path}")' in str(excinfo.value)
     else:
         # If pyjson5 was used, check that the filename was added to the result dict
-        assert excinfo.value.result['filename'] == str(path)
+        assert excinfo.value.result["filename"] == str(path)
 
 
 def test_misc_coverage(resolver):
@@ -604,11 +604,11 @@ def test_misc_coverage(resolver):
 
     # Loading a directory raises a FileNotFoundError
     with pytest.raises(FileNotFoundError):
-        cfg.load('.')
+        cfg.load(".")
 
     # Loading a non-existent file path raises a FileNotFoundError
     with pytest.raises(FileNotFoundError):
-        cfg.load('invalid_path.json')
+        cfg.load("invalid_path.json")
 
 
 @pytest.mark.parametrize(
@@ -712,18 +712,18 @@ def test_alias_mods_global(resolver):
     alias = cfg.aliases["global"]
 
     # Check global hab managed env vars
-    assert cfg.environment['ALIASED_GLOBAL_A'] == ['Global A']
-    assert cfg.environment['ALIASED_GLOBAL_B'] == ['Global B']
-    assert cfg.environment['ALIASED_GLOBAL_C'] == ['Global C']
-    assert cfg.environment['ALIASED_GLOBAL_D'] == ['Global D']
-    assert cfg.environment['ALIASED_GLOBAL_E'] is None
-    assert cfg.environment['ALIASED_GLOBAL_F'] == ['Global F']
-    assert cfg.environment['ALIASED_MOD_GLOBAL_A'] == ['Global Mod A']
+    assert cfg.environment["ALIASED_GLOBAL_A"] == ["Global A"]
+    assert cfg.environment["ALIASED_GLOBAL_B"] == ["Global B"]
+    assert cfg.environment["ALIASED_GLOBAL_C"] == ["Global C"]
+    assert cfg.environment["ALIASED_GLOBAL_D"] == ["Global D"]
+    assert cfg.environment["ALIASED_GLOBAL_E"] is None
+    assert cfg.environment["ALIASED_GLOBAL_F"] == ["Global F"]
+    assert cfg.environment["ALIASED_MOD_GLOBAL_A"] == ["Global Mod A"]
     # This global env var was defined by the config json file.
     # Ensure that it did not get lost at some point in the process.
-    assert cfg.environment['CONFIG_DEFINED'] == ['config_variable']
+    assert cfg.environment["CONFIG_DEFINED"] == ["config_variable"]
     # This variable is always added by hab automatically
-    assert cfg.environment['HAB_URI'] == ['app/aliased/mod']
+    assert cfg.environment["HAB_URI"] == ["app/aliased/mod"]
     # Ensure no extra env vars were defined
     assert len(cfg.environment) == 9
 
@@ -780,11 +780,11 @@ def test_alias_mods_as_dict(resolver):
 
     # Check alias_mod is prepended to alias defined env var
     # Also check that the alias_mods {relative_root} path is resolved to the directory
-    assert env['ALIASED_LOCAL'][0].endswith("distros/aliased_mod/1.0/modified")
+    assert env["ALIASED_LOCAL"][0].endswith("distros/aliased_mod/1.0/modified")
     # Check that the alias {relative_root} path is resolved to it's directory
-    assert env['ALIASED_LOCAL'][1].endswith('distros/aliased/2.0/test')
+    assert env["ALIASED_LOCAL"][1].endswith("distros/aliased/2.0/test")
     # Env var can be set by alias_mod without any other hab management
-    assert env['ALIASED_MOD_LOCAL_A'] == ['Local Mod A']
+    assert env["ALIASED_MOD_LOCAL_A"] == ["Local Mod A"]
 
 
 def test_duplicates(resolver):
@@ -792,12 +792,12 @@ def test_duplicates(resolver):
 
     # houdini18.5 is the first distro, it's duplicate generic alias is used
     cfg = resolver.resolve("app/houdini/a")
-    assert '18.5' in cfg.aliases["houdini"]["cmd"]
-    assert '18.5' in cfg.aliases["houdini18.5"]["cmd"]
-    assert '19.5' in cfg.aliases["houdini19.5"]["cmd"]
+    assert "18.5" in cfg.aliases["houdini"]["cmd"]
+    assert "18.5" in cfg.aliases["houdini18.5"]["cmd"]
+    assert "19.5" in cfg.aliases["houdini19.5"]["cmd"]
 
     # houdini19.5 is the first distro, it's duplicate generic alias is used
     cfg = resolver.resolve("app/houdini/b")
-    assert '19.5' in cfg.aliases["houdini"]["cmd"]
-    assert '18.5' in cfg.aliases["houdini18.5"]["cmd"]
-    assert '19.5' in cfg.aliases["houdini19.5"]["cmd"]
+    assert "19.5" in cfg.aliases["houdini"]["cmd"]
+    assert "18.5" in cfg.aliases["houdini18.5"]["cmd"]
+    assert "19.5" in cfg.aliases["houdini19.5"]["cmd"]

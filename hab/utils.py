@@ -29,7 +29,7 @@ except ImportError:
 
 colorama.init()
 
-re_windows_single_path = re.compile(r'^([a-zA-Z]:[\\\/][^:;]+)$')
+re_windows_single_path = re.compile(r"^([a-zA-Z]:[\\\/][^:;]+)$")
 """A regex that can be used to check if a string is a single windows file path."""
 
 
@@ -50,15 +50,15 @@ def cygpath(path, spaces=False):
     # Escape spaces and convert any remaining backslashes to forward slashes
     def process_separator(match):
         sep = path[match.start() : match.end()]
-        slash_count = sep.count('\\')
+        slash_count = sep.count("\\")
         if " " not in sep:
             # It's not a space, simply replace with forward-slash
-            return sep.replace('\\', '/')
+            return sep.replace("\\", "/")
         # Treat odd numbers of slashes as already escaped not directories.
         elif not spaces or slash_count % 2:
             return sep
         # Add a backslash to escape spaces if enabled
-        return sep.replace(' ', '\\ ')
+        return sep.replace(" ", "\\ ")
 
     pattern = (
         # Capture spaces including any leading backslashes to escape
@@ -73,7 +73,7 @@ def cygpath(path, spaces=False):
     drive, tail = ntpath.splitdrive(path)
     if len(drive) == 2 and drive[1] == ":":
         # It's a drive letter
-        path = f'/{drive[0]}{tail}'
+        path = f"/{drive[0]}{tail}"
     return path
 
 
@@ -84,8 +84,8 @@ def decode_freeze(txt):
 
     # Extract version information from the string
     try:
-        version, txt = txt.split(':', 1)
-        if version[0] != 'v':
+        version, txt = txt.split(":", 1)
+        if version[0] != "v":
             raise ValueError("Missing v prefix in version information.")
     except ValueError:
         raise ValueError(
@@ -94,12 +94,12 @@ def decode_freeze(txt):
     try:
         version = int(version[1:])
     except ValueError:
-        raise ValueError(f'Version {version[1:]} is not valid.') from None
+        raise ValueError(f"Version {version[1:]} is not valid.") from None
 
-    data = txt.encode('ascii')
+    data = txt.encode("ascii")
     data = base64.b64decode(txt)
     if version == 1:
-        data = data.decode('utf-8')
+        data = data.decode("utf-8")
     elif version == 2:
         data = zlib.decompress(data).decode()
     else:
@@ -133,7 +133,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
         if width < 10:
             width = 10
         if color:
-            label = f'{colorama.Fore.GREEN}{label}{colorama.Style.RESET_ALL}'
+            label = f"{colorama.Fore.GREEN}{label}{colorama.Style.RESET_ALL}"
 
     if isinstance(obj, (list, KeysView)):
         rows = []
@@ -144,25 +144,25 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
             # combine as many list items as possible onto each line
             # Use non-breaking spaces to prevent word wrap for each item.
             obj = textwrap.wrap(
-                ' '.join([x.replace(' ', 'u\00A0') for x in obj]),
+                " ".join([x.replace(" ", "u\00A0") for x in obj]),
                 width=width,
                 break_long_words=False,
             )
             # Remove those pesky non-breaking spaces
-            obj = [x.replace('u\00A0', ' ') for x in obj]
-            one_row = ', '.join(obj)
+            obj = [x.replace("u\00A0", " ") for x in obj]
+            one_row = ", ".join(obj)
             multi_row = len(obj) > 1
         else:
             # Determine if we can store all of this on a single line within
             # the requested width
-            one_row = ', '.join(obj)
+            one_row = ", ".join(obj)
             multi_row = len(one_row) > width
 
         if multi_row:
-            rows.append(f'{label}{obj[0]}')
-            rows.extend([f'{pad}{o}' for o in obj[1:]])
+            rows.append(f"{label}{obj[0]}")
+            rows.extend([f"{pad}{o}" for o in obj[1:]])
         else:
-            rows = [f'{label}{one_row}']
+            rows = [f"{label}{one_row}"]
 
         return "\n".join(rows)
     elif isinstance(obj, (dict, UserDict)):
@@ -172,7 +172,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
             rows.append(
                 dump_object(
                     v,
-                    label=f'{lbl}{k}:  ',
+                    label=f"{lbl}{k}:  ",
                     width=width,
                     flat_list=flat_list,
                     color=color,
@@ -182,7 +182,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
         return "\n".join(rows)
     elif isinstance(obj, PurePath):
         return f"{label}{obj}"
-    elif hasattr(obj, 'name'):
+    elif hasattr(obj, "name"):
         # Likely HabBase objects
         return f"{label}{obj.name}"
     # Simply convert any other objects to strings
@@ -199,10 +199,10 @@ def dump_title(title, body, color=False):
             the output of the text.
     """
     # Find the max width of the body and title to add the line
-    width = len(max(body.split('\n'), key=len))
+    width = len(max(body.split("\n"), key=len))
     width = max(len(title), width)
     if color:
-        title = f'{colorama.Fore.GREEN}{title}{colorama.Style.RESET_ALL}'
+        title = f"{colorama.Fore.GREEN}{title}{colorama.Style.RESET_ALL}"
     return f"{title}\n{'-'*width}\n{body}\n{'-'*width}"
 
 
@@ -213,7 +213,7 @@ def dumps_json(data, **kwargs):
     Pyjson5's dump is not as fully featured as python's json, so this ensures
     consistent dumps output as python's json module has more features than
     pyjson5. For example pyjson5 doesn't support indent."""
-    kwargs.setdefault('cls', HabJsonEncoder)
+    kwargs.setdefault("cls", HabJsonEncoder)
     return _json.dumps(data, **kwargs)
 
 
@@ -240,7 +240,7 @@ def encode_freeze(data, version=None):
         version = 2
 
     data = dumps_json(data)
-    data = data.encode('utf-8')
+    data = data.encode("utf-8")
     if version == 1:
         data = base64.b64encode(data)
     elif version == 2:
@@ -291,7 +291,7 @@ def load_json_file(filename):
         # Include the filename in the traceback to make debugging easier
         except _JsonException as e:
             # pyjson5 is installed
-            e.result['filename'] = str(filename)
+            e.result["filename"] = str(filename)
             raise e.with_traceback(sys.exc_info()[2]) from None
         except ValueError as e:
             # Using python's native json parser
@@ -317,7 +317,7 @@ def natural_sort(ls, key=None):
             return text
 
     def alphanum_key(a_key):
-        return [convert(c) for c in re.split(r'([0-9]+)', key(a_key))]
+        return [convert(c) for c in re.split(r"([0-9]+)", key(a_key))]
 
     return sorted(ls, key=alphanum_key)
 
@@ -349,7 +349,7 @@ NotSet = NotSet()
 
 def path_forward_slash(path):
     """Converts a Path object into a string with forward slashes"""
-    return str(path).replace('\\', '/')
+    return str(path).replace("\\", "/")
 
 
 class BasePlatform(ABC):

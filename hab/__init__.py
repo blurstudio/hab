@@ -1,12 +1,12 @@
 __all__ = [
-    '__version__',
-    'Config',
-    'DistroVersion',
-    'HabBase',
-    'NotSet',
-    'Resolver',
-    'Site',
-    'Solver',
+    "__version__",
+    "Config",
+    "DistroVersion",
+    "HabBase",
+    "NotSet",
+    "Resolver",
+    "Site",
+    "Solver",
 ]
 
 from .utils import NotSet

@@ -249,7 +249,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             str: The configuration converted to a string
         """
         if color is None:  # pragma: no cover
-            color = self.resolver.site.get('colorize', True)
+            color = self.resolver.site.get("colorize", True)
 
         ret = []
         # Update what properties are shown in the dump
@@ -279,11 +279,11 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
             ret.append(
                 utils.dump_object(
-                    value, label=f'{prop}:  ', flat_list=flat_list, color=color
+                    value, label=f"{prop}:  ", flat_list=flat_list, color=color
                 )
             )
 
-        ret = '\n'.join(ret)
+        ret = "\n".join(ret)
         name = type(self).__name__
         if color:  # pragma: no cover
             # Only colorize the uri name not the entire title line
@@ -458,7 +458,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
         merger = MergeDict(
             relative_root=self.dirname,
-            platforms=self.resolver.site['platforms'],
+            platforms=self.resolver.site["platforms"],
             site=self.resolver.site,
         )
         merger.formatter = obj.format_environment_value
@@ -491,7 +491,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         """Apply any shell specific formatting like escape characters."""
         if ext == ".ps1":
             if isinstance(value, list):
-                value = ' '.join([v.replace(" ", "` ") for v in value])
+                value = " ".join([v.replace(" ", "` ") for v in value])
             else:
                 return value.replace(" ", "` ")
         if ext in (".sh", ""):
@@ -580,7 +580,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             utils=utils,
         )
         if hasattr(self, "freeze"):
-            kwargs['freeze'] = utils.encode_freeze(
+            kwargs["freeze"] = utils.encode_freeze(
                 self.freeze(), version=self.resolver.site.get("freeze_version")
             )
         if launch:
@@ -588,9 +588,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             # add quotes around windows file paths if writing a shell script.
             # At this point we have lost the original double quote the user used.
             if isinstance(args, list):
-                args = ' {}'.format(self.shell_escape(ext, args))
+                args = " {}".format(self.shell_escape(ext, args))
             else:
-                args = ''
+                args = ""
 
             # Get the cmd to launch, raising useful errors if invalid
             if launch not in self.aliases:
@@ -657,7 +657,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
     ):
         """Write the configuration to a script file to be run by terminal."""
         script_dir = Path(script_dir)
-        config_script = script_dir / f'hab_config{ext}'
+        config_script = script_dir / f"hab_config{ext}"
         alias_dir = script_dir / "aliases"
         shell = self.shell_formats(ext)
 
@@ -683,7 +683,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 self._write_script(alias_dir / f"{alias}{ext}", content)
 
         if create_launch:
-            launch_script = script_dir / f'hab_launch{ext}'
+            launch_script = script_dir / f"hab_launch{ext}"
             launch_args = ""
             if ext == ".ps1":
                 # If we want PowerShell to stay open after the script exits pass
@@ -707,7 +707,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 If colorize is enabled, then syntax highlighting is applied
                 based on filenames extension.
         """
-        colorize = self.resolver.site.get('colorize', True)
+        colorize = self.resolver.site.get("colorize", True)
         if colorize:
             from pygments import highlight
             from pygments.formatters import TerminalFormatter

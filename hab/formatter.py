@@ -22,31 +22,31 @@ class Formatter(string.Formatter):
 
     shell_formats = {
         # Command Prompt
-        'batch': {
-            'env_var': '%{}%',
-            ';': ';',
+        "batch": {
+            "env_var": "%{}%",
+            ";": ";",
         },
         # Power Shell
-        'ps': {
-            'env_var': '$env:{}',
-            ';': ';',
+        "ps": {
+            "env_var": "$env:{}",
+            ";": ";",
         },
         # Using bash on linux
-        'sh': {
-            'env_var': '${}',
-            ';': ':',
+        "sh": {
+            "env_var": "${}",
+            ";": ":",
         },
         # Using bash on windows
-        'shwin': {
-            'env_var': '${}',
-            ';': ':',
+        "shwin": {
+            "env_var": "${}",
+            ";": ":",
         },
         # Delay the format for future calls. This allows us to process the environment
         # without changing these, and then when write_script is called the target
         # scripting language is resolved.
         None: {
-            'env_var': '{{{}!e}}',
-            ';': '{;}',
+            "env_var": "{{{}!e}}",
+            ";": "{;}",
         },
     }
 
@@ -56,8 +56,8 @@ class Formatter(string.Formatter):
         self.current_field_name = None
 
     def convert_field(self, value, conversion):
-        if conversion == 'e':
-            return self.shell_formats[self.language]['env_var'].format(
+        if conversion == "e":
+            return self.shell_formats[self.language]["env_var"].format(
                 self.current_field_name
             )
         else:

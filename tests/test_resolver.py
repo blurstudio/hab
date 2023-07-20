@@ -236,8 +236,8 @@ def test_reduced(resolver, helpers):
     assert cfg.distros == NotSet
     # Settings defined on the child
     config_check = {
-        u"set": {u"TEST": u"case", "FMT_FOR_OS": "a{;}b;c:{PATH!e}{;}d"},
-        u"unset": [u"UNSET_VARIABLE"],
+        "set": {"TEST": "case", "FMT_FOR_OS": "a{;}b;c:{PATH!e}{;}d"},
+        "unset": ["UNSET_VARIABLE"],
     }
     assert cfg.environment_config == config_check
     assert cfg.inherits is True
@@ -393,20 +393,20 @@ def test_resolve_requirements_errors(resolver):
     "forced,check",
     (
         # No forced items
-        (None, ['the_dcc_plugin_a', 'the_dcc_plugin_d', 'the_dcc_plugin_e<1.0,<2.0']),
+        (None, ["the_dcc_plugin_a", "the_dcc_plugin_d", "the_dcc_plugin_e<1.0,<2.0"]),
         # Force
         (
             {
                 # Adds a completely new requirement not specified in the config
-                'the_dcc_plugin_c': Requirement('the_dcc_plugin_c'),
+                "the_dcc_plugin_c": Requirement("the_dcc_plugin_c"),
                 # Forces the requirement to a invalid version for the config
-                'the_dcc_plugin_e': Requirement('the_dcc_plugin_e==1.1'),
+                "the_dcc_plugin_e": Requirement("the_dcc_plugin_e==1.1"),
             },
             [
-                'the_dcc_plugin_a',
-                'the_dcc_plugin_c',
-                'the_dcc_plugin_d',
-                'the_dcc_plugin_e==1.1',
+                "the_dcc_plugin_a",
+                "the_dcc_plugin_c",
+                "the_dcc_plugin_d",
+                "the_dcc_plugin_e==1.1",
             ],
         ),
     ),
@@ -428,10 +428,10 @@ def test_forced_requirements(resolver, helpers, forced, check):
 
 
 @pytest.mark.parametrize(
-    'value,check',
+    "value,check",
     (
-        ('test_string', [Path('test_string')]),
-        (f'one{os.pathsep}two', [Path('one'), Path('two')]),
+        ("test_string", [Path("test_string")]),
+        (f"one{os.pathsep}two", [Path("one"), Path("two")]),
     ),
 )
 def test_path_expansion(resolver, value, check):
@@ -444,7 +444,7 @@ def test_path_expansion(resolver, value, check):
     assert resolver.distro_paths == check
 
     # Check that collapse_paths also works as expected
-    assert utils.Platform.collapse_paths('test_string') == str('test_string')
+    assert utils.Platform.collapse_paths("test_string") == str("test_string")
 
 
 class TestPlatform:

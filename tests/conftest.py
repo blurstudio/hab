@@ -41,9 +41,9 @@ class Helpers(object):
         except AssertionError:
             # Provide additional information to help debug a failing test. The simple
             # len assert doesn't make it easy to debug a failing test
-            print(" Requirement dict ".center(50, '-'))
+            print(" Requirement dict ".center(50, "-"))
             print(req)
-            print(" Check ".center(50, '-'))
+            print(" Check ".center(50, "-"))
             print(check)
             raise
         for chk in check:

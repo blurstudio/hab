@@ -105,7 +105,7 @@ class UriArgument(click.Argument):
                 # a user prefs value so they don't constantly reset the timeout.
                 return uri_check.uri
         # User passed a frozen hab string
-        if re.match(r'^v\d+:', value):
+        if re.match(r"^v\d+:", value):
             return decode_freeze(value)
 
         # If its not a string, convert to a Path object, if the path exists,
@@ -341,9 +341,9 @@ def _cli(
 @click.argument("uri", required=False)
 @click.pass_obj
 def set_uri(settings, uri):
-    '''Allows for saving a local URI default by passing
+    """Allows for saving a local URI default by passing
     a URI argument.  If no argument is passed uri-set
-    will prompt you to enter and argument.'''
+    will prompt you to enter and argument."""
     settings.log_context(uri)
     current_uri = settings.resolver.user_prefs().uri
     if uri is None:
@@ -441,7 +441,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
 
         def echo_line(line):
             if line.strip() == line:
-                click.echo(f'{Fore.GREEN}{line}{Fore.RESET}')
+                click.echo(f"{Fore.GREEN}{line}{Fore.RESET}")
             else:
                 click.echo(line)
 
@@ -483,7 +483,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
         elif format_type == "json":
             ret = dumps_json(ret.freeze(), indent=2)
         elif format_type == "versions":
-            ret = '\n'.join([v.name for v in ret.versions])
+            ret = "\n".join([v.name for v in ret.versions])
         else:
             ret = ret.dump(
                 environment=env, environment_config=env_config, verbosity=verbosity
@@ -537,7 +537,7 @@ def activate(settings, uri, launch):
 @click.argument("uri", cls=UriArgument)
 @click.argument("alias")
 # Pass all remaining arguments to the requested alias
-@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
 @click.pass_obj
 def launch(settings, uri, alias, args):
     """Configure and launch an alias without modifying the current shell. The
@@ -557,7 +557,7 @@ def cli(*args, **kwargs):
     try:
         return _cli(*args, **kwargs)
     except Exception:
-        click.echo(f'{Fore.RED}Hab encountered an error:{Fore.RESET}')
+        click.echo(f"{Fore.RED}Hab encountered an error:{Fore.RESET}")
         if _verbose_errors:
             # In verbose mode show the full traceback
             raise

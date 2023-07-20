@@ -18,12 +18,12 @@ def update_config(check, config_root, platform):
             "c:\\" for windows and "/hab" for linux is used.
         platform (str): The current platform the test is running on.
     """
-    env = check['environment']
+    env = check["environment"]
     for plat in env:
         if plat == platform:
             cfg_root = config_root
         else:
-            cfg_root = 'c:' if plat == 'windows' else '/hab'
+            cfg_root = "c:" if plat == "windows" else "/hab"
         for k, values in env[plat].items():
             for i, v in enumerate(values):
                 env[plat][k][i] = v.format(config_root=cfg_root)
@@ -34,11 +34,11 @@ def test_json_dumps():
     objects."""
     data = {"NotSet": NotSet}
     assert utils.dumps_json(data) == '{"NotSet": null}'
-    assert utils.dumps_json(data, indent=2) == '\n'.join(
+    assert utils.dumps_json(data, indent=2) == "\n".join(
         [
-            '{',
+            "{",
             '  "NotSet": null',
-            '}',
+            "}",
         ]
     )
 
@@ -46,7 +46,7 @@ def test_json_dumps():
 @pytest.mark.parametrize("platform,pathsep", (("win32", ";"), ("linux", ":")))
 def test_freeze(monkeypatch, config_root, platform, pathsep):
     monkeypatch.setattr(utils, "Platform", utils.WinPlatform)
-    monkeypatch.setattr(os, 'pathsep', pathsep)
+    monkeypatch.setattr(os, "pathsep", pathsep)
     site = Site([config_root / "site_main.json"])
     resolver = Resolver(site=site)
     cfg_root = utils.path_forward_slash(config_root)
@@ -54,15 +54,15 @@ def test_freeze(monkeypatch, config_root, platform, pathsep):
     # Add a platform_path_maps mapping to convert the current hab checkout path
     # to a generic know path on the other platform for uniform testing.
     mappings = site.frozen_data[site.platform]["platform_path_maps"]
-    mappings['local-hab'] = {
+    mappings["local-hab"] = {
         "linux": PurePosixPath("/hab"),
         "windows": PureWindowsPath("c:/"),
     }
     # Preserve the current platform's path so it matches the frozen output
     if site.platform == "windows":
-        mappings['local-hab']['windows'] = PureWindowsPath(cfg_root)
+        mappings["local-hab"]["windows"] = PureWindowsPath(cfg_root)
     else:
-        mappings['local-hab'][site.platform] = PurePosixPath(cfg_root)
+        mappings["local-hab"][site.platform] = PurePosixPath(cfg_root)
 
     # Resolve the URI for frozen testing
     cfg = resolver.resolve("not_set/distros")
@@ -143,14 +143,14 @@ def test_decode_freeze(config_root, resolver):
     assert utils.decode_freeze(checks["version2"]) == raw
 
     # Check that padded versions are also supported
-    assert utils.decode_freeze(f'v01:{v1[3:]}') == raw
+    assert utils.decode_freeze(f"v01:{v1[3:]}") == raw
 
     # Check that non-versioned freeze strings raise an helpful exception
     for check in (
         # Missing `v1:`
         v1[3:],
         # Missing `v'
-        f'1:{v1[3:]}',
+        f"1:{v1[3:]}",
     ):
         with pytest.raises(
             ValueError, match=r"Missing freeze version information in format `v0:...`"
@@ -158,16 +158,16 @@ def test_decode_freeze(config_root, resolver):
             utils.decode_freeze(check)
 
     # Check that versions other than numbers raise a helpful exception
-    with pytest.raises(ValueError, match=r'Version INVALID is not valid.'):
-        utils.decode_freeze(f'vINVALID:{v1[3:]}')
+    with pytest.raises(ValueError, match=r"Version INVALID is not valid."):
+        utils.decode_freeze(f"vINVALID:{v1[3:]}")
 
     # check that other version encodings return nothing
-    assert utils.decode_freeze(f'v3:{v1[3:]}') is None
-    assert utils.decode_freeze(f'v0:{v1[3:]}') is None
+    assert utils.decode_freeze(f"v3:{v1[3:]}") is None
+    assert utils.decode_freeze(f"v0:{v1[3:]}") is None
 
 
 def test_encode_freeze(config_root, resolver):
-    cfg = resolver.resolve('not_set/no_distros')
+    cfg = resolver.resolve("not_set/no_distros")
     check_file = config_root / "frozen_no_distros.json"
     checks = utils.json.load(check_file.open())
 

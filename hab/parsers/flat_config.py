@@ -97,7 +97,7 @@ class FlatConfig(Config):
             return
 
         # TODO: Add support for the '*'' platform
-        for platform in self.resolver.site['platforms']:
+        for platform in self.resolver.site["platforms"]:
             aliases_def = version.aliases.get(platform, [])
             aliases = [a[1] for a in aliases_def]
 
@@ -182,7 +182,7 @@ class FlatConfig(Config):
                 self.merge_environment(version.environment_config, obj=version)
             # Add the HAB_URI env var for each platform so scripts know they are
             # in an activated hab environment and the original uri the user requested.
-            for platform in self.resolver.site['platforms']:
+            for platform in self.resolver.site["platforms"]:
                 self.frozen_data.setdefault("environment", {}).setdefault(platform, {})[
                     "HAB_URI"
                 ] = [self.uri]

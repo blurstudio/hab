@@ -86,7 +86,7 @@ class DistroVersion(HabBase):
 
         # The name should be the version == specifier.
         self.distro_name = data.get("name")
-        self.name = u"{}=={}".format(self.distro_name, self.version)
+        self.name = "{}=={}".format(self.distro_name, self.version)
 
         data = super().load(filename, data=data)
 
