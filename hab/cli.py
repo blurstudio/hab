@@ -1,3 +1,9 @@
+""" To enable click completion in bash, add this to .bashrc. You need a console_script
+`eval "$(_HABC_COMPLETE=bash_source habc)"`
+It doesn't seem to work for the hab command, probably related to hab being a shell script
+`eval "$(_HAB_COMPLETE=bash_source hab)"`
+"""
+
 import logging
 import re
 import sys
@@ -5,6 +11,7 @@ import traceback
 from pathlib import Path
 
 import click
+from click.shell_completion import CompletionItem
 from colorama import Fore
 
 from . import Resolver, Site, __version__
@@ -127,6 +134,18 @@ class UriArgument(click.Argument):
             ctx.obj.resolver.user_prefs().uri = value
 
         return value
+
+
+def complete_uri(ctx, param, incomplete):
+    resolver = Resolver()
+    # TODO: This resolver isn't properly configured, figure out how to use ctx.obj
+    # or pull the site settings for autocomplete
+    # resolver = ctx.obj.resolver
+    return [
+        CompletionItem(uri.strip())
+        for uri in resolver.dump_forest(resolver.configs)
+        if uri.strip().startswith(incomplete)
+    ]
 
 
 class UriHelpClass(click.Command):
@@ -361,7 +380,7 @@ def set_uri(settings, uri):
 
 # env command
 @_cli.command(cls=UriHelpClass)
-@click.argument("uri", cls=UriArgument)
+@click.argument("uri", cls=UriArgument, shell_complete=complete_uri)
 @click.option(
     "-l",
     "--launch",
@@ -378,7 +397,7 @@ def env(settings, uri, launch):
 @_cli.command(cls=UriHelpClass)
 # For specific report_types uri is not required. This is manually checked in
 # the code below where it raises `uri_error`.
-@click.argument("uri", required=False, cls=UriArgument)
+@click.argument("uri", required=False, cls=UriArgument, shell_complete=complete_uri)
 @click.pass_obj
 @click.option(
     "--env/--no-env",
@@ -494,7 +513,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
 
 # activate command
 @_cli.command(cls=UriHelpClass)
-@click.argument("uri", cls=UriArgument)
+@click.argument("uri", cls=UriArgument, shell_complete=complete_uri)
 @click.option(
     "-l",
     "--launch",
@@ -534,7 +553,7 @@ def activate(settings, uri, launch):
     ),
     cls=UriHelpClass,
 )
-@click.argument("uri", cls=UriArgument)
+@click.argument("uri", cls=UriArgument, shell_complete=complete_uri)
 @click.argument("alias")
 # Pass all remaining arguments to the requested alias
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
