@@ -572,3 +572,28 @@ def test_natrual_sort():
     result = utils.natural_sort(nodes, key=lambda i: i.name)
     check = [n.name for n in result]
     assert check == ["test1", "test2", "Test3", "test10"]
+
+
+def test_star_import():
+    """Check if a import was removed from __init__.py but did not get removed
+    from `__all__`.
+
+    Flake8 doesn't seem to capture F822 when run on `__init__.py`. Manually
+    attempt a `from hab import *` import to ensure that all of the items listed
+    in `__all__` are actually importable.
+    """
+
+    # https://stackoverflow.com/a/43059528
+    import importlib
+
+    # get a handle on the module
+    mdl = importlib.import_module("hab")
+    # is there an __all__?  if so respect it
+    names = mdl.__dict__["__all__"]
+
+    # Simulate `from hab import *` which can only be done at the module level.
+    for k in names:
+        # NOTE: If an exception is raised here, you need to remove the attribute
+        # name from __all__ or make sure to import the missing object.
+        # `AttributeError: module 'hab' has no attribute 'DistroVersion'`
+        getattr(mdl, k)
