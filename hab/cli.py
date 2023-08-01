@@ -30,9 +30,9 @@ class UriArgument(click.Argument):
         When using a user pref, a message is written to the error stream to
         ensure the user can see what uri was resolved. It is written to the error
         stream so it doesn't interfere with capturing output to a file(json).
-    - If the timestamp on the user_prefs.json is lapse, the user will be prompted
-        to address the out of date URI by entering a new path or using the already
-        saved path.
+    - If the timestamp on the .hab_user_prefs.json is lapse, the user will be
+        prompted to address the out of date URI by entering a new path or using
+        the already saved path.
 
     This also handles saving the provided uri to user prefs if enabled by
     `SharedSettings.enable_user_prefs_save`. This is only respected if an uri is
@@ -76,8 +76,12 @@ class UriArgument(click.Argument):
             # This will indicate that no user_pref.json was saved
             # and the user will be required to enter a uri path.
             if uri_check.uri is None:
-                return self.__uri_prompt()
-            # Check if the saved user_prefs.json has an expire timestamp
+                value = self.__uri_prompt()
+                # Saving a new .hab_user_prefs.json
+                ctx.obj.resolver.user_prefs().uri = value
+                click.echo("Saving hab user prefs", err=True)
+                return value
+            # Check if the saved .hab_user_prefs.json has an expire timestamp
             elif uri_check.timedout:
                 logger.info(
                     f"{Fore.RED}Invalid 'URI' preference: {Fore.RESET}"
@@ -87,9 +91,9 @@ class UriArgument(click.Argument):
                 # The uri is expired so lets ask the user for a new uri
                 value = self.__uri_prompt(uri_check.uri)
                 if value:
-                    # Saving a new user_prefs.json
+                    # Saving an updated .hab_user_prefs.json
                     ctx.obj.resolver.user_prefs().uri = value
-                    click.echo("Saving user_prefs.json", err=True)
+                    click.echo("Saving hab user prefs", err=True)
                     return value
                 else:
                     if self.required:
@@ -98,7 +102,7 @@ class UriArgument(click.Argument):
             else:
                 click.echo(
                     f"Using {Fore.LIGHTBLUE_EX}{uri_check.uri}{Fore.RESET} "
-                    "from user_prefs.json",
+                    "from hab user prefs",
                     err=True,
                 )
                 # Don't allow users to re-save the user prefs value when using
