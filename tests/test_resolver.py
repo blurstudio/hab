@@ -486,10 +486,14 @@ def test_resolve_requirements_markers(resolver, platform, marker):
 
 
 @pytest.mark.parametrize(
-    "forced,check",
+    "forced,check,check_versions",
     (
         # No forced items
-        (None, ["the_dcc_plugin_a", "the_dcc_plugin_d", "the_dcc_plugin_e<1.0,<2.0"]),
+        (
+            None,
+            ["the_dcc_plugin_a", "the_dcc_plugin_d", "the_dcc_plugin_e<1.0,<2.0"],
+            [],
+        ),
         # Force
         (
             {
@@ -504,12 +508,13 @@ def test_resolve_requirements_markers(resolver, platform, marker):
                 "the_dcc_plugin_d",
                 "the_dcc_plugin_e==1.1",
             ],
+            ["the_dcc_plugin_c==1.1", "the_dcc_plugin_e==1.1"],
         ),
     ),
 )
-def test_forced_requirements(resolver, helpers, forced, check):
+def test_forced_requirements(resolver, helpers, forced, check, check_versions):
     requirements = {
-        # plugin_a adds an extra dependency outside of the requiremets or forced
+        # plugin_a adds an extra dependency outside of the requirements or forced
         "the_dcc_plugin_a": Requirement("the_dcc_plugin_a"),
         "the_dcc_plugin_e": Requirement("the_dcc_plugin_e<1.0"),
     }
@@ -521,6 +526,13 @@ def test_forced_requirements(resolver, helpers, forced, check):
     )
     resolved = resolver_forced.resolve_requirements(requirements)
     helpers.assert_requirements_equal(resolved, check)
+
+    # Check that forced_requirements work if the config defines zero distros
+    cfg = resolver_forced.resolve("not_set/no_distros")
+    versions = cfg.versions
+    assert len(versions) == len(check_versions)
+    for i, v in enumerate(versions):
+        assert v.name == check_versions[i]
 
 
 @pytest.mark.parametrize(

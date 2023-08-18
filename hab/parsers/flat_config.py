@@ -197,8 +197,14 @@ class FlatConfig(Config):
 
     @hab_property(verbosity=1)
     def versions(self):
-        if self.distros is NotSet:
-            return []
+        distros = self.distros
+        if distros is NotSet:
+            if self.resolver.forced_requirements:
+                distros = {}
+            else:
+                return []
+        if distros == []:
+            distros = {}
 
         # Lazily load the contents of versions the first time it's called
         if "versions" not in self.frozen_data:
@@ -207,7 +213,7 @@ class FlatConfig(Config):
                 self._alias_mods = {}
             self.frozen_data["versions"] = versions
 
-            reqs = self.resolver.resolve_requirements(self.distros)
+            reqs = self.resolver.resolve_requirements(distros)
             for req in reqs.values():
                 version = self.resolver.find_distro(req)
                 versions.append(version)
