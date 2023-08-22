@@ -110,7 +110,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install tox
+          python -m pip install tox coverage[toml]
 
       # Ensure version.py is created so coverage can read it's source
       - name: Run begin
@@ -127,10 +127,18 @@ jobs:
         run: |
           tox -e end
 
-      # TODO: Figure out how to enable coverage reporting when running on forks
-      # For now the previous step at least puts the coverage reporting in the
-      # github action log.
-      # - name: Pytest Coverage Comment
-      #   uses: MishaKav/pytest-coverage-comment@main
-      #   with:
-      #     pytest-xml-coverage-path: ./coverage.xml
+          # Report and write to summary.
+          python -m coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+
+          # Write html coverage report to upload as an artifact
+          python -m coverage html
+
+          # Report again and fail if under 100%.
+          python -m coverage report --fail-under=100
+
+      - name: Upload HTML report if check failed.
+        uses: actions/upload-artifact@v3
+        with:
+          name: html-report
+          path: htmlcov
+        if: ${{ failure() }}
