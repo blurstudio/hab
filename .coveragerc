@@ -1,5 +1,7 @@
 [report]
 show_missing = true
+skip_covered = true
+skip_empty = true
 
 [run]
 # Ensure all python modules in hab have their coverage reported,
