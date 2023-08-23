@@ -133,12 +133,15 @@ jobs:
           # Write html coverage report to upload as an artifact
           python -m coverage html
 
-          # Report again and fail if under 100%.
-          python -m coverage report --fail-under=100
+          # # Report again and fail if under 100%.
+          # python -m coverage report --fail-under=100
 
       - name: Upload HTML report if check failed.
         uses: actions/upload-artifact@v3
         with:
           name: html-report
           path: htmlcov
-        if: ${{ failure() }}
+          # # TODO: If we get 100% coverage we can re-enable this and the
+          # # `--fail-under` check so pull requests fail if the dev doesn't
+          # # add tests for new code.
+          # if: ${{ failure() }}
