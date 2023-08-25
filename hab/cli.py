@@ -77,9 +77,9 @@ class UriArgument(click.Argument):
             # and the user will be required to enter a uri path.
             if uri_check.uri is None:
                 value = self.__uri_prompt()
-                # Saving a new .hab_user_prefs.json
+                # Save a new .hab_user_prefs.json
                 ctx.obj.resolver.user_prefs().uri = value
-                click.echo("Saving hab user prefs", err=True)
+                click.echo("Saved hab user prefs", err=True)
                 return value
             # Check if the saved .hab_user_prefs.json has an expire timestamp
             elif uri_check.timedout:
