@@ -164,7 +164,7 @@ class SharedSettings(object):
         verbosity=0,
         script_dir=None,
         script_ext=None,
-        pre=None,
+        prereleases=None,
         forced_requirements=None,
         dump_scripts=False,
         enable_user_prefs=None,
@@ -174,7 +174,7 @@ class SharedSettings(object):
         self.script_dir = Path(script_dir or ".").resolve()
         self.script_ext = script_ext
         self._resolver = None
-        self.prereleases = pre
+        self.prereleases = prereleases
         self.forced_requirements = forced_requirements
         self.dump_scripts = dump_scripts
         self.site = Site([Path(p) for p in site_paths])
@@ -278,6 +278,7 @@ _verbose_errors = False
 )
 @click.option(
     "--pre/--no-pre",
+    "prereleases",
     default=None,
     help="Include pre-releases when finding the latest distro version.",
 )
@@ -313,7 +314,7 @@ def _cli(
     verbosity,
     script_dir,
     script_ext,
-    pre,
+    prereleases,
     requirement,
     dump_scripts,
     prefs,
@@ -326,7 +327,7 @@ def _cli(
         verbosity,
         script_dir,
         script_ext,
-        pre,
+        prereleases,
         requirement,
         dump_scripts,
         prefs,
