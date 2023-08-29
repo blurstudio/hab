@@ -404,7 +404,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         self.frozen_data["environment_config"] = env
         self.frozen_data.pop("environment", None)
 
-    @property
+    @hab_property(verbosity=3)
     def filename(self):
         """The filename that defined this object. Any relative paths are
         relative to the directory of this file.
