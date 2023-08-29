@@ -26,6 +26,8 @@ def hab_property(verbosity=0, group=1, process_order=100):
 
     Args:
         verbosity (int, optional): Specify the minimum verbosity required to show.
+            Setting this to None will remove it from the dump. This is useful to
+            hide a property that is needed in a super-class but not a subclass.
         group (int, optional): Controls how dump sorts the results. The sort uses
             (group, name) as its sort key, so common group values are sorted
             alphabetically. This should rarely be used and only 0 or 1 should be used
