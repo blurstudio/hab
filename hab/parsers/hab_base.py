@@ -322,7 +322,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
         for prop in sorted(props, key=lambda p: (props[p].group, p)):
             # Ignore any props with higher verbosity than requested
-            if verbosity < props[prop].verbosity:
+            pv = props[prop].verbosity
+            if pv is None or verbosity < pv:
+                # Setting the property's verbosity to None should hide the property
                 continue
 
             flat_list = False
