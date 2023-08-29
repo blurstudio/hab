@@ -1,0 +1,24 @@
+{
+    "name": "config",
+    "context": ["app", "aliased"],
+    "inherits": true,
+    "alias_mods": {
+        "as_dict": {
+            "environment": {
+                "os_specific": true,
+                "linux": {
+                    "prepend": {
+                        "ALIASED_LOCAL": "{relative_root}/config",
+                        "ALIASED_MOD_LOCAL_A": "Local Config A"
+                    }
+                },
+                "windows": {
+                    "prepend": {
+                        "ALIASED_LOCAL": "{relative_root}/config",
+                        "ALIASED_MOD_LOCAL_A": "Local Config A"
+                    }
+                }
+            }
+        }
+    }
+}

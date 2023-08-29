@@ -558,17 +558,27 @@ repo follows the setuptools_scm requirements for defining version numbers.
 ### Config
 
 A config defines the environment to be applied. The context is picked by the provided URI.
-They are mostly used to define distros, lock those distros to specific versions, and can
-be used to set environment variables.
+They are mostly used to [define distros](#defining-distros), pin those distros
+to specific versions, add [alias_mods](#alias-mods), and can be used to
+[set environment variables](#defining-environments).
 
 A given config needs two pieces of information defined, its name and context. The
-context is a list of its parents names. When joined together they would build a URI.
+context is a list of its parents names. When joined together they will build a URI.
 
 Example project_a_thug_animation.json:
 ```json
 {
     "name": "Animation",
     "context": ["project_a", "Thug"],
+    "alias_mods": {
+         // Modify this env variable only when using the maya alias
+        "maya": {
+            "environment": {
+                "os_specific": true,
+                "windows": {"append": {"MAYA_MODULE_PATH": "//server/share/project_a"}}
+            }
+        }
+    },
     "environment": {
         "set": {
             // Explicitly set this environment variable to a value
@@ -750,9 +760,9 @@ alias to launch usdview that only adds the path to your standalone plugin to
 
 #### Alias Mods
 
-Alias mods provide a way for a distro to modify another distro's aliases. This
-is useful for plugins that need to modify more than one host application
-independently.
+Alias mods provide a way for a [distro](#defining-distros) or [config](#config)
+to modify another distro's aliases. This is useful for plugins that need to modify
+more than one host application independently.
 
 ```json
 {

@@ -106,7 +106,9 @@ class TestDumpForest:
     all_uris = [
         "app",
         "  app/aliased",
+        "  app/aliased/config",
         "  app/aliased/mod",
+        "  app/aliased/mod/config",
         "  app/houdini",
         "  app/houdini/a",
         "  app/houdini/b",

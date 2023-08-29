@@ -2,6 +2,7 @@ import copy
 import json
 import re
 import sys
+from pathlib import Path
 
 import anytree
 import pytest
@@ -218,6 +219,7 @@ def test_metaclass():
     )
     assert set(Config._properties.keys()) == set(
         [
+            "alias_mods",
             "distros",
             "environment",
             "environment_config",
@@ -710,85 +712,122 @@ def test_os_specific_win(monkeypatch, resolver):
     assert cfg.environment["PREPEND_VARIABLE_WIN"] == ["prepend_value_win"]
 
 
-def test_alias_mods_global(resolver):
-    """Check the various operations that alias_mod creates."""
-    cfg = resolver.resolve("app/aliased/mod")
-    alias = cfg.aliases["global"]
+class TestAliasMods:
+    def test_global(self, resolver):
+        """Check the various operations that alias_mod creates."""
+        cfg = resolver.resolve("app/aliased/mod")
+        alias = cfg.aliases["global"]
 
-    # Check global hab managed env vars
-    assert cfg.environment["ALIASED_GLOBAL_A"] == ["Global A"]
-    assert cfg.environment["ALIASED_GLOBAL_B"] == ["Global B"]
-    assert cfg.environment["ALIASED_GLOBAL_C"] == ["Global C"]
-    assert cfg.environment["ALIASED_GLOBAL_D"] == ["Global D"]
-    assert cfg.environment["ALIASED_GLOBAL_E"] is None
-    assert cfg.environment["ALIASED_GLOBAL_F"] == ["Global F"]
-    assert cfg.environment["ALIASED_MOD_GLOBAL_A"] == ["Global Mod A"]
-    # This global env var was defined by the config json file.
-    # Ensure that it did not get lost at some point in the process.
-    assert cfg.environment["CONFIG_DEFINED"] == ["config_variable"]
-    # This variable is always added by hab automatically
-    assert cfg.environment["HAB_URI"] == ["app/aliased/mod"]
-    # Ensure no extra env vars were defined
-    assert len(cfg.environment) == 9
+        # Check global hab managed env vars
+        assert cfg.environment["ALIASED_GLOBAL_A"] == ["Global A"]
+        assert cfg.environment["ALIASED_GLOBAL_B"] == ["Global B"]
+        assert cfg.environment["ALIASED_GLOBAL_C"] == ["Global C"]
+        assert cfg.environment["ALIASED_GLOBAL_D"] == ["Global D"]
+        assert cfg.environment["ALIASED_GLOBAL_E"] is None
+        assert cfg.environment["ALIASED_GLOBAL_F"] == ["Global F"]
+        assert cfg.environment["ALIASED_MOD_GLOBAL_A"] == ["Global Mod A"]
+        # This global env var was defined by the config json file.
+        # Ensure that it did not get lost at some point in the process.
+        assert cfg.environment["CONFIG_DEFINED"] == ["config_variable"]
+        # This variable is always added by hab automatically
+        assert cfg.environment["HAB_URI"] == ["app/aliased/mod"]
+        # Ensure no extra env vars were defined
+        assert len(cfg.environment) == 9
 
-    # Check cmd is expected
-    assert alias["cmd"][0] == "python"
-    assert alias["cmd"][1].endswith("list_vars.py")
+        # Check cmd is expected
+        assert alias["cmd"][0] == "python"
+        assert alias["cmd"][1].endswith("list_vars.py")
 
-    env = alias["environment"]
-    # Check that order of prepend/append env vars is correct from all sources
-    # Order of processing of env vars: Global hab, alias, alias_mod.
-    assert env["ALIASED_GLOBAL_A"] == [
-        # 4. Prepended alias_mod env var processed last
-        "Local Mod A",
-        # 2. Prepend alias defined env var
-        "Local A Prepend",
-        # 1. Hab defined global env vars are added first
-        "Global A",
-        # 3. Append alias defined env var
-        "Local A Append",
-    ]
-    # Set by alias env var(replace value)
-    assert env["ALIASED_GLOBAL_C"] == ["Local C Set"]
-    # This variable is unset for this alias(removing global value)
-    assert env["ALIASED_GLOBAL_D"] is None
-    # Set globally, and is being prepended by alias_mod
-    assert env["ALIASED_GLOBAL_F"] == ["Local Mod F", "Global F"]
-    # Set globally by aliased_mod, modified by aliased_mod
-    assert env["ALIASED_MOD_LOCAL_B"] == ["Local Mod B"]
+        env = alias["environment"]
+        # Check that order of prepend/append env vars is correct from all sources
+        # Order of processing of env vars: Global hab, alias, alias_mod.
+        assert env["ALIASED_GLOBAL_A"] == [
+            # 4. Prepended alias_mod env var processed last
+            "Local Mod A",
+            # 2. Prepend alias defined env var
+            "Local A Prepend",
+            # 1. Hab defined global env vars are added first
+            "Global A",
+            # 3. Append alias defined env var
+            "Local A Append",
+        ]
+        # Set by alias env var(replace value)
+        assert env["ALIASED_GLOBAL_C"] == ["Local C Set"]
+        # This variable is unset for this alias(removing global value)
+        assert env["ALIASED_GLOBAL_D"] is None
+        # Set globally, and is being prepended by alias_mod
+        assert env["ALIASED_GLOBAL_F"] == ["Local Mod F", "Global F"]
+        # Set globally by aliased_mod, modified by aliased_mod
+        assert env["ALIASED_MOD_LOCAL_B"] == ["Local Mod B"]
 
+    def test_as_list(self, resolver):
+        """Check that non-dict defined aliases are modified correctly"""
+        cfg = resolver.resolve("app/aliased/mod")
+        alias = cfg.aliases["global"]
 
-def test_alias_mods_as_list(resolver):
-    """Check that non-dict defined aliases are modified correctly"""
-    cfg = resolver.resolve("app/aliased/mod")
-    alias = cfg.aliases["global"]
+        # Check cmd is expected
+        assert alias["cmd"][0] == "python"
+        assert alias["cmd"][1].endswith("list_vars.py")
 
-    # Check cmd is expected
-    assert alias["cmd"][0] == "python"
-    assert alias["cmd"][1].endswith("list_vars.py")
+        # Env var can be set by alias_mod without any other hab management
+        assert alias["environment"]["ALIASED_MOD_LOCAL_B"] == ["Local Mod B"]
 
-    # Env var can be set by alias_mod without any other hab management
-    assert alias["environment"]["ALIASED_MOD_LOCAL_B"] == ["Local Mod B"]
+    def test_as_dict(self, resolver, config_root):
+        """Additional tests for alias_mod."""
+        cfg = resolver.resolve("app/aliased/mod")
+        alias = cfg.aliases["as_dict"]
 
+        # Check cmd is expected
+        assert alias["cmd"][0] == "python"
+        assert alias["cmd"][1].endswith("list_vars.py")
 
-def test_alias_mods_as_dict(resolver):
-    """Additional tests for alias_mod."""
-    cfg = resolver.resolve("app/aliased/mod")
-    alias = cfg.aliases["as_dict"]
+        env = alias["environment"]
 
-    # Check cmd is expected
-    assert alias["cmd"][0] == "python"
-    assert alias["cmd"][1].endswith("list_vars.py")
+        # Check alias_mod is prepended to alias defined env var
+        # Also check that the alias_mods {relative_root} path is resolved to the directory
+        assert (
+            Path(env["ALIASED_LOCAL"][0])
+            == config_root / "distros/aliased_mod/1.0/modified"
+        )
+        # Check that the alias {relative_root} path is resolved to it's directory
+        assert Path(env["ALIASED_LOCAL"][1]) == config_root / "distros/aliased/2.0/test"
+        # Env var can be set by alias_mod without any other hab management
+        assert env["ALIASED_MOD_LOCAL_A"] == ["Local Mod A"]
 
-    env = alias["environment"]
+    def test_as_dict_config(self, resolver, config_root):
+        """Additional test for alias_mod being set by a config not a distro."""
+        cfg = resolver.resolve("app/aliased/config")
+        alias = cfg.aliases["as_dict"]
+        env = alias["environment"]
 
-    # Check alias_mod is prepended to alias defined env var
-    # Also check that the alias_mods {relative_root} path is resolved to the directory
-    assert env["ALIASED_LOCAL"][0].endswith("distros/aliased_mod/1.0/modified")
-    # Check that the alias {relative_root} path is resolved to it's directory
-    assert env["ALIASED_LOCAL"][1].endswith("distros/aliased/2.0/test")
-    # Env var can be set by alias_mod without any other hab management
-    assert env["ALIASED_MOD_LOCAL_A"] == ["Local Mod A"]
+        # Check alias_mod is prepended to alias defined env var and that {relative_root}
+        # is pointing to the config directory
+        assert Path(env["ALIASED_LOCAL"][0]) == config_root / "configs/app/config"
+        # Check that the alias {relative_root} path is resolved to it's directory
+        assert Path(env["ALIASED_LOCAL"][1]) == config_root / "distros/aliased/2.0/test"
+        # Check that the config's alias_mod env var was added
+        assert env["ALIASED_MOD_LOCAL_A"] == ["Local Config A"]
+
+    def test_as_dict_mod_config(self, resolver, config_root):
+        """Additional test for alias_mod when set by both config and distro.
+        In this case the config's mods are processed before the distro mod. This
+        means that the distro's changes wrap the config changes.
+        """
+        cfg = resolver.resolve("app/aliased/mod/config")
+        alias = cfg.aliases["as_dict"]
+        env = alias["environment"]
+
+        # Check that the first alias_mod is the distro and relative to the distro
+        assert (
+            Path(env["ALIASED_LOCAL"][0])
+            == config_root / "distros/aliased_mod/1.0/modified"
+        )
+        # Next is the config alias_mod and it is relative to the config
+        assert Path(env["ALIASED_LOCAL"][1]) == config_root / "configs/app/config_mod"
+        # Check that the alias {relative_root} path is resolved to it's directory
+        assert Path(env["ALIASED_LOCAL"][2]) == config_root / "distros/aliased/2.0/test"
+        # Check that the distro then config's env vars were both added in order
+        assert env["ALIASED_MOD_LOCAL_A"] == ["Local Mod A", "Local Config Mod A"]
 
 
 def test_duplicates(resolver):
