@@ -85,6 +85,16 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         for attrname in props:
             if getattr(self, attrname) != NotSet:
                 continue
+            if attrname == "alias_mods":
+                if hasattr(node, "alias_mods") and node.alias_mods:
+                    self._alias_mods = {}
+                    # Format the alias environment at this point so any path
+                    # based variables like {relative_root} are resolved against
+                    # the node's directory not the alias being modified
+                    mods = node.format_environment_value(node.alias_mods)
+                    for name, mod in mods.items():
+                        self._alias_mods.setdefault(name, []).append(mod)
+                continue
             value = getattr(node, attrname)
             if value is NotSet:
                 self._missing_values = True

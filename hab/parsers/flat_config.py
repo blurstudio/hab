@@ -22,7 +22,7 @@ class FlatConfig(Config):
         self.frozen_data["context"] = original_node.context
         self._uri = uri
         # Caches a copy of modifications that eventually need applied to aliases
-        self._alias_mods = {}
+        self._alias_mods = NotSet
         # Copy the properties from the inheritance system
         self._collect_values(self.original_node)
         self._finalize_values()
@@ -137,7 +137,17 @@ class FlatConfig(Config):
         # Only return aliases if they are valid for the current verbosity
         return {k: v for k, v in ret.items() if self.check_min_verbosity(v)}
 
-    @property
+    # Note: 'alias_mods' needs to be processed before 'environment'
+    @hab_property(verbosity=None, process_order=50)
+    def alias_mods(self):
+        """Override the hab_property decorator's verbosity to hide this from the
+        dump. It doesn't make sense to show this property on FlatConfig, but it's
+        important to show it on the super Config class for debugging.
+        """
+        return super().alias_mods
+
+    # Note: 'alias_mods' and 'distros' needs to be processed before 'environment'
+    @hab_property(verbosity=2, process_order=80)
     def environment(self):
         """A resolved set of environment variables for this platform that should
         be applied to configure an environment. Any values set to None indicate
@@ -201,7 +211,8 @@ class FlatConfig(Config):
         # Lazily load the contents of versions the first time it's called
         if "versions" not in self.frozen_data:
             versions = []
-            self._alias_mods = {}
+            if self._alias_mods is NotSet:
+                self._alias_mods = {}
             self.frozen_data["versions"] = versions
 
             reqs = self.resolver.resolve_requirements(self.distros)

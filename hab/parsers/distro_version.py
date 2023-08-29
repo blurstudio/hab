@@ -28,10 +28,14 @@ class DistroVersion(HabBase):
     def aliases(self, aliases):
         self.frozen_data["aliases"] = aliases
 
-    @hab_property()
+    # Note: 'alias_mods' needs to be processed before 'environment'
+    @hab_property(process_order=50)
     def alias_mods(self):
-        """List of the names and commands that need created to launch desired
-        applications."""
+        """Dict of modifications that need to be made on aliases.
+        These are used to modify the original configuration of an alias by another
+        distro or config. This allows a plugin to add an environment variable to
+        a specific alias even though the alias is defined by another distro/config.
+        """
         return self._alias_mods
 
     def load(self, filename):
