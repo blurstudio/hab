@@ -947,25 +947,32 @@ using os specific configurations.
 
 ### Defining Distros
 
-The `distos` key in distro and config definitions is used to define the distro version
+The `distos` key in distro and config definitions are used to define the distro version
 requirements. When a config is processed the distro requirements are evaluated recursively
 to include the requirements of the latest DistroVersion matching the specifier.
-This uses the python packaging module to resolve version specifiers so you can use the
-same configuration syntax you would use in a pip requirements file.
+This uses the python [packaging module](https://packaging.pypa.io/en/stable/requirements.html)
+to resolve version specifiers so you can use the same configuration syntax you
+would use in a pip requirements file.
 
-```json
+```json5
     "distros": [
         "maya2020",
         "maya2022",
         "houdini18.5",
         "hsite",
         "animBot<=1.4",
-        "studiolibrary==2.5.7.post1"
+        "studiolibrary==2.5.7.post1",
+        // Use markers to only include 3ds max if hab is currently running on
+        // windows. It can't be run on linux.
+        "3dsmax2019;platform_system=='Windows'"
     ]
-
 ```
 
 The resolved versions matching the requested distros are shown in the `versions` property.
+
+It also supports [markers](https://packaging.pypa.io/en/stable/markers.html). Hab
+should support all of the [officially supported markers](https://peps.python.org/pep-0508/),
+but the most common marker likely to be used with hab is `platform_system`.
 
 ### Platform specific code
 
