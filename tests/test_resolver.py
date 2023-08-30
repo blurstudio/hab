@@ -467,6 +467,45 @@ def test_resolve_requirements_recalculate(resolver):
     )
 
 
+@pytest.mark.parametrize(
+    "platform,marker",
+    (
+        ("windows", "Windows"),
+        ("linux", "Linux"),
+        ("osx", "Darwin"),
+    ),
+)
+def test_resolve_requirements_markers(resolver, platform, marker):
+    """Test that platform_system for current host is included or excluded correctly.
+
+    The packaging marker library isn't setup to allow for testing on other
+    platforms, so these tests need to pass on all platforms, if running the test
+    on this platform, the dependency is included, otherwise it should be ignored.
+    """
+    check = [
+        "the_dcc",
+        "the_dcc_plugin_a",
+        "the_dcc_plugin_b",
+        "the_dcc_plugin_d",
+        "the_dcc_plugin_e",
+    ]
+    # This requirement is only included if running on the target platform
+    if utils.Platform.name() == platform:
+        check.append("the_dcc_plugin_c")
+
+    # Build requirements utilizing the platform marker.
+    requirements = {
+        "the_dcc": Requirement("the_dcc"),
+        # the_dcc_plugin_c is only included if the current platform matches that.
+        "the_dcc_plugin_c": Requirement(
+            f"the_dcc_plugin_c;platform_system=='{marker}'"
+        ),
+    }
+
+    ret = resolver.resolve_requirements(requirements)
+    assert set(ret.keys()) == set(check)
+
+
 def test_resolve_requirements_errors(resolver):
     # This requirement is not possible because the_dcc_plugin_b requires the_dcc<1.2
     requirements = {

@@ -100,6 +100,19 @@ class Solver(object):
 
         for req in reqs:
             name = req.name
+
+            marker = req.marker
+            if marker and not marker.evaluate():
+                # If a marker is specified and its not valid for the current
+                # system, skip this requirement.
+                # https://packaging.pypa.io/en/stable/markers.html
+                msg = f"Requirement ignored due to marker: {req}"
+                if name in self.forced:
+                    logger.critical(f"Forced {msg}")  # pragma: no cover
+                else:
+                    logger.warning(f"{msg}")
+                continue
+
             if name in self.forced:
                 if name in reported:
                     # Once we have processed this requirement, there is no need to
