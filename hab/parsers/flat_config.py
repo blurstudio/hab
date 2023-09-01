@@ -27,21 +27,27 @@ class FlatConfig(Config):
         self._collect_values(self.original_node)
         self._finalize_values()
 
-    def _collect_values(self, node, default=False):
+    def _collect_values(self, node, props=None, default=False):
         """Recursively process this config node and its parents until all
         missing_values have been resolved or we run out of parents.
+
+        Args:
+            node (HabBase): This node's values are copied to self as long as
+                they are not NotSet.
+            props (list, optional): The props to process, if None is
+                passed then uses `hab_property` values respecting sort_key.
+            default (bool, optional): Enables processing the default nodes as
+                part of this methods recursion. Used for internal tracking.
         """
         logger.debug("Loading node: {} inherits: {}".format(node.name, node.inherits))
+        if props is None:
+            props = sorted(
+                self._properties, key=lambda i: self._properties[i].sort_key()
+            )
+
         self._missing_values = False
-        # Use sort_key to ensure the properties are processed in the correct order
-        for attrname in sorted(
-            self._properties, key=lambda i: self._properties[i].sort_key()
-        ):
-            if attrname == "uri":
-                # TODO: Add detection of setters to HabProperty and don't set
-                # values without setters
-                # There is no setter for uri, setting it now will cause errors in testing
-                continue
+        # Use sort_key to ensure the props are processed in the correct order
+        for attrname in props:
             if getattr(self, attrname) != NotSet:
                 continue
             value = getattr(node, attrname)
@@ -49,15 +55,16 @@ class FlatConfig(Config):
                 self._missing_values = True
             else:
                 setattr(self, attrname, value)
+
         if node.inherits and self._missing_values:
             parent = node.parent
             if parent:
-                return self._collect_values(parent, default=default)
+                return self._collect_values(parent, props=props, default=default)
             elif not default and "default" in self.forest:
                 # Start processing the default setup
                 default = True
                 default_node = self.resolver.closest_config(node.fullpath, default=True)
-                self._collect_values(default_node, default=default)
+                self._collect_values(default_node, props=props, default=default)
 
         return self._missing_values
 
