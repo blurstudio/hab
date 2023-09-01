@@ -389,7 +389,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 k: self.format_environment_value(v, ext=ext, platform=platform)
                 for k, v in value.items()
             }
-        elif isinstance(value, bool):
+        elif isinstance(value, (bool, int)):
             # Just return boolean values, no need to format
             return value
 
