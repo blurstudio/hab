@@ -4,7 +4,31 @@
     "aliases": {
         "linux": [
             ["houdini", "/opt/hfs19.5.493/bin/houdini"],
-            ["houdini19.5", "/opt/hfs19.5.493/bin/houdini"]
+            ["houdini19.5", {
+                    "cmd": "/opt/hfs19.5.493/bin/houdini",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            ["houdinicore", {
+                    "cmd": "/opt/hfs19.5.493/bin/houdinicore",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            ["hhoudinicore19.5", {
+                    "cmd": "/opt/hfs19.5.493/bin/houdinicore",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            ["husk", {
+                    "cmd": "/opt/hfs19.5.493/bin/husk",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            ["husk19.5", {
+                    "cmd": "/opt/hfs19.5.493/bin/husk",
+                    "min_verbosity": {"global": 1}
+                }
+            ]
         ],
         "windows": [
             [
@@ -12,8 +36,33 @@
                 "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe"
             ],
             [
-                "houdini19.5",
-                "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe"
+                "houdini19.5", {
+                    "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            [
+                "houdinicore", {
+                    "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdinicore.exe"
+                }
+            ],
+            [
+                "houdinicore19.5", {
+                    "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdinicore.exe",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            [
+                "husk", {
+                    "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\husk.exe",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            [
+                "husk19.5", {
+                    "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\husk.exe",
+                    "min_verbosity": {"global": 1}
+                }
             ]
         ]
     }

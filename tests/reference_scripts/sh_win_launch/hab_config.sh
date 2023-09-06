@@ -93,6 +93,16 @@ function mayapy() {
 }
 export -f mayapy;
 
+function maya20() {
+    "C:\Program Files\Autodesk\Maya2020\bin\maya.exe" "$@";
+}
+export -f maya20;
+
+function mayapy20() {
+    "C:\Program Files\Autodesk\Maya2020\bin\mayapy.exe" "$@";
+}
+export -f mayapy20;
+
 function pip() {
     "C:\Program Files\Autodesk\Maya2020\bin\mayapy.exe" -m pip "$@";
 }

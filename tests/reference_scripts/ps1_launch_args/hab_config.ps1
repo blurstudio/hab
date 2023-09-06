@@ -80,6 +80,14 @@ function mayapy() {
     C:\Program` Files\Autodesk\Maya2020\bin\mayapy.exe $args
 }
 
+function maya20() {
+    C:\Program` Files\Autodesk\Maya2020\bin\maya.exe $args
+}
+
+function mayapy20() {
+    C:\Program` Files\Autodesk\Maya2020\bin\mayapy.exe $args
+}
+
 function pip() {
     C:\Program` Files\Autodesk\Maya2020\bin\mayapy.exe -m pip $args
 }
