@@ -586,6 +586,8 @@ Example project_a_thug_animation.json:
 
 This config would have the URI `project_a/Thug/Animation`.
 
+Configs support [min_verbosity](#min_verbosity) [with inheritance](tests/configs/verbosity).
+
 #### Config Inheritance
 
 When resolving a URI it will find the closest exact match, so if `project_a/Thug` is
@@ -621,6 +623,51 @@ of the environment variable.
 * `{;}`: This is replaced with the path separator for the shell. Ie `:` for bash, and `;`
 on windows(including bash).
 
+### Min_Verbosity
+
+[Config](#config) and [aliases](#hiding-aliases) can be hidden depending on the
+verbosity setting the user is using. The schema for this is:
+```json
+"min_verbosity": {
+   "global": 1,
+   "hab": 2,
+   "hab-gui": 0
+}
+```
+The `global` key is used as a default value if a more specific key is requested
+and not defined. Other keys can be used for more fine grained control of that
+workflow. By default the target `hab` is used. The cli uses `hab`.
+
+Filtering is not enabled by default, code needs to opt into it by using a with context.
+```
+import hab
+
+# Specify the target when creating the Resolver instance(defaults to "hab").
+resolver = hab.Resolver(target="something")
+cfg = resolver.resolve('verbosity/inherit')
+
+# By default, nothing will be hidden
+print("a:", cfg.aliases.keys())
+
+# Enable filtering by using the verbosity_filter with context.
+with hab.utils.verbosity_filter(resolver, 0):
+    print("b:", cfg.aliases.keys())
+with hab.utils.verbosity_filter(resolver, 1):
+    print("c:", cfg.aliases.keys())
+```
+Outputs:
+```
+a: dict_keys(['vb_default', 'vb0', 'vb1', 'vb2', 'vb3'])
+b: dict_keys(['vb_default', 'vb0'])
+c: dict_keys(['vb_default', 'vb0', 'vb1'])
+```
+
+If you use the target "hab-gui" instead of "something"
+```
+a: dict_keys(['vb_default', 'vb0', 'vb1', 'vb2', 'vb3'])
+b: dict_keys(['vb_default', 'vb3'])
+c: dict_keys(['vb_default', 'vb2', 'vb3'])
+```
 
 ### Defining Aliases
 
@@ -735,6 +782,54 @@ to a specific usd plugin release. You likely will have multiple releases of your
 plugin for the same usd version, as well as having multiple plugins you want to
 version independently. To do this you can define a distro for each USD plugin,
 and modify the `PXR_PLUGINPATH_NAME` env var for usdview using alias_mods.
+
+#### Hiding aliases
+
+You may find that you have to define more aliases than a regular user will
+regularly need, making the dump of aliases long and hard to parse. When using
+complex aliases, you can specify min_verbosity settings that will prevent showing
+some of those aliases unless you enable a higher verbosity.
+
+For example all of `site_main.json`'s aliases are:
+```
+maya mayapy maya20 mayapy20 pip houdini houdini18.5 houdinicore houdinicore18.5 husk husk18.5
+```
+While these are all useful, especially if you want to include access to
+[Multiple versions](#multiple-app-versions) of maya or houdini, but in most cases
+your users should only call `maya` or `houdini`, and don't need to call the script
+aliases like mayapy, husk etc.
+
+Using [min_verbosity](#min_verbosity), you can make it so you have to increase the
+verbosity of dump's to see these advanced aliases. See [](tests/distros/maya/2020.1/.hab.json).
+
+By default just show the non-versioned aliases
+```
+$ hab dump default
+Dump of FlatConfig('default')
+-------------------------------------------
+aliases:  maya houdini houdinicore
+-------------------------------------------
+```
+Adding a verbosity level now shows the version aliases as well
+```
+$ hab dump default -v
+Dump of FlatConfig('default')
+--------------------------------------------------------------------------
+name:  default
+uri:  default
+aliases:  maya maya20 houdini houdini18.5 houdinicore houdinicore18.5 husk
+          husk18.5
+```
+Adding another verbosity level now shows advanced aliases like mayapy and husk.
+```
+$ hab dump default -vv
+Dump of FlatConfig('default')
+-------------------------------------------------------------------------
+name:  default
+uri:  default
+aliases:  maya mayapy maya20 mayapy20 pip houdini houdini18.5 houdinicore
+          houdinicore18.5 husk husk18.5
+```
 
 ### Defining Environments
 

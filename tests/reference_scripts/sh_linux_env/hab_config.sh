@@ -84,16 +84,26 @@ function global() {
 export -f global;
 
 function maya() {
-    "/usr/local/bin/maya" "$@";
+    "/usr/local/bin/maya2020" "$@";
 }
 export -f maya;
 
 function mayapy() {
-    "/usr/local/bin/mayapy" "$@";
+    "/usr/local/bin/mayapy2020" "$@";
 }
 export -f mayapy;
 
+function maya20() {
+    "/usr/local/bin/maya2020" "$@";
+}
+export -f maya20;
+
+function mayapy20() {
+    "/usr/local/bin/mayapy2020" "$@";
+}
+export -f mayapy20;
+
 function pip() {
-    /usr/local/bin/mayapy -m pip "$@";
+    /usr/local/bin/mayapy2020 -m pip "$@";
 }
 export -f pip;
