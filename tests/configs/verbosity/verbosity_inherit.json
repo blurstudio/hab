@@ -1,0 +1,14 @@
+{
+    "name": "inherit",
+    "context": ["verbosity"],
+    "description": "Doesn't define verbosity but does inherit it from parent.",
+    "distros": [
+        "aliased_verbosity"
+    ],
+    "inherits": true,
+    "environment": {
+        "set" : {
+            "VERBOSITY": "verbosity/inherit"
+        }
+    }
+}

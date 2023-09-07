@@ -9,7 +9,7 @@ from colorama import Fore
 
 from . import Resolver, Site, __version__
 from .parsers.unfrozen_config import UnfrozenConfig
-from .utils import decode_freeze, dumps_json, encode_freeze, json
+from .utils import decode_freeze, dumps_json, encode_freeze, json, verbosity_filter
 
 logger = logging.getLogger(__name__)
 
@@ -440,6 +440,8 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
     report_map = {"u": "uris", "v": "versions", "f": "forest", "s": "site"}
     report_type = report_map.get(report_type, report_type)
 
+    resolver = settings.resolver
+
     if report_type in ("uris", "versions", "forest"):
         # Allow the user to disable truncation of versions with verbosity flag
         truncate = None if verbosity else 3
@@ -452,22 +454,24 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
 
         if report_type in ("uris", "forest"):
             click.echo(f'{Fore.YELLOW}{" URIs ".center(50, "-")}{Fore.RESET}')
-            for line in settings.resolver.dump_forest(settings.resolver.configs):
-                echo_line(line)
+            # Filter out any URI's hidden by the requested verbosity level
+            with verbosity_filter(resolver, verbosity):
+                for line in resolver.dump_forest(resolver.configs):
+                    echo_line(line)
         if report_type in ("versions", "forest"):
             click.echo(f'{Fore.YELLOW}{" Versions ".center(50, "-")}{Fore.RESET}')
-            for line in settings.resolver.dump_forest(
-                settings.resolver.distros,
+            for line in resolver.dump_forest(
+                resolver.distros,
                 attr="name",
                 truncate=truncate,
             ):
                 echo_line(line)
     elif report_type == "site":
-        click.echo(settings.resolver.site.dump(verbosity=verbosity))
+        click.echo(resolver.site.dump(verbosity=verbosity))
     else:
         if isinstance(uri, dict):
             # Load frozen json data instead of processing the URI
-            ret = UnfrozenConfig(uri, settings.resolver)
+            ret = UnfrozenConfig(uri, resolver)
         elif uri_error:
             # If the user didn't choose a report type that doesn't require a uri
             # and a uri wasn't specified, raise a UsageError  similar to the one
@@ -475,15 +479,15 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
             # exception to make it easier to debug the issue.
             raise uri_error
         elif flat:
-            ret = settings.resolver.resolve(uri)
+            ret = resolver.resolve(uri)
         else:
-            ret = settings.resolver.closest_config(uri)
+            ret = resolver.closest_config(uri)
 
         # This is a seperate set of if/elif/else statements than from above.
         # I became confused while reading so decided to add this reminder.
         if format_type == "freeze":
             ret = encode_freeze(
-                ret.freeze(), version=settings.resolver.site.get("freeze_version")
+                ret.freeze(), version=resolver.site.get("freeze_version")
             )
         elif format_type == "json":
             ret = dumps_json(ret.freeze(), indent=2)

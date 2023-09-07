@@ -10,6 +10,7 @@ import zlib
 from abc import ABC, abstractmethod
 from collections import UserDict
 from collections.abc import KeysView
+from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path, PurePath
 
@@ -350,6 +351,34 @@ NotSet = NotSet()
 def path_forward_slash(path):
     """Converts a Path object into a string with forward slashes"""
     return str(path).replace("\\", "/")
+
+
+@contextmanager
+def verbosity_filter(resolver, verbosity, target=None):
+    """Change the verbosity settings of a hab.Resolver while inside this with
+    context.
+
+    Args:
+        resolver (hab.Resolver): The resolver to change verbosity settings on.
+        verbosity (int): Change the verbosity setting to this value. If None is
+            passed, all results are be shown without any filtering.
+        target (str, optional): Change the verbosity target, ignored if None.
+    """
+    # Backup the current values
+    current_target = resolver._verbosity_target
+    current_value = resolver._verbosity_value
+
+    # Change to the requested values
+    if target is not None:
+        resolver._verbosity_target = target
+    resolver._verbosity_value = verbosity
+
+    try:
+        yield
+    finally:
+        # Restore the original values
+        resolver._verbosity_target = current_target
+        resolver._verbosity_value = current_value
 
 
 class BasePlatform(ABC):

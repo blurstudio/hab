@@ -62,6 +62,47 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         cls = type(self)
         return "{}.{}('{}')".format(cls.__module__, cls.__name__, self.fullpath)
 
+    def _collect_values(self, node, props=None, default=False):
+        """Recursively process this config node and its parents until all
+        missing_values have been resolved or we run out of parents.
+
+        Args:
+            node (HabBase): This node's values are copied to self as long as
+                they are not NotSet.
+            props (list, optional): The props to process, if None is
+                passed then uses `hab_property` values respecting sort_key.
+            default (bool, optional): Enables processing the default nodes as
+                part of this methods recursion. Used for internal tracking.
+        """
+        logger.debug("Loading node: {} inherits: {}".format(node.name, node.inherits))
+        if props is None:
+            props = sorted(
+                self._properties, key=lambda i: self._properties[i].sort_key()
+            )
+
+        self._missing_values = False
+        # Use sort_key to ensure the props are processed in the correct order
+        for attrname in props:
+            if getattr(self, attrname) != NotSet:
+                continue
+            value = getattr(node, attrname)
+            if value is NotSet:
+                self._missing_values = True
+            else:
+                setattr(self, attrname, value)
+
+        if node.inherits and self._missing_values:
+            parent = node.parent
+            if parent:
+                return self._collect_values(parent, props=props, default=default)
+            elif not default and "default" in self.forest:
+                # Start processing the default setup
+                default = True
+                default_node = self.resolver.closest_config(node.fullpath, default=True)
+                self._collect_values(default_node, props=props, default=default)
+
+        return self._missing_values
+
     @classmethod
     def _dump_versions(cls, value, verbosity=0, color=None):
         """Returns the version information for this object as a list of strings."""
@@ -111,6 +152,24 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                         msg = "You can not unset PATH"
                     if msg:
                         raise ValueError(msg.format(key))
+
+    def check_min_verbosity(self, config):
+        """Return if the given config should be visible based on the resolver's
+        current verbosity settings. Returns True if there isn't a resolver.
+        """
+        if not self.resolver:
+            return True
+
+        # Respect `hab.utils.verbosity_filter` with context settings
+        target = self.resolver._verbosity_target
+        current = self.resolver._verbosity_value
+
+        if current is None:
+            # If None, always show all results
+            return True
+
+        min_verbosity = self.get_min_verbosity(config, target)
+        return current >= min_verbosity
 
     @property
     def context(self):
@@ -266,8 +325,13 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             if verbosity < props[prop].verbosity:
                 continue
 
-            value = getattr(self, prop)
             flat_list = False
+            if prop == "aliases":
+                # Filter out any aliases hidden by the requested verbosity level
+                with utils.verbosity_filter(self.resolver, verbosity):
+                    value = self.aliases
+            else:
+                value = getattr(self, prop)
             if prop == "aliases" and not value:
                 # Don't show the aliases row if none are set
                 continue
@@ -410,6 +474,37 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
     def fullpath(self):
         return self.separator.join([node.name for node in self.path])
 
+    @classmethod
+    def get_min_verbosity(cls, config, target, default=0):
+        """Gets the desired min_verbosity setting for a given dictionary. If the
+        desired target is not specified returns the global target, returning default
+        if not defined.
+
+        Args:
+            config (dict): The config dict to get the desired verbosity level.
+                Returns default if None is passed.
+            target (str): The name of the desired verbosity level to return if defined.
+            default (int, optional): Returned if unable to find a defined value.
+        """
+        if not config:
+            return default
+        # Get the min_verbosity dictionary
+        verbosity = config.get("min_verbosity", {})
+        if verbosity is NotSet:
+            return default
+        # If the requested target is defined, return its value
+        if target in verbosity:
+            return verbosity[target]
+        # Otherwise return the default global value, defaulting to zero if
+        # global was not defined
+        return verbosity.get("global", default)
+
+    @property
+    def inherits(self):
+        """Should this node inherit from a parent."""
+        # Note: Sub-classes need to override this method to enable inheritance.
+        return False
+
     def _load(self, filename):
         """Sets self.filename and parses the json file returning the data."""
         self.filename = Path(filename)
@@ -436,6 +531,8 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             self.distros = data.get("distros", NotSet)
         if self.environment_config is NotSet:
             self.environment_config = data.get("environment", NotSet)
+        if self.min_verbosity is NotSet:
+            self.min_verbosity = data.get("min_verbosity", NotSet)
 
         if self.context is NotSet:
             # TODO: make these use override methods
@@ -467,6 +564,14 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         merger.apply_platform_wildcards(
             environment_config, output=self.frozen_data["environment"]
         )
+
+    @hab_property(verbosity=2)
+    def min_verbosity(self):
+        return self.frozen_data.get("min_verbosity", NotSet)
+
+    @min_verbosity.setter
+    def min_verbosity(self, min_verbosity):
+        self.frozen_data["min_verbosity"] = min_verbosity
 
     @hab_property(verbosity=1, group=0, process_order=40)
     def name(self):

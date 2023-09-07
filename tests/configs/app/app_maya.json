@@ -1,0 +1,10 @@
+{
+    "name": "maya",
+    "context": ["app"],
+    "inherits": false,
+    "min_verbosity": {
+        "global": 2,
+        "hab": 2,
+        "hab-gui": 1
+    }
+}

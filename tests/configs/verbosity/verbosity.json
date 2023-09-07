@@ -1,0 +1,15 @@
+{
+    "name": "verbosity",
+    "context": [],
+    "description": "Defines verbosity settings that can be inherited",
+    "environment": {
+        "set" : {
+            "VERBOSITY": "verbosity"
+        }
+    },
+    "inherits": false,
+    "min_verbosity": {
+        "global": 2,
+        "hab-gui": 1
+    }
+}

@@ -210,6 +210,7 @@ def test_metaclass():
             "distros",
             "environment",
             "environment_config",
+            "min_verbosity",
             "name",
             "version",
         ]
@@ -219,6 +220,7 @@ def test_metaclass():
             "distros",
             "environment",
             "environment_config",
+            "min_verbosity",
             "inherits",
             "name",
             "uri",
@@ -238,7 +240,7 @@ class TestDump:
         # Build the test data so we can generate the output to check
         # Note: using `repr([u"` so this test passes in python 2 and 3
         pre = ["name:  child", "uri:  not_set/child"]
-        post = ["inherits:  True"]
+        post = ["inherits:  True", "min_verbosity:  NotSet"]
         env = [
             "environment:  FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
             "              TEST:  case",
@@ -801,3 +803,60 @@ def test_duplicates(resolver):
     assert "19.5" in cfg.aliases["houdini"]["cmd"]
     assert "18.5" in cfg.aliases["houdini18.5"]["cmd"]
     assert "19.5" in cfg.aliases["houdini19.5"]["cmd"]
+
+
+def test_get_min_verbosity(resolver):
+    cfg = resolver.resolve("verbosity")
+    # Default is returned if an invalid config is passed
+    assert cfg.get_min_verbosity(None, target="test", default=99) == 99
+    # Default is returned if config's min_verbosity is NotSet
+    data = {"min_verbosity": NotSet}
+    assert cfg.get_min_verbosity(data, target="test", default=99) == 99
+    # The requested target value is returned
+    data["min_verbosity"] = {"global": 1, "test": 2, "hab": 3}
+    assert cfg.get_min_verbosity(data, target="test", default=99) == 2
+    assert cfg.get_min_verbosity(data, target="hab", default=99) == 3
+    # The global value is returned if target is un-defined
+    assert cfg.get_min_verbosity(data, target="missing", default=99) == 1
+
+
+def test_alias_min_verbosity_default(resolver):
+    """Test dumping of configs using the default target `hab`."""
+    cfg = resolver.resolve("verbosity/inherit")
+
+    with utils.verbosity_filter(resolver, verbosity=None):
+        result = cfg.aliases
+        assert sorted(result.keys()) == ["vb0", "vb1", "vb2", "vb3", "vb_default"]
+
+    with utils.verbosity_filter(resolver, verbosity=2):
+        result = cfg.aliases
+        assert sorted(result.keys()) == ["vb0", "vb1", "vb2", "vb_default"]
+
+    with utils.verbosity_filter(resolver, verbosity=1):
+        result = cfg.aliases
+        assert sorted(result.keys()) == ["vb0", "vb1", "vb_default"]
+
+    with utils.verbosity_filter(resolver, verbosity=0):
+        result = cfg.aliases
+        assert sorted(result.keys()) == ["vb0", "vb_default"]
+
+
+def test_alias_min_verbosity_hab_gui(resolver):
+    """Test dumping of aliases using the non-default target `hab-gui`.."""
+    cfg = resolver.resolve("verbosity/inherit")
+
+    with utils.verbosity_filter(resolver, verbosity=None, target="hab-gui"):
+        result = cfg.aliases
+        assert sorted(result.keys()) == ["vb0", "vb1", "vb2", "vb3", "vb_default"]
+
+    with utils.verbosity_filter(resolver, verbosity=2, target="hab-gui"):
+        result = cfg.aliases
+        assert sorted(result.keys()) == ["vb1", "vb2", "vb3", "vb_default"]
+
+    with utils.verbosity_filter(resolver, verbosity=1, target="hab-gui"):
+        result = cfg.aliases
+        assert sorted(result.keys()) == ["vb2", "vb3", "vb_default"]
+
+    with utils.verbosity_filter(resolver, verbosity=0, target="hab-gui"):
+        result = cfg.aliases
+        assert sorted(result.keys()) == ["vb3", "vb_default"]

@@ -1,0 +1,15 @@
+{
+    "name": "hidden",
+    "context": ["verbosity"],
+    "description": "Verbosity global setting above the normal max of 2. Should only be visible if verbosity is None.",
+    "inherits": true,
+    "environment": {
+        "set" : {
+            "VERBOSITY": "verbosity/hidden"
+        }
+    },
+    "min_verbosity": {
+        "global": 3,
+        "hab-gui": 2
+    }
+}

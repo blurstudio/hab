@@ -1,0 +1,14 @@
+{
+    "name": "inherit-override",
+    "context": ["verbosity"],
+    "description": "Inherits from parent but defines verbosity on itself.",
+    "inherits": true,
+    "environment": {
+        "set" : {
+            "VERBOSITY": "verbosity/inherit-override"
+        }
+    },
+    "min_verbosity": {
+        "global": 1
+    }
+}

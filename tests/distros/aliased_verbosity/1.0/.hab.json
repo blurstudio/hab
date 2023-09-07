@@ -1,0 +1,83 @@
+{
+    "name": "aliased_verbosity",
+    "aliases": {
+        "linux": [
+            ["vb_default", ["python"]],
+            [
+                "vb0", {
+                    "cmd": ["python"],
+                    "min_verbosity": {
+                        "global": 0,
+                        "hab-gui": 3
+                    }
+                }
+            ],
+            [
+                "vb1", {
+                    "cmd": ["python"],
+                    "min_verbosity": {
+                        "global": 1,
+                        "hab-gui": 2
+                    }
+                }
+            ],
+            [
+                "vb2", {
+                    "cmd": ["python"],
+                    "min_verbosity": {
+                        "global": 2,
+                        "hab-gui": 1
+                    }
+                }
+            ],
+            [
+                "vb3", {
+                    "cmd": ["python"],
+                    "min_verbosity": {
+                        "global": 3,
+                        "hab-gui": 0
+                    }
+                }
+            ]
+        ],
+        "windows": [
+            ["vb_default", ["python"]],
+            [
+                "vb0", {
+                    "cmd": ["python"],
+                    "min_verbosity": {
+                        "global": 0,
+                        "hab-gui": 3
+                    }
+                }
+            ],
+            [
+                "vb1", {
+                    "cmd": ["python"],
+                    "min_verbosity": {
+                        "global": 1,
+                        "hab-gui": 2
+                    }
+                }
+            ],
+            [
+                "vb2", {
+                    "cmd": ["python"],
+                    "min_verbosity": {
+                        "global": 2,
+                        "hab-gui": 1
+                    }
+                }
+            ],
+            [
+                "vb3", {
+                    "cmd": ["python"],
+                    "min_verbosity": {
+                        "global": 3,
+                        "hab-gui": 0
+                    }
+                }
+            ]
+        ]
+    }
+}
