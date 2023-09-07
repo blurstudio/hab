@@ -35,6 +35,7 @@ class Resolver(object):
         site=None,
         prereleases=None,
         forced_requirements=None,
+        target="hab",
     ):
         if site is None:
             site = Site()
@@ -43,6 +44,13 @@ class Resolver(object):
         if prereleases is None:
             prereleases = self.site.get("prereleases", False)
         self.prereleases = prereleases
+
+        # Variables used to filter various outputs. See `hab.utils.verbosity_filter`
+        # with context for more details.
+        self._verbosity_target = target
+        # A value of None indicates that nothing should be hidden, otherwise only
+        # show the item if its min_verbosity is <= this number
+        self._verbosity_value = None
 
         if forced_requirements:
             self.forced_requirements = Solver.simplify_requirements(forced_requirements)
@@ -176,12 +184,13 @@ class Resolver(object):
         indent="  ",
         truncate=None,
     ):
-        """Convert a forest dictionary to a readable string.
+        """Yields the contents of a forest to a readable string or anytree objects.
 
         Args:
             forest: A dictionary of hab.parser objects to dump. Common values
                 are `resolver.configs`, or `resolver.distros`.
             attr (str, optional): The name of the attribute to display for each node.
+                If None is passed, the anytree object is returned un-modified.
             fmt (str, optional): str.format string to control the display of
                 each node in the forest. Accepts (pre, attr) keys.
             style (anytree.render.AbstractStyle, optional): Controls how anytree
@@ -215,10 +224,26 @@ class Resolver(object):
             for row in anytree.RenderTree(
                 forest[tree_name], style=style, childiter=sort_forest
             ):
-                pre = row.pre
-                if limit_pre:
-                    pre = row.pre[: len(indent)]
-                yield fmt.format(pre=pre, attr=getattr(row.node, attr))
+                cfg = row.node
+                # Process inheritance for this config to ensure the correct value
+                cfg._collect_values(cfg, ["min_verbosity"])
+
+                # Check if this row should be shown based on verbosity settings.
+                min_verbosity = {"min_verbosity": cfg.min_verbosity}
+                if not cfg.check_min_verbosity(min_verbosity):
+                    # TODO: If a parent is hidden but not a child, fix rendering
+                    # so the child's indent is reduced correctly.
+                    continue
+
+                # Yield the anytree node if no attr was requested
+                if attr is None:
+                    yield row
+                else:
+                    # Otherwise yield the formatted text for the node
+                    pre = row.pre
+                    if limit_pre:
+                        pre = row.pre[: len(indent)]
+                    yield fmt.format(pre=pre, attr=getattr(cfg, attr))
 
     def find_distro(self, requirement):
         """Returns the DistroVersion matching the requirement or None"""

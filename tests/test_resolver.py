@@ -103,38 +103,114 @@ def test_closest_config(resolver, path, result, reason):
 class TestDumpForest:
     """Test the dump_forest method on resolver"""
 
-    def test_uris(self, resolver):
-        """Test dumping of configs using uri attr"""
+    all_uris = [
+        "app",
+        "  app/aliased",
+        "  app/aliased/mod",
+        "  app/houdini",
+        "  app/houdini/a",
+        "  app/houdini/b",
+        "  app/maya",
+        "  app/maya/2020",
+        "default",
+        "  default/Sc1",
+        "  default/Sc11",
+        "not_set",
+        "  not_set/child",
+        "  not_set/distros",
+        "  not_set/empty_lists",
+        "  not_set/env1",
+        "  not_set/env_path_hab_uri",
+        "  not_set/env_path_set",
+        "  not_set/env_path_unset",
+        "  not_set/no_distros",
+        "  not_set/no_env",
+        "  not_set/os",
+        "place-holder",
+        "  place-holder/child",
+        "  place-holder/inherits",
+        "project_a",
+        "  project_a/Sc001",
+        "  project_a/Sc001/Animation",
+        "  project_a/Sc001/Rigging",
+        "verbosity",
+        "  verbosity/hidden",
+        "  verbosity/inherit",
+        "  verbosity/inherit-no",
+        "  verbosity/inherit-override",
+    ]
+
+    def test_uris_target_default(self, resolver):
+        """Test dumping of configs using the default target `hab`. This also
+        falls back to global setting."""
+        check = list(self.all_uris)
+        # Verbosity filter disabled, show all results
+        assert resolver._verbosity_target == "hab"
+        assert resolver._verbosity_value is None
         result = list(resolver.dump_forest(resolver.configs))
-        check = [
-            "app",
-            "  app/aliased",
-            "  app/aliased/mod",
-            "  app/houdini",
-            "  app/houdini/a",
-            "  app/houdini/b",
-            "default",
-            "  default/Sc1",
-            "  default/Sc11",
-            "not_set",
-            "  not_set/child",
-            "  not_set/distros",
-            "  not_set/empty_lists",
-            "  not_set/env1",
-            "  not_set/env_path_hab_uri",
-            "  not_set/env_path_set",
-            "  not_set/env_path_unset",
-            "  not_set/no_distros",
-            "  not_set/no_env",
-            "  not_set/os",
-            "place-holder",
-            "  place-holder/child",
-            "  place-holder/inherits",
-            "project_a",
-            "  project_a/Sc001",
-            "  project_a/Sc001/Animation",
-            "  project_a/Sc001/Rigging",
-        ]
+        assert result == check
+
+        # Verbosity filter most verbose
+        with utils.verbosity_filter(resolver, verbosity=2):
+            result = list(resolver.dump_forest(resolver.configs))
+        check.remove("  verbosity/hidden")
+        assert result == check
+
+        # Verbosity filter less verbose
+        with utils.verbosity_filter(resolver, verbosity=1):
+            result = list(resolver.dump_forest(resolver.configs))
+        check.remove("  app/maya")
+        check.remove("  app/maya/2020")
+        check.remove("verbosity")
+        check.remove("  verbosity/inherit")
+        assert result == check
+
+        # Verbosity filter least verbose
+        with utils.verbosity_filter(resolver, verbosity=0):
+            result = list(resolver.dump_forest(resolver.configs))
+        check.remove("  verbosity/inherit-override")
+        assert result == check
+
+    def test_uris_objs(self, resolver):
+        # If attr is "uri" then the uri as a string is returned.
+        result = list(resolver.dump_forest(resolver.configs, attr="uri"))
+        assert result == self.all_uris
+        # If None is passed to attr, then the anytree object is returned
+        for i, row in enumerate(resolver.dump_forest(resolver.configs, attr=None)):
+            check = self.all_uris[i].strip()
+            # Get the uri from the node
+            assert check == row.node.uri
+
+    def test_uris_target_hab_gui(self, resolver):
+        """Test dumping of configs using the non-default target `hab-gui`. This
+        also falls back to global setting."""
+        check = list(self.all_uris)
+        # Verbosity filter disabled, show all results
+        assert resolver._verbosity_target == "hab"
+        assert resolver._verbosity_value is None
+        with utils.verbosity_filter(resolver, verbosity=None, target="hab-gui"):
+            result = list(resolver.dump_forest(resolver.configs))
+        assert result == check
+
+        # Verbosity filter most verbose
+        with utils.verbosity_filter(resolver, verbosity=2, target="hab-gui"):
+            result = list(resolver.dump_forest(resolver.configs))
+        assert result == check
+
+        # Verbosity filter less verbose
+        with utils.verbosity_filter(resolver, verbosity=1, target="hab-gui"):
+            result = list(resolver.dump_forest(resolver.configs))
+        check.remove("  verbosity/hidden")
+        assert result == check
+
+        # Verbosity filter least verbose
+        with utils.verbosity_filter(resolver, verbosity=0, target="hab-gui"):
+            result = list(resolver.dump_forest(resolver.configs))
+        check.remove("  app/maya")
+        check.remove("  app/maya/2020")
+        check.remove("verbosity")
+        check.remove("  verbosity/inherit")
+        check.remove("  verbosity/inherit-override")
         assert result == check
 
     def test_distros(self, resolver):
@@ -145,6 +221,8 @@ class TestDumpForest:
             "  aliased==2.0",
             "aliased_mod",
             "  aliased_mod==1.0",
+            "aliased_verbosity",
+            "  aliased_verbosity==1.0",
             "all_settings",
             "  all_settings==0.1.0.dev1",
             "houdini18.5",
@@ -189,6 +267,8 @@ class TestDumpForest:
             "  aliased==2.0",
             "aliased_mod",
             "  aliased_mod==1.0",
+            "aliased_verbosity",
+            "  aliased_verbosity==1.0",
             "all_settings",
             "  all_settings==0.1.0.dev1",
             "houdini18.5",

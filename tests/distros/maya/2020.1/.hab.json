@@ -4,15 +4,27 @@
     "environment": {},
     "aliases": {
         "windows": [
-            ["maya", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"],
-            ["mayapy", "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"],
             [
-                "pip",
-                [
-                    "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe",
-                    "-m",
-                    "pip"
-                ]
+                "maya", {
+                    "cmd": "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe",
+                    "icon": "C:\\Windows\\Installer\\{{0EBFFCF6-F972-4D40-863F-E673B5C38236}}\\maya.ico"
+                }
+            ],
+            [
+                "mayapy", {
+                    "cmd": "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            [
+                "pip", {
+                    "cmd": [
+                        "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe",
+                        "-m",
+                        "pip"
+                    ],
+                    "min_verbosity": {"global": 2}
+                }
             ]
         ],
         "linux": [

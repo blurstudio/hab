@@ -1,0 +1,11 @@
+{
+    "name": "inherit-no",
+    "context": ["verbosity"],
+    "description": "Doesn't define verbosity and doesn't inherit it from parent.",
+    "inherits": false,
+    "environment": {
+        "set" : {
+            "VERBOSITY": "verbosity/inherit-no"
+        }
+    }
+}
