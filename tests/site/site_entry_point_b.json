@@ -1,0 +1,9 @@
+{
+    "append": {
+        "entry_points": {
+            "cli": {
+                "test-gui": "hab_test_entry_points:gui_alt"
+            }
+        }
+    }
+}

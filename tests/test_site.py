@@ -1,3 +1,4 @@
+import sys
 from pathlib import PurePosixPath, PureWindowsPath
 
 import colorama
@@ -457,3 +458,49 @@ class TestPlatformPathMapDict:
 
         # The right-most site file's settings are loaded when both have the same keys
         self.assert_override(site)
+
+
+class TestEntryPoints:
+    def test_empty_site(self, config_root):
+        """Test a site not defining any entry points for cli."""
+        site = Site([config_root / "site_main.json"])
+        entry_points = site.entry_points_for_group("cli")
+        assert len(entry_points) == 0
+
+    @pytest.mark.parametrize(
+        "site_files,import_name,fname",
+        (
+            (["site/site_entry_point_a.json"], "hab_test_entry_points", "gui"),
+            (
+                ["site/site_entry_point_b.json", "site/site_entry_point_a.json"],
+                "hab_test_entry_points",
+                "gui_alt",
+            ),
+            (
+                ["site/site_entry_point_a.json", "site/site_entry_point_b.json"],
+                "hab_test_entry_points",
+                "gui",
+            ),
+        ),
+    )
+    def test_site_cli(self, config_root, site_files, import_name, fname):
+        """Test a site defining an entry point for cli, possibly multiple times."""
+        site = Site([config_root / f for f in site_files])
+        entry_points = site.entry_points_for_group("cli")
+        assert len(entry_points) == 1
+
+        # Test that the `test-gui` cli entry point is handled correctly
+        ep = entry_points[0]
+        assert ep.name == "test-gui"
+        assert ep.group == "cli"
+        assert ep.value == f"{import_name}:{fname}"
+
+        # Load the module's function
+        funct = ep.load()
+
+        # The module has now been imported and the correct function was loaded
+        assert funct is getattr(sys.modules[import_name], fname)
+        with pytest.raises(
+            NotImplementedError, match=rf"{import_name}\.{fname} called successfully"
+        ):
+            funct()
