@@ -177,7 +177,7 @@ class SharedSettings(object):
         self.prereleases = prereleases
         self.forced_requirements = forced_requirements
         self.dump_scripts = dump_scripts
-        self.site = Site([Path(p) for p in site_paths])
+        self.site_paths = site_paths if site_paths else []
         self.enable_user_prefs = enable_user_prefs
         self.enable_user_prefs_save = enable_user_prefs_save
 
@@ -192,8 +192,9 @@ class SharedSettings(object):
     @property
     def resolver(self):
         if self._resolver is None:
+            site = Site(self.site_paths)
             self._resolver = Resolver(
-                site=self.site,
+                site=site,
                 prereleases=self.prereleases,
                 forced_requirements=self.forced_requirements,
             )
@@ -237,6 +238,58 @@ class SharedSettings(object):
             create_launch=create_launch,
         )
 
+    @classmethod
+    def set_ctx_instance(cls, ctx, key, value):
+        """Set a property on the SharedSetting instance for the given ctx,
+        creating the instance if required.
+
+        Args:
+            ctx (click.Context): The context passed by click. Sets the requested
+                key/value on ctx.obj. If obj isn't set it will create an instance.
+            key (str or click.Option): The name of the SharedSettings property to modify.
+            value (str): The value to store on key.
+        """
+        if isinstance(key, click.Option):
+            key = key.name
+
+        # Create the instance if it wasn't already created
+        if ctx.obj is None:
+            ctx.obj = cls()
+        elif not isinstance(ctx.obj, SharedSettings):
+            raise RuntimeError("Ctx.obj already set to an incompatible class.")
+
+        setattr(ctx.obj, key, value)
+
+        # If the resolver was already created, destroy it to ensure it gets
+        # created with the updated options.
+        if ctx.obj._resolver:
+            # Let devs know if this gets called, ideally it never will be.
+            logger.warning("[Optimization warning]: Resetting ctx resolver.")
+            ctx.obj._resolver = None
+
+        # Ensure verbosity is properly respected
+        if key == "verbosity":
+            global _verbose_errors
+
+            if value > 2:
+                value = 2
+            _verbose_errors = bool(value)
+
+            level = [logging.WARNING, logging.INFO, logging.DEBUG][value]
+            logging.basicConfig(level=level)
+
+        return value
+
+    @property
+    def site_paths(self):
+        """A list of site json files used to define the Site as Path's."""
+        return self._site_paths
+
+    @site_paths.setter
+    def site_paths(self, value):
+        # Ensure the paths are converted to Path objects.
+        self._site_paths = [Path(p) for p in value]
+
 
 # This variable is used to keep track of the user enabled verbose hab output
 # using `hab -v ...`. If they do, the full traceback is printed to the shell,
@@ -251,7 +304,12 @@ _verbose_errors = False
 @click.option(
     "--site",
     "site_paths",
+    callback=SharedSettings.set_ctx_instance,
+    # Note: Eager enables processing of site when generating help so it can
+    # include commands defined by plugins.
+    is_eager=True,
     multiple=True,
+    # TODO: Implement a custom type that handles pathsep and respects env vars
     type=click.Path(file_okay=True, resolve_path=True),
     help="One or more site json files to load settings from. Uses the env var "
     "`HAB_PATHS` if not passed. The values in each file are merged into a single "
@@ -261,36 +319,45 @@ _verbose_errors = False
     "-v",
     "--verbose",
     "verbosity",
+    callback=SharedSettings.set_ctx_instance,
     count=True,
+    # Note: Using eager makes it so logging is configured as early as possible
+    # based on this argument.
+    is_eager=True,
     help="Increase the verbosity of the output. Can be used up to 3 times. "
     "This also enables showing a full traceback if an exception is raised.",
 )
 @click.option(
     "--script-dir",
+    callback=SharedSettings.set_ctx_instance,
     type=click.Path(file_okay=False, resolve_path=False),
     help="This directory will contain the shell specific script files to enable"
     "this environment configuration.",
 )
 @click.option(
     "--script-ext",
+    callback=SharedSettings.set_ctx_instance,
     help="The shell specific scripts created in script-dir will have this "
     "format and extension.",
 )
 @click.option(
     "--pre/--no-pre",
     "prereleases",
+    callback=SharedSettings.set_ctx_instance,
     default=None,
     help="Include pre-releases when finding the latest distro version.",
 )
 @click.option(
     "-r",
     "--requirement",
+    callback=SharedSettings.set_ctx_instance,
     multiple=True,
     help="Forces this distro requirement ignoring normally resolved requirements. Using "
     "this may lead to configuring your environment incorrectly, use with caution.",
 )
 @click.option(
     "--dump-scripts/--no-dump-scripts",
+    callback=SharedSettings.set_ctx_instance,
     default=False,
     help=(
         "Print the generated scripts hab uses for this command instead of "
@@ -299,11 +366,13 @@ _verbose_errors = False
 )
 @click.option(
     "--prefs/--no-prefs",
+    callback=SharedSettings.set_ctx_instance,
     default=None,
     help="If you don't pass a URI, allow looking it up from user prefs.",
 )
 @click.option(
     "--save-prefs/--no-save-prefs",
+    callback=SharedSettings.set_ctx_instance,
     default=None,
     help="Update the uri stored in prefs if the uri is provided.",
 )
@@ -320,25 +389,9 @@ def _cli(
     prefs,
     save_prefs,
 ):
-    global _verbose_errors
-
-    ctx.obj = SharedSettings(
-        site_paths,
-        verbosity,
-        script_dir,
-        script_ext,
-        prereleases,
-        requirement,
-        dump_scripts,
-        prefs,
-        save_prefs,
-    )
-    if verbosity > 2:
-        verbosity = 2
-    _verbose_errors = bool(verbosity)
-
-    level = [logging.WARNING, logging.INFO, logging.DEBUG][verbosity]
-    logging.basicConfig(level=level)
+    # Note: Using the `set_ctx_instance` callback on the options prevents
+    # the need to process anything inside of this function.
+    pass
 
 
 # set uri command
