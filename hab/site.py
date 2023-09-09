@@ -83,6 +83,28 @@ class Site(UserDict):
         ret = "\n".join(ret)
         return utils.dump_title("Dump of Site", f"{site_ret}\n{ret}", color=color)
 
+    def entry_points_for_group(self, group):
+        """Returns a list of importlib_metadata.EntryPoint objects enabled by
+        this site config. To import and resolve the defined object call `ep.load()`.
+        """
+        # Delay this import to when required. It's faster than pkg_resources but
+        # no need to pay the import price for it if you are not using it.
+        from importlib_metadata import EntryPoint
+
+        ret = []
+        entry_points = self.get("entry_points")
+        if not entry_points:
+            return ret
+
+        # While we are using importlib.metadata to create EntryPoints, we are not
+        # using it's `entry_points` function. We want the current site configuration
+        # to define the entry points being loaded not the installed pip packages.
+        ep_defs = entry_points.get(group, {})
+        for name, value in ep_defs.items():
+            ep = EntryPoint(name=name, group=group, value=value)
+            ret.append(ep)
+        return ret
+
     def load(self):
         """Iterates over each file in self.path. Replacing the value of each key.
         The last file in the list will have its settings applied even if other

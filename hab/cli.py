@@ -291,6 +291,54 @@ class SharedSettings(object):
         self._site_paths = [Path(p) for p in value]
 
 
+class SiteCommandLoader(click.Group):
+    """Allows extending the hab cli by modifying the site config. You can add
+    additional `click.Command` objects to the hab cli.
+
+    For example if you add this to your site json file:
+    `{"append": {"entry_points": {"cli": {"gui": "hab_gui.cli:gui"}}}}`
+
+    The "gui" key in the innermost dict is used for site resolution so another
+    site json file can replace a upper level definition. As a general rule, the
+    name should match the exposed click.command function.
+
+    "hab_gui.cli:gui" defines what code to execute. For details on defining this,
+    see value for `importlib-metadata.EntryPoints`. In practice this results in
+    `from  hab_gui.cli import gui`.
+    For the `cli` entry points, its expected that the linked function(`gui`)
+    is a `click.Command` object.
+    """
+
+    def _cli_entry_points(self, site):
+        try:
+            return self._ep_cache
+        except AttributeError:
+            # First call of this method, create the cache
+            self._ep_cache = []
+
+        # And populate the cache
+        for ep in site.entry_points_for_group("cli"):
+            func = ep.load()
+            self._ep_cache.append((ep, func))
+
+        return self._ep_cache
+
+    def list_commands(self, ctx):
+        ret = super().list_commands(ctx)
+        # Add any site defined entry_point commands
+        for _, cmd in self._cli_entry_points(ctx.obj.resolver.site):
+            ret.append(cmd.name)
+        return sorted(ret)
+
+    def get_command(self, ctx, name):
+        # Find and use site defined entry_points commands
+        for _, funct in self._cli_entry_points(ctx.obj.resolver.site):
+            if name == funct.name:
+                return funct
+        # falling back to the commands defined by hab
+        return super().get_command(ctx, name)
+
+
 # This variable is used to keep track of the user enabled verbose hab output
 # using `hab -v ...`. If they do, the full traceback is printed to the shell,
 # otherwise just the last part of the traceback is printed so its easier to
@@ -299,7 +347,7 @@ _verbose_errors = False
 
 
 # Establish CLI command group
-@click.group(context_settings=CONTEXT_SETTINGS)
+@click.group(cls=SiteCommandLoader, context_settings=CONTEXT_SETTINGS)
 @click.version_option(__version__, prog_name="hab")
 @click.option(
     "--site",
