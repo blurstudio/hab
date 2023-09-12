@@ -3,6 +3,9 @@
         "entry_points": {
             "cli": {
                 "test-gui": "hab_test_entry_points:gui"
+            },
+            "launch_cls": {
+                "subprocess": "subprocess:Popen"
             }
         }
     },

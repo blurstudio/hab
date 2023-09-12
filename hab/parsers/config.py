@@ -1,6 +1,12 @@
+import logging
+import os
+
 from .. import NotSet, utils
+from ..errors import HabError
 from .hab_base import HabBase
 from .meta import hab_property
+
+logger = logging.getLogger(__name__)
 
 
 class Config(HabBase):
@@ -37,6 +43,74 @@ class Config(HabBase):
     @inherits.setter
     def inherits(self, inherits):
         self.frozen_data["inherits"] = inherits
+
+    def launch(self, alias_name, args=None, blocking=False, cls=None, **kwargs):
+        """Launches the requested alias using subprocess.Popen.
+
+        Args:
+            alias_name (str): The alias name to run.
+            args (list): The command to be run by subprocess. This should be a list
+                of each individual string argument. If a kwarg is being passed it
+                should be passed as two items. ['--key', 'value'].
+            blocking (bool or str, optional): Makes this method blocking by calling
+                Popen.communicate. If a str value is used, is included in the call.
+                The results of calling `proc.communicate` can be accessed from the
+                `output_stdout` and `output_stderr` properties added to proc.
+            cls (class, optional): A `subprocess.Popen` compatible class is
+                initialized and used to run the alias. If not passed, then the
+                site entry_point `launch_cls` is used if defined. Otherwise the
+                `hab.launcher.Launcher` class is used.
+            **kwargs: Any keyword arguments are passed to subprocess.Popen. If on
+                windows and using pythonw, prevents showing a command prompt.
+
+        Returns:
+            The created subprocess.Popen instance.
+        """
+        if cls is None:
+            # Respect the site entry point if defined
+            eps = self.resolver.site.entry_points_for_group("launch_cls")
+            if eps:
+                cls = eps[0].load()
+            else:
+                # Otherwise, default to subprocess.Popen
+                from hab.launcher import Launcher
+
+                cls = Launcher
+
+        # Construct the command line arguments to execute
+        if alias_name not in self.aliases:
+            raise HabError(f'"{alias_name}" is not a valid alias name')
+        alias = self.aliases[alias_name]
+
+        try:
+            cmd = alias["cmd"]
+        except KeyError:
+            raise HabError(
+                f'Alias "{alias_name}" does not have "cmd" defined'
+            ) from None
+        if isinstance(cmd, str):
+            cmd = [cmd]
+        if args:
+            cmd.extend(args)
+
+        # Apply the hab global and alias environment variable changes
+        if "env" in kwargs:
+            env = kwargs["env"]
+        else:
+            env = dict(os.environ)
+        self.update_environ(env, alias_name)
+        kwargs["env"] = env
+
+        # Launch the subprocess using the requested Popen subclass
+        logger.info(f"Launching: {cmd}")
+        proc = cls(cmd, **kwargs)
+
+        if blocking:
+            if blocking is True:
+                blocking = None
+            proc.output_stdout, proc.output_stderr = proc.communicate(input=blocking)
+
+        return proc
 
     def load(self, filename):
         data = super().load(filename)

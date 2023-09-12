@@ -390,6 +390,7 @@ class BasePlatform(ABC):
     the subclass to Platform. `hab.utils.Platform = hab.utils.WinPlatform`
     """
 
+    _default_ext = ".sh"
     _name = None
     _sep = ":"
 
@@ -413,6 +414,11 @@ class BasePlatform(ABC):
         if isinstance(paths, str):
             return paths
         return cls.pathsep(ext=ext).join([str(p) for p in paths])
+
+    @classmethod
+    def default_ext(cls):
+        """Returns the default file extension used on this platform."""
+        return cls._default_ext
 
     @classmethod
     def expand_paths(cls, paths):
@@ -487,6 +493,7 @@ class BasePlatform(ABC):
 
 
 class WinPlatform(BasePlatform):
+    _default_ext = ".bat"
     _name = "windows"
     _sep = ";"
 
