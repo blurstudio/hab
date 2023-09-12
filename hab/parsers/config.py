@@ -1,4 +1,4 @@
-from .. import NotSet
+from .. import NotSet, utils
 from .hab_base import HabBase
 from .meta import hab_property
 
@@ -11,6 +11,14 @@ class Config(HabBase):
     def __init__(self, *args, **kwargs):
         self._alias_mods = NotSet
         super().__init__(*args, **kwargs)
+
+    @hab_property(process_order=120)
+    def aliases(self):
+        """Dict of the names and commands that need created to launch desired
+        applications."""
+        ret = self.frozen_data.get("aliases", {}).get(utils.Platform.name(), {})
+        # Only return aliases if they are valid for the current verbosity
+        return {k: v for k, v in ret.items() if self.check_min_verbosity(v)}
 
     # Note: 'alias_mods' needs to be processed before 'environment'
     @hab_property(verbosity=3, process_order=50)

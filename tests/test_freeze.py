@@ -94,6 +94,10 @@ def test_freeze(monkeypatch, config_root, platform, pathsep):
     ret = cfg.freeze()
     assert "versions" not in ret
 
+    # Frozen configs don't need to encode alias_mods, the modifications are
+    # already baked into aliases
+    assert "alias_mods" not in ret
+
 
 def test_unfreeze(config_root, resolver):
     check_file = config_root / "frozen.json"
@@ -130,6 +134,10 @@ def test_unfreeze(config_root, resolver):
     assert "dcc" in cfg.aliases
     assert cfg.fullpath == "not_set/distros"
     assert cfg.inherits is False
+
+    # Frozen configs don't need to encode alias_mods, the modifications are
+    # already baked into aliases
+    assert cfg.alias_mods is NotSet
 
 
 def test_decode_freeze(config_root, resolver):

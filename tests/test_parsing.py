@@ -220,6 +220,7 @@ def test_metaclass():
     assert set(Config._properties.keys()) == set(
         [
             "alias_mods",
+            "aliases",
             "distros",
             "environment",
             "environment_config",

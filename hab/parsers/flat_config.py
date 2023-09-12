@@ -129,14 +129,6 @@ class FlatConfig(Config):
                 data["environment"] = merged_env[platform]
                 yield platform, alias_name, data
 
-    @hab_property(process_order=120)
-    def aliases(self):
-        """List of the names and commands that need created to launch desired
-        applications."""
-        ret = self.frozen_data.get("aliases", {}).get(utils.Platform.name(), {})
-        # Only return aliases if they are valid for the current verbosity
-        return {k: v for k, v in ret.items() if self.check_min_verbosity(v)}
-
     # Note: 'alias_mods' needs to be processed before 'environment'
     @hab_property(verbosity=None, process_order=50)
     def alias_mods(self):

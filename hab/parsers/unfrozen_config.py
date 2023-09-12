@@ -1,7 +1,7 @@
 import logging
 from copy import deepcopy
 
-from .. import NotSet, utils
+from .. import NotSet
 from .config import Config
 from .meta import hab_property
 
@@ -25,11 +25,11 @@ class UnfrozenConfig(Config):
         # Frozen versions are already a list of strings
         return sorted(value)
 
-    @hab_property()
-    def aliases(self):
-        """List of the names and commands that need created to launch desired
-        applications."""
-        return self.frozen_data.get("aliases", {}).get(utils.Platform.name(), [])
+    # Note: 'alias_mods' needs to be processed before 'environment'
+    @hab_property(verbosity=None, process_order=50)
+    def alias_mods(self):
+        """Returns NotSet. Any alias_mods have already been baked into aliases."""
+        return NotSet
 
     @hab_property(verbosity=2)
     def inherits(self):
