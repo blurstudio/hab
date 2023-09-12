@@ -902,3 +902,77 @@ def test_alias_min_verbosity_hab_gui(resolver):
     with utils.verbosity_filter(resolver, verbosity=0, target="hab-gui"):
         result = cfg.aliases
         assert sorted(result.keys()) == ["vb3", "vb_default"]
+
+
+def test_update_environ(resolver):
+    pathsep = utils.Platform.pathsep(utils.Platform.default_ext())
+    cfg = resolver.resolve("app/aliased/mod")
+
+    # Pre-existing env var values. These are not managed by hab persist
+    inherited = {
+        "IGNORED": "This variable not managed by hab and is ignored",
+    }
+
+    # The global env vars that the hab config manages.
+    check_global = {
+        "ALIASED_GLOBAL_A": "Global A",
+        "ALIASED_GLOBAL_B": "Global B",
+        "ALIASED_GLOBAL_C": "Global C",
+        "ALIASED_GLOBAL_D": "Global D",
+        "ALIASED_GLOBAL_F": "Global F",
+        "ALIASED_MOD_GLOBAL_A": "Global Mod A",
+        "CONFIG_DEFINED": "config_variable",
+        "HAB_URI": "app/aliased/mod",
+    }
+    # Include the inherited values
+    check_global.update(inherited)
+
+    def new_dict():
+        return dict(inherited)
+
+    # Check that global env vars were added
+    env = new_dict()
+    cfg.update_environ(env)
+    assert env == check_global
+
+    # And that variables are removed that are set to unset
+    env = {"ALIASED_GLOBAL_E": "To be removed"}
+    env.update(inherited)
+    cfg.update_environ(env)
+    assert env == check_global
+
+    # Check aliased env vars are passed excluding global hab env vars
+    # Alias defines no env vars
+    env = new_dict()
+    cfg.update_environ(env, alias_name="as_str", include_global=False)
+    assert env == inherited
+
+    # Alias output checking
+    check_alias = {
+        "ALIASED_GLOBAL_A": pathsep.join(
+            ["Local Mod A", "Local A Prepend", "Global A", "Local A Append"]
+        ),
+        "ALIASED_GLOBAL_C": "Local C Set",
+        "ALIASED_GLOBAL_F": pathsep.join(["Local Mod F", "Global F"]),
+        "ALIASED_MOD_LOCAL_B": "Local Mod B",
+    }
+    # Include the inherited values
+    check_alias.update(inherited)
+
+    # Alias "global" defines several env vars, these include hab global env vars.
+    env = new_dict()
+    cfg.update_environ(env, alias_name="global", include_global=False)
+    assert env == check_alias
+
+    # Check aliased env vars are passed including global hab env vars
+    env = new_dict()
+    cfg.update_environ(env, alias_name="as_str", include_global=True)
+    assert env == check_global
+
+    # Check aliased env vars are passed including global hab env vars
+    env = new_dict()
+    cfg.update_environ(env, alias_name="global", include_global=True)
+    check = dict(check_global, **check_alias)
+    # This env var is un-set by the alias
+    del check["ALIASED_GLOBAL_D"]
+    assert env == check

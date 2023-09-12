@@ -647,6 +647,39 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             return self._uri
         return self.fullpath
 
+    def update_environ(self, env, alias_name=None, include_global=True, formatter=None):
+        """Updates the given environment variable dictionary to conform with
+        the hab environment specification.
+
+        Args:
+            env (dict): This dictionary is modified according to the hab
+                definition. Often you will want to pass a copy of `os.environ`.
+            alias_name (str, optional): If passed also apply any complex alias
+                specific environment variable changes.
+            include_global (bool, optional): Used to disable adding the global
+                hab managed env vars. Disable this and use alias_name to only
+                get the env vars set by the alias, not the global ones.
+            formatter (hab.formatter.Formatter, optional): Str formatter class
+                used to format the env var values.
+        """
+        ext = utils.Platform.default_ext()
+        if formatter is None:
+            formatter = Formatter(ext)
+
+        def _apply(data):
+            for key, value in data.items():
+                if value:
+                    value = utils.Platform.collapse_paths(value, ext=ext, key=key)
+                    value = formatter.format(value, key=key, value=value)
+                    env[key] = value
+                else:
+                    env.pop(key, None)
+
+        if include_global:
+            _apply(self.environment)
+        if alias_name:
+            _apply(self.aliases[alias_name].get("environment", {}))
+
     @property
     def version(self):
         """A `packaging.version.Version` representing the version of this object."""

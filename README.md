@@ -336,6 +336,7 @@ encountered object is used and any duplicates are ignored. Here are some example
 that follow that rule and links to details:
 
 * **Aliases:** [Multiple app versions](#multiple-app-versions)
+* **Entry Points:** [Hab Entry Points](#hab-entry-points)
 * **Site:** [Site](#site)
 
 `config_paths` and `distro_paths` have [more complex rules](#common-settings).
@@ -403,6 +404,36 @@ Note the order of left/middle/right in the test_paths variable. Also, for
 `platform_path_maps`, `host` is defined in all 3 site files, but only the first
 site file with it defined is used. The other path maps are picked up from the
 site file they are defined in.
+
+#### Hab Entry Points
+
+The site file can be used to replace some hab functionality with custom plugins.
+These are defined in site files with the "entry_points" dictionary.
+
+[Example](tests/site/site_entry_point_a.json) site json entry_point config.
+```json5
+{
+    "prepend": {
+        "entry_points": {
+            // Group
+            "cli": {
+               // Name: Object Reference
+               "gui": "hab_test_entry_points:gui"
+            }
+        }
+    }
+}
+```
+See the [Entry points specification data model](https://packaging.python.org/en/latest/specifications/entry-points/#data-model)
+for details on each item.
+
+| Feature | Description | Multiple values |
+|---|---|---|
+| cli | Used by the hab cli to add extra commands | All unique names are used. |
+| launch_cli | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. | Only the first is used, the rest are discarded. |
+
+The name of each entry point is used to de-duplicate results from multiple site json files.
+This follows the general rule defined in [duplicate definitions](#duplicate-definitions).
 
 ### Python version
 
@@ -566,7 +597,7 @@ A given config needs two pieces of information defined, its name and context. Th
 context is a list of its parents names. When joined together they will build a URI.
 
 Example project_a_thug_animation.json:
-```json
+```json5
 {
     "name": "Animation",
     "context": ["project_a", "Thug"],
