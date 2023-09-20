@@ -93,6 +93,10 @@ def test_config(resolver):
             "default/Sc11",
             "More specific default secondary not returned",
         ),
+        # Leading/trailing separators
+        ("/app", "app", "Leading slash not ignored"),
+        ("app/", "app", "Trailing slash not sanitized correctly"),
+        ("app/case/", "app", "Trailing slash not sanitized correctly"),
     ),
 )
 def test_closest_config(resolver, path, result, reason):
