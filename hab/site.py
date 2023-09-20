@@ -83,23 +83,34 @@ class Site(UserDict):
         ret = "\n".join(ret)
         return utils.dump_title("Dump of Site", f"{site_ret}\n{ret}", color=color)
 
-    def entry_points_for_group(self, group):
+    def entry_points_for_group(self, group, default=None):
         """Returns a list of importlib_metadata.EntryPoint objects enabled by
         this site config. To import and resolve the defined object call `ep.load()`.
+
+        Args:
+            group (str): The name of the group of entry_points to process.
+            default (dict, optional): If the entry_point is not defined, return
+                the entry points defined by this dictionary. This is the contents
+                of the entry_points group, not the entire entry_points dict. For
+                example: `{"gui": "hab_gui.cli:gui"}`
         """
         # Delay this import to when required. It's faster than pkg_resources but
         # no need to pay the import price for it if you are not using it.
         from importlib_metadata import EntryPoint
 
         ret = []
-        entry_points = self.get("entry_points")
-        if not entry_points:
-            return ret
+        entry_points = self.get("entry_points", {})
 
+        # Get the entry point definitions, falling back to default if provided
+        if group in entry_points:
+            ep_defs = entry_points[group]
+        else:
+            ep_defs = default if default else {}
+
+        # Init the EntryPoint objects
         # While we are using importlib.metadata to create EntryPoints, we are not
         # using it's `entry_points` function. We want the current site configuration
         # to define the entry points being loaded not the installed pip packages.
-        ep_defs = entry_points.get(group, {})
         for name, value in ep_defs.items():
             ep = EntryPoint(name=name, group=group, value=value)
             ret.append(ep)
