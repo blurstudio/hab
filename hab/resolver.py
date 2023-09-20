@@ -90,6 +90,10 @@ class Resolver(object):
         """
         if not path.startswith(HabBase.separator):
             path = "".join((HabBase.separator, path))
+        # Anytree<2.9.0 had a bug when resolving URI's that end in a slash like
+        # `app/` would cause a IndexError. This ensure that older versions work
+        path = path.rstrip("/")
+
         if default:
             node_names = path.split(HabBase.separator)
             current = self.configs["default"]
