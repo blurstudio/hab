@@ -467,6 +467,18 @@ class TestEntryPoints:
         entry_points = site.entry_points_for_group("cli")
         assert len(entry_points) == 0
 
+    def test_default(self, config_root):
+        """Test a site not defining any entry points for cli."""
+        site = Site([config_root / "site_main.json"])
+        entry_points = site.entry_points_for_group("cli", default={"test": "case:func"})
+        assert len(entry_points) == 1
+
+        # Test that the `test-gui` cli entry point is handled correctly
+        ep = entry_points[0]
+        assert ep.name == "test"
+        assert ep.group == "cli"
+        assert ep.value == "case:func"
+
     @pytest.mark.parametrize(
         "site_files,import_name,fname",
         (
