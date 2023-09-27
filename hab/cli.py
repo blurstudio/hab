@@ -398,6 +398,7 @@ _verbose_errors = False
 @click.option(
     "-r",
     "--requirement",
+    "forced_requirements",
     callback=SharedSettings.set_ctx_instance,
     multiple=True,
     help="Forces this distro requirement ignoring normally resolved requirements. Using "
@@ -414,29 +415,20 @@ _verbose_errors = False
 )
 @click.option(
     "--prefs/--no-prefs",
+    "enable_user_prefs",
     callback=SharedSettings.set_ctx_instance,
     default=None,
     help="If you don't pass a URI, allow looking it up from user prefs.",
 )
 @click.option(
     "--save-prefs/--no-save-prefs",
+    "enable_user_prefs_save",
     callback=SharedSettings.set_ctx_instance,
     default=None,
     help="Update the uri stored in prefs if the uri is provided.",
 )
 @click.pass_context
-def _cli(
-    ctx,
-    site_paths,
-    verbosity,
-    script_dir,
-    script_ext,
-    prereleases,
-    requirement,
-    dump_scripts,
-    prefs,
-    save_prefs,
-):
+def _cli(ctx, **kargs):
     # Note: Using the `set_ctx_instance` callback on the options prevents
     # the need to process anything inside of this function.
     pass
