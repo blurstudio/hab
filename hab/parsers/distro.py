@@ -1,6 +1,7 @@
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 
+from ..errors import InvalidRequirementError
 from .hab_base import HabBase
 
 
@@ -13,7 +14,7 @@ class Distro(HabBase):
         try:
             version = max(versions)
         except ValueError:
-            raise Exception(
+            raise InvalidRequirementError(
                 f'Unable to find a valid version for "{specifier}" in versions '
                 f'[{", ".join([str(v) for v in self.versions.keys()])}]'
             ) from None

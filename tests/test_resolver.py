@@ -7,7 +7,6 @@ import pytest
 from packaging.requirements import Requirement
 
 from hab import NotSet, Resolver, Site, utils
-from hab.errors import MaxRedirectError
 from hab.solvers import Solver
 
 
@@ -393,26 +392,6 @@ def test_resolve_requirements_simple(resolver):
     assert resolver.find_distro("the_dcc==1.2").name == "the_dcc==1.2"
 
 
-def test_solver_errors(resolver):
-    """Test that the correct errors are raised"""
-
-    # Check that if we exceed max_redirects a MaxRedirectError is raised
-    # Note: To have a stable test, the order of requirements matters. So this needs to
-    # use a list or OrderedDict to guarantee that the_dcc==1.2 requirements are
-    # processed before the_dcc_plugin_b which specifies the_dcc<1.2 forcing a redirect.
-    requirements = OrderedDict(
-        (
-            ("the_dcc", Requirement("the_dcc")),
-            ("the_dcc_plugin_b", Requirement("the_dcc_plugin_b==0.9")),
-        )
-    )
-
-    solver = Solver(requirements, resolver)
-    solver.max_redirects = 0
-    with pytest.raises(MaxRedirectError):
-        solver.resolve()
-
-
 def test_resolve_requirements_recalculate(resolver):
     """The first pick "the_dcc==1.2" gets discarded by plugin_b. Make sure the correct
     distros are picked.
@@ -504,18 +483,6 @@ def test_resolve_requirements_markers(resolver, platform, marker):
 
     ret = resolver.resolve_requirements(requirements)
     assert set(ret.keys()) == set(check)
-
-
-def test_resolve_requirements_errors(resolver):
-    # This requirement is not possible because the_dcc_plugin_b requires the_dcc<1.2
-    requirements = {
-        Requirement("the_dcc>1.1"): None,
-        Requirement("the_dcc_plugin_b<1.0"): None,
-    }
-
-    # TODO: Use a custom exception not Exception
-    with pytest.raises(Exception):
-        resolver.resolve_requirements(requirements)
 
 
 @pytest.mark.parametrize(

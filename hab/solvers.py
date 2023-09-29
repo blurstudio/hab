@@ -3,7 +3,7 @@ from copy import copy
 
 from packaging.requirements import Requirement
 
-from .errors import MaxRedirectError
+from .errors import InvalidRequirementError, MaxRedirectError
 
 logger = logging.getLogger(__name__)
 
@@ -135,9 +135,17 @@ class Solver(object):
                 req = req.specifier & invalid.specifier
 
             logger.debug("Checking requirement: {}".format(req))
+
             # Attempt to find a version, raises a exception if no version was found
-            version = self.resolver.distros[name].latest_version(req)
+            try:
+                dist = self.resolver.distros[name]
+            except KeyError:
+                raise InvalidRequirementError(
+                    f"Unable to find a distro for requirement: {req}"
+                ) from None
+            version = dist.latest_version(req)
             logger.debug("Found Version: {}".format(version.name))
+
             if version.distros and version not in processed:
                 # Check if updated requirements have forced us to re-evaluate
                 # our requirements.

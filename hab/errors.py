@@ -22,6 +22,10 @@ class MaxRedirectError(RequirementError):
     """The maximum number of redirects was reached without resolving successfully."""
 
 
+class InvalidRequirementError(RequirementError):
+    """Raised if unable to resolve a given requirement."""
+
+
 class InvalidVersionError(LookupError):
     """Provides info on resolving why it was unable to generate a valid version number"""
 
