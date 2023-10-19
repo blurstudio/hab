@@ -430,7 +430,7 @@ for details on each item.
 | Feature | Description | Multiple values |
 |---|---|---|
 | cli | Used by the hab cli to add extra commands | All unique names are used. |
-| launch_cli | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. | Only the first is used, the rest are discarded. |
+| launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) | Only the first is used, the rest are discarded. |
 
 The name of each entry point is used to de-duplicate results from multiple site json files.
 This follows the general rule defined in [duplicate definitions](#duplicate-definitions).
@@ -767,12 +767,19 @@ active hab config, but in this case prepends an additional value on
 `ALIASED_GLOBAL_A` will be set to `Global A`. However while you are using the
 alias `as_dict`, the variable will be set to `Local A Prepend;Global A`.
 
-Complex Aliases have two keys:
+Complex Aliases supports several keys:
 1. `cmd` is the command to run. When list or str defined aliases are resolved,
 their value is stored under this key.
 2. `environment`: A set of env var configuration options. For details on this
 format, see [Defining Environments](#defining-environments). This is not
 os_specific due to aliases already being defined per-platform.
+3. `launch_cls`: If defined this entry_point is used instead of the Site defined
+or default class specifically for launching this alias.
+See [houdini](tests/distros/houdini19.5/19.5.493/.hab.json) for an example.
+
+Note: Plugins may add support for their own keys.
+[Hab-gui](https://github.com/blurstudio/hab-gui#icons-and-labels)
+adds icon and label for example.
 
 **Use Case:** You want to add a custom AssetResolver to USD for Maya, Houdini,
 and standalone usdview. To get this to work, you need to compile your plugin

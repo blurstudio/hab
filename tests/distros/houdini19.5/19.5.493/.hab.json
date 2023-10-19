@@ -32,24 +32,29 @@
         ],
         "windows": [
             [
-                "houdini",
-                "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe"
+                "houdini",{
+                    "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe",
+                    "launch_cls": {"subprocess": "subprocess:Popen"}
+                }
             ],
             [
                 "houdini19.5", {
                     "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe",
-                    "min_verbosity": {"global": 1}
+                    "min_verbosity": {"global": 1},
+                    "launch_cls": {"subprocess": "subprocess:Popen"}
                 }
             ],
             [
                 "houdinicore", {
-                    "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdinicore.exe"
+                    "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdinicore.exe",
+                    "launch_cls": {"subprocess": "subprocess:Popen"}
                 }
             ],
             [
                 "houdinicore19.5", {
                     "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdinicore.exe",
-                    "min_verbosity": {"global": 1}
+                    "min_verbosity": {"global": 1},
+                    "launch_cls": {"subprocess": "subprocess:Popen"}
                 }
             ],
             [
