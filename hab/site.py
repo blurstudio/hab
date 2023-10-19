@@ -83,7 +83,7 @@ class Site(UserDict):
         ret = "\n".join(ret)
         return utils.dump_title("Dump of Site", f"{site_ret}\n{ret}", color=color)
 
-    def entry_points_for_group(self, group, default=None):
+    def entry_points_for_group(self, group, default=None, entry_points=None):
         """Returns a list of importlib_metadata.EntryPoint objects enabled by
         this site config. To import and resolve the defined object call `ep.load()`.
 
@@ -93,13 +93,17 @@ class Site(UserDict):
                 the entry points defined by this dictionary. This is the contents
                 of the entry_points group, not the entire entry_points dict. For
                 example: `{"gui": "hab_gui.cli:gui"}`
+            entry_points (dict, optional): Use this dictionary instead of the one
+                defined on this Site object.
         """
         # Delay this import to when required. It's faster than pkg_resources but
         # no need to pay the import price for it if you are not using it.
         from importlib_metadata import EntryPoint
 
         ret = []
-        entry_points = self.get("entry_points", {})
+        # Use the site defined entry_points if an override dict wasn't provided
+        if entry_points is None:
+            entry_points = self.get("entry_points", {})
 
         # Get the entry point definitions, falling back to default if provided
         if group in entry_points:

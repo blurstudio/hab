@@ -66,21 +66,31 @@ class Config(HabBase):
         Returns:
             The created subprocess.Popen instance.
         """
-        if cls is None:
-            # Respect the site entry point if defined
-            eps = self.resolver.site.entry_points_for_group("launch_cls")
-            if eps:
-                cls = eps[0].load()
-            else:
-                # Otherwise, default to subprocess.Popen
-                from hab.launcher import Launcher
-
-                cls = Launcher
-
         # Construct the command line arguments to execute
         if alias_name not in self.aliases:
             raise HabError(f'"{alias_name}" is not a valid alias name')
         alias = self.aliases[alias_name]
+
+        # Get the subprocess.Popen like class to use to launch the alias
+        if cls is None:
+            # Use the entry_point if defined on the alias
+            alias_cls = alias.get("launch_cls")
+            if alias_cls:
+                alias_cls = {"launch_cls": alias_cls}
+                eps = self.resolver.site.entry_points_for_group(
+                    "launch_cls", entry_points=alias_cls
+                )
+            else:
+                # Otherwise use the global definition from Site
+                eps = self.resolver.site.entry_points_for_group("launch_cls")
+
+            if eps:
+                cls = eps[0].load()
+            else:
+                # Default to subprocess.Popen if not defined elsewhere
+                from hab.launcher import Launcher
+
+                cls = Launcher
 
         try:
             cmd = alias["cmd"]

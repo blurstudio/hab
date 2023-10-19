@@ -168,3 +168,27 @@ def test_cls_entry_point(config_root):
     # Check that specifying cls, overrides site config
     proc = cfg.launch("global", blocking=True, cls=Topen)
     assert type(proc) is Topen
+
+
+def test_alias_entry_point(config_root):
+    """Check that if an entry point is defined on a complex alias, it is used."""
+    site = Site(
+        [config_root / "site/site_entry_point_a.json", config_root / "site_main.json"]
+    )
+
+    resolver = Resolver(site=site)
+    cfg = resolver.resolve("app/aliased/mod")
+
+    # NOTE: We need to compare the name of the classes because they are separate
+    # imports that don't compare equal using `is`.
+
+    # Check that entry_point site config is respected
+    proc = cfg.launch("global", blocking=True)
+    assert type(proc).__name__ == "Popen"
+
+    # Check that if the complex alias specifies launch_cls, it is used instead
+    # of the site defined or default class.
+    alias = cfg.frozen_data["aliases"][utils.Platform.name()]["global"]
+    alias["launch_cls"] = {"subprocess": "tests.test_launch:Topen"}
+    proc = cfg.launch("global", blocking=True)
+    assert type(proc).__name__ == "Topen"
