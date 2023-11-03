@@ -11,23 +11,33 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.x"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --upgrade setuptools wheel twine
+          python -m pip install --upgrade build setuptools wheel twine
 
       - name: Build wheel
         run: |
-          python setup.py build bdist_wheel
+          python -m build --wheel --sdist
+
+      # Upload the built pip packages so we can inspect them
+      - name: Upload packages.
+        uses: actions/upload-artifact@v3
+        with:
+          name: pip-packages
+          path: |
+            dist/hab-*.whl
+            dist/hab-*.tar.gz
+          retention-days: 1
 
       - name: Publish to PyPI
         env:
