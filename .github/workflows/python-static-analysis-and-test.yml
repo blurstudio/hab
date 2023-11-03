@@ -22,7 +22,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.x"
+          # NOTE: Currently running this with python 3.12 causes
+          # flake8 false-positives on lines with f-strings E226,E231,E241,E702
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -49,7 +51,7 @@ jobs:
         # Test if using native json or pyjson5 for json parsing
         json_ver: ['json', 'json5']
         os: ['ubuntu-latest', 'windows-latest']
-        python: ['3.7', '3.8', '3.9', '3.10']
+        python: ['3.7', '3.8', '3.9', '3.10', '3.11']
         # Works around the depreciation of python 3.6 for ubuntu
         # https://github.com/actions/setup-python/issues/544
         include:
