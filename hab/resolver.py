@@ -76,6 +76,12 @@ class Resolver(object):
         # simply exit instead of running the requested command.
         self.dump_scripts = False
 
+    def clear_caches(self):
+        """Clears cached resolved data so it is re-generated on next use."""
+        logger.debug("Resolver cache cleared.")
+        self._configs = None
+        self._distros = None
+
     def closest_config(self, path, default=False):
         """Returns the most specific leaf or the tree root matching path. Ignoring any
         path names that don't exist in self.configs.

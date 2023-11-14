@@ -693,3 +693,22 @@ def test_star_import():
         # name from __all__ or make sure to import the missing object.
         # `AttributeError: module 'hab' has no attribute 'DistroVersion'`
         getattr(mdl, k)
+
+
+def test_clear_caches(resolver):
+    """Test that Resolver.clear_cache works as expected."""
+    # Resolver cache is empty
+    assert resolver._configs is None
+    assert resolver._distros is None
+
+    # Populate resolver cache data
+    resolver.resolve("not_set")
+    assert isinstance(resolver._configs, dict)
+    assert isinstance(resolver._distros, dict)
+    assert len(resolver._configs) > 1
+    assert len(resolver._distros) > 1
+
+    # Calling clear_caches resets the resolver cache
+    resolver.clear_caches()
+    assert resolver._configs is None
+    assert resolver._distros is None
