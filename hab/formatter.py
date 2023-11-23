@@ -9,7 +9,8 @@ class Formatter(string.Formatter):
 
     Adds support for the "!e" conversion flag. This will fill in the key as a properly
     formatted environment variable specifier. For example ''{PATH!e}'' will be converted
-    to ``$PATH`` for the sh language, and ``%env:PATH`` for the ps language.
+    to ``$PATH`` for the sh language, and ``%env:PATH`` for the ps language. You can
+    convert "!e" to "!s" by setting expand to True. This simulates `os.path.expandvars`.
 
     This also converts ``{;}`` to the language specific path separator for environment
     variables. On linux this is ``:`` on windows(even in bash) this is ``;``.
@@ -50,19 +51,24 @@ class Formatter(string.Formatter):
         },
     }
 
-    def __init__(self, language):
+    def __init__(self, language, expand=False):
         super().__init__()
         self.language = self.language_from_ext(language)
         self.current_field_name = None
+        self.expand = expand
 
     def convert_field(self, value, conversion):
         if conversion == "e":
+            # Expand the env var to the real string value simulating `os.path.expandvars`
+            if self.expand:
+                return super().convert_field(value, "s")
+
+            # Otherwise insert the correct shell script env var reference
             return self.shell_formats[self.language]["env_var"].format(
                 self.current_field_name
             )
-        else:
-            ret = super().convert_field(value, conversion)
-        return ret
+
+        return super().convert_field(value, conversion)
 
     def get_field(self, field_name, args, kwargs):
         self.current_field_name = field_name

@@ -1,23 +1,35 @@
+import os
+
+import pytest
+
 from hab import utils
 from hab.formatter import Formatter
 from hab.parsers import Config
 
 
-def test_e_format():
-    assert Formatter("sh").format("-{PATH!e}-") == "-$PATH-"
-    assert Formatter("sh").format("-{;}-") == "-:-"
-    # Bash formatting is different on windows for env vars
-    assert Formatter("shwin").format("-{PATH!e}-") == "-$PATH-"
-    assert Formatter("shwin").format("-{;}-") == "-:-"
+@pytest.mark.parametrize(
+    "language,shell,pathsep",
+    (
+        ("sh", "-$PATH-", "-:-"),
+        # Bash formatting is different on windows for env vars
+        ("shwin", "-$PATH-", "-:-"),
+        ("ps", "-$env:PATH-", "-;-"),
+        ("batch", "-%PATH%-", "-;-"),
+        (None, "-{PATH!e}-", "-{;}-"),
+    ),
+)
+def test_e_format(language, shell, pathsep):
+    """Check that "{VAR_NAME!e}" is properly formatted."""
+    path = os.environ["PATH"]
 
-    assert Formatter("ps").format("-{PATH!e}-") == "-$env:PATH-"
-    assert Formatter("ps").format("-{;}-") == "-;-"
+    # Check that "!e" is converted to the correct shell specific specifier.
+    assert Formatter(language).format("-{PATH!e}-") == shell
 
-    assert Formatter("batch").format("-{PATH!e}-") == "-%PATH%-"
-    assert Formatter("batch").format("-{;}-") == "-;-"
+    # Check that "!e" uses the env var value if `expand=True` not the shell specifier.
+    assert Formatter(language, expand=True).format("-{PATH!e}-") == f"-{path}-"
 
-    assert Formatter(None).format("-{PATH!e}-") == "-{PATH!e}-"
-    assert Formatter(None).format("-{;}-") == "-{;}-"
+    # Check that the pathsep variable `{;}` is converted to the correct value
+    assert Formatter(language).format("-{;}-") == pathsep
 
 
 def test_language_from_ext(monkeypatch):

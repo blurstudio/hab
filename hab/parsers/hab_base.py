@@ -664,7 +664,8 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         """
         ext = utils.Platform.default_ext()
         if formatter is None:
-            formatter = Formatter(ext)
+            # Make sure to expand environment variables when formatting.
+            formatter = Formatter(ext, expand=True)
 
         def _apply(data):
             for key, value in data.items():
