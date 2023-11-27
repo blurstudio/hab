@@ -427,10 +427,18 @@ These are defined in site files with the "entry_points" dictionary.
 See the [Entry points specification data model](https://packaging.python.org/en/latest/specifications/entry-points/#data-model)
 for details on each item.
 
-| Feature | Description | Multiple values |
-|---|---|---|
-| cli | Used by the hab cli to add extra commands | All unique names are used. |
-| launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) | Only the first is used, the rest are discarded. |
+<!-- Tooltips used by the table -->
+[tt-group]: ## "The hab feature this entry_point is being used for."
+[tt-kwargs]: ## "Any keyword arguments that are passed when called."
+[tt-return]: ## "The entry_point can return a value and how it will be used. If not documented, then any returned value is ignored."
+[tt-multi]: ## "How having multiple entry_points for this group is handled."
+[tt-multi-all]: ## "All uniquely named entry point names for this group are run."
+[tt-multi-first]: ## "Only the first entry_point for this group is used, the rest are discarded."
+
+| [Group][tt-group] | Description | [\*\*kwargs][tt-kwargs] | [Return][tt-return] | [Multiple][tt-multi] |
+|---|---|---|---|---|
+| cli | Used by the hab cli to add extra commands. This is expected to be a `click.command` or `click.group` decorated function. |  |  | [All][tt-multi-all] |
+| launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) |  |  | [First][tt-multi-first] |
 
 The name of each entry point is used to de-duplicate results from multiple site json files.
 This follows the general rule defined in [duplicate definitions](#duplicate-definitions).
