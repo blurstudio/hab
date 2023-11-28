@@ -58,7 +58,7 @@ class Config(HabBase):
                 `output_stdout` and `output_stderr` properties added to proc.
             cls (class, optional): A `subprocess.Popen` compatible class is
                 initialized and used to run the alias. If not passed, then the
-                site entry_point `launch_cls` is used if defined. Otherwise the
+                site entry_point `hab.launch_cls` is used if defined. Otherwise the
                 `hab.launcher.Launcher` class is used.
             **kwargs: Any keyword arguments are passed to subprocess.Popen. If on
                 windows and using pythonw, prevents showing a command prompt.
@@ -74,15 +74,15 @@ class Config(HabBase):
         # Get the subprocess.Popen like class to use to launch the alias
         if cls is None:
             # Use the entry_point if defined on the alias
-            alias_cls = alias.get("launch_cls")
+            alias_cls = alias.get("hab.launch_cls")
             if alias_cls:
-                alias_cls = {"launch_cls": alias_cls}
+                alias_cls = {"hab.launch_cls": alias_cls}
                 eps = self.resolver.site.entry_points_for_group(
-                    "launch_cls", entry_points=alias_cls
+                    "hab.launch_cls", entry_points=alias_cls
                 )
             else:
                 # Otherwise use the global definition from Site
-                eps = self.resolver.site.entry_points_for_group("launch_cls")
+                eps = self.resolver.site.entry_points_for_group("hab.launch_cls")
 
             if eps:
                 cls = eps[0].load()

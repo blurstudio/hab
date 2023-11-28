@@ -296,7 +296,7 @@ class SiteCommandLoader(click.Group):
     additional `click.Command` objects to the hab cli.
 
     For example if you add this to your site json file:
-    `{"append": {"entry_points": {"cli": {"gui": "hab_gui.cli:gui"}}}}`
+    `{"append": {"entry_points": {"hab.cli": {"gui": "hab_gui.cli:gui"}}}}`
 
     The "gui" key in the innermost dict is used for site resolution so another
     site json file can replace a upper level definition. As a general rule, the
@@ -305,7 +305,7 @@ class SiteCommandLoader(click.Group):
     "hab_gui.cli:gui" defines what code to execute. For details on defining this,
     see value for `importlib-metadata.EntryPoints`. In practice this results in
     `from  hab_gui.cli import gui`.
-    For the `cli` entry points, its expected that the linked function(`gui`)
+    For the `hab.cli` entry points, its expected that the linked function(`gui`)
     is a `click.Command` object.
     """
 
@@ -317,7 +317,7 @@ class SiteCommandLoader(click.Group):
             self._ep_cache = []
 
         # And populate the cache
-        for ep in site.entry_points_for_group("cli"):
+        for ep in site.entry_points_for_group("hab.cli"):
             func = ep.load()
             self._ep_cache.append((ep, func))
 

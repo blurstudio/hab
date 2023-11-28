@@ -416,7 +416,7 @@ These are defined in site files with the "entry_points" dictionary.
     "prepend": {
         "entry_points": {
             // Group
-            "cli": {
+            "hab.cli": {
                // Name: Object Reference
                "gui": "hab_test_entry_points:gui"
             }
@@ -437,11 +437,14 @@ for details on each item.
 
 | [Group][tt-group] | Description | [\*\*kwargs][tt-kwargs] | [Return][tt-return] | [Multiple][tt-multi] |
 |---|---|---|---|---|
-| cli | Used by the hab cli to add extra commands. This is expected to be a `click.command` or `click.group` decorated function. |  |  | [All][tt-multi-all] |
-| launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) |  |  | [First][tt-multi-first] |
+| hab.cli | Used by the hab cli to add extra commands. This is expected to be a `click.command` or `click.group` decorated function. |  |  | [All][tt-multi-all] |
+| hab.launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) |  |  | [First][tt-multi-first] |
 
 The name of each entry point is used to de-duplicate results from multiple site json files.
 This follows the general rule defined in [duplicate definitions](#duplicate-definitions).
+
+Entry_point names should start with `hab.` and use `.` between each following word
+following the group specification on https://packaging.python.org/en/latest/specifications/entry-points/#data-model.
 
 ### Python version
 
@@ -781,7 +784,7 @@ their value is stored under this key.
 2. `environment`: A set of env var configuration options. For details on this
 format, see [Defining Environments](#defining-environments). This is not
 os_specific due to aliases already being defined per-platform.
-3. `launch_cls`: If defined this entry_point is used instead of the Site defined
+3. `hab.launch_cls`: If defined this entry_point is used instead of the Site defined
 or default class specifically for launching this alias.
 See [houdini](tests/distros/houdini19.5/19.5.493/.hab.json) for an example.
 

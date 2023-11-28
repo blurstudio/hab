@@ -173,7 +173,7 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
 
 @pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
 def test_complex_alias_bat(tmpdir, config_root, resolver):
-    """This test is a placeholder for a future that can actually call hab's cli
+    """This test is a placeholder for a future that can actually call hab's `hab.cli`
     and its aliases to check that they function correctly in Batch.
 
     This example text shows that using "hab env" can set an environment variable,
@@ -210,7 +210,7 @@ def test_complex_alias_bat(tmpdir, config_root, resolver):
 
 @pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
 def test_complex_alias_ps1(tmpdir, config_root, resolver):
-    """This test is a placeholder for a future that can actually call hab's cli
+    """This test is a placeholder for a future that can actually call hab's `hab.cli`
     and its aliases to check that they function correctly in PowerShell.
 
     This example text shows that using "hab env" can set an environment variable,
@@ -247,7 +247,7 @@ def test_complex_alias_ps1(tmpdir, config_root, resolver):
 
 @pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
 def test_complex_alias_sh(tmpdir, config_root, resolver):
-    """This test is a placeholder for a future that can actually call hab's cli
+    """This test is a placeholder for a future that can actually call hab's `hab.cli`
     and its aliases to check that they function correctly in Bash.
 
     This example text shows that using "hab env" can set an environment variable,
