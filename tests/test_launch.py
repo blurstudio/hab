@@ -130,7 +130,7 @@ def test_cls_no_entry_point(resolver):
     """Check that if no entry point is defined, `hab.launcher.Launcher` is
     used to launch the alias.
     """
-    entry_points = resolver.site.entry_points_for_group("launch_cls")
+    entry_points = resolver.site.entry_points_for_group("hab.launch_cls")
     assert len(entry_points) == 0
 
     cfg = resolver.resolve("app/aliased/mod")
@@ -150,12 +150,12 @@ def test_cls_entry_point(config_root):
     site = Site(
         [config_root / "site/site_entry_point_a.json", config_root / "site_main.json"]
     )
-    entry_points = site.entry_points_for_group("launch_cls")
+    entry_points = site.entry_points_for_group("hab.launch_cls")
     assert len(entry_points) == 1
-    # Test that the `test-gui` cli entry point is handled correctly
+    # Test that the `test-gui` `hab.cli` entry point is handled correctly
     ep = entry_points[0]
     assert ep.name == "subprocess"
-    assert ep.group == "launch_cls"
+    assert ep.group == "hab.launch_cls"
     assert ep.value == "subprocess:Popen"
 
     resolver = Resolver(site=site)
@@ -186,9 +186,9 @@ def test_alias_entry_point(config_root):
     proc = cfg.launch("global", blocking=True)
     assert type(proc).__name__ == "Popen"
 
-    # Check that if the complex alias specifies launch_cls, it is used instead
+    # Check that if the complex alias specifies hab.launch_cls, it is used instead
     # of the site defined or default class.
     alias = cfg.frozen_data["aliases"][utils.Platform.name()]["global"]
-    alias["launch_cls"] = {"subprocess": "tests.test_launch:Topen"}
+    alias["hab.launch_cls"] = {"subprocess": "tests.test_launch:Topen"}
     proc = cfg.launch("global", blocking=True)
     assert type(proc).__name__ == "Topen"

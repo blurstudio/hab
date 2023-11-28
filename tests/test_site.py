@@ -462,21 +462,23 @@ class TestPlatformPathMapDict:
 
 class TestEntryPoints:
     def test_empty_site(self, config_root):
-        """Test a site not defining any entry points for cli."""
+        """Test a site not defining any entry points for `hab.cli`."""
         site = Site([config_root / "site_main.json"])
-        entry_points = site.entry_points_for_group("cli")
+        entry_points = site.entry_points_for_group("hab.cli")
         assert len(entry_points) == 0
 
     def test_default(self, config_root):
-        """Test a site not defining any entry points for cli."""
+        """Test a site not defining any entry points for `hab.cli`."""
         site = Site([config_root / "site_main.json"])
-        entry_points = site.entry_points_for_group("cli", default={"test": "case:func"})
+        entry_points = site.entry_points_for_group(
+            "hab.cli", default={"test": "case:func"}
+        )
         assert len(entry_points) == 1
 
-        # Test that the `test-gui` cli entry point is handled correctly
+        # Test that the `test-gui` `hab.cli` entry point is handled correctly
         ep = entry_points[0]
         assert ep.name == "test"
-        assert ep.group == "cli"
+        assert ep.group == "hab.cli"
         assert ep.value == "case:func"
 
     @pytest.mark.parametrize(
@@ -496,15 +498,15 @@ class TestEntryPoints:
         ),
     )
     def test_site_cli(self, config_root, site_files, import_name, fname):
-        """Test a site defining an entry point for cli, possibly multiple times."""
+        """Test a site defining an entry point for `hab.cli`, possibly multiple times."""
         site = Site([config_root / f for f in site_files])
-        entry_points = site.entry_points_for_group("cli")
+        entry_points = site.entry_points_for_group("hab.cli")
         assert len(entry_points) == 1
 
-        # Test that the `test-gui` cli entry point is handled correctly
+        # Test that the `test-gui` `hab.cli` entry point is handled correctly
         ep = entry_points[0]
         assert ep.name == "test-gui"
-        assert ep.group == "cli"
+        assert ep.group == "hab.cli"
         assert ep.value == f"{import_name}:{fname}"
 
         # Load the module's function
