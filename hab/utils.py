@@ -343,6 +343,10 @@ class NotSet(object):
         singleton so it does not copy itself."""
         return self
 
+    def __reduce__(self):
+        """Enable pickling of NotSet."""
+        return type(self).__qualname__
+
 
 # Make this a singleton so it works like a boolean False for if statements.
 NotSet = NotSet()
