@@ -357,6 +357,15 @@ rules to keep in mind.
 on the outside of the the right site file's paths.
 3. For `platform_path_maps`, only the first key is kept and any duplicates
 are discarded.
+4. The entry_point `hab.site.add_paths` is processed separately after `HAB_PATH`
+or `--site` paths are processed, so:
+   * Each path added is treated as left most when merging into the final configuration.
+   * The entry_point `hab.site.add_paths` will be ignored for dynamically added paths.
+   * This can be used to include site files from inside of pip packages. For
+   example a host installed pip package may be installed in the system python,
+   or as a pip editable installation.
+   * Duplicate paths added dynamically are discarded keeping the first
+   encountered(right most).
 
 See [Defining Environments](#defining-environments) for how to structure the json
 to prepend, append, set, unset values.
@@ -441,6 +450,8 @@ for details on each item.
 | hab.cfg.reduce.env | Used to make any modifications to a config after the global env is resolved but before aliases are resolved. | `cfg` |  | [All][tt-multi-all] |
 | hab.cfg.reduce.finalize | Used to make any modifications to a config after aliases are resolved and just before the the config finishes reducing. | `cfg` |  | [All][tt-multi-all] |
 | hab.launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) |  |  | [First][tt-multi-first] |
+| hab.site.add_paths | Dynamically prepends extra [site configuration files](#site) to the current configuration. This entry_point is ignored for any configs added using this entry_point. | `site` | A `list` of `pathlib.Path` for existing site .json files. | [All][tt-multi-all] |
+| hab.site.finalize | Used to modify site configuration files just before the site is fully initialized. | `site` |  | [All][tt-multi-all] |
 | hab.uri.validate | Used to validate and modify a URI. If the URI is invalid, this should raise an exception. If the URI should be modified, then return the modified URI as a string. | `resolver`, `uri` | Updated URI as string or None. | [All][tt-multi-all] |
 
 The name of each entry point is used to de-duplicate results from multiple site json files.

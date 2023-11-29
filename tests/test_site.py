@@ -554,3 +554,65 @@ class TestEntryPoints:
         # The module has now been imported and the correct function was loaded
         with pytest.raises(NotImplementedError, match=except_match):
             resolver.resolve("default")
+
+    def test_site_add_paths_non_recursive(self, config_root):
+        """Checks that the `hab.site.add_paths` entry_point is respected for
+        file paths passed to the paths argument of Site. Also test that the
+        entry_point is ignored when processing these dynamically added paths.
+        """
+        site = Site(
+            [
+                config_root / "site" / "eps" / "site_add_paths.json",
+            ]
+        )
+
+        # Check that static and dynamic paths were added in the correct order.
+        assert len(site.paths) == 3
+        assert site.paths[0].name == "site_add_paths_a.json"
+        assert site.paths[1].name == "site_add_paths_b.json"
+        assert site.paths[2].name == "site_add_paths.json"
+
+        # Check which "set" value was resolved by the end. To correctly process
+        # the list returned by the entry_points are processed in reverse order
+        assert site["test_data"] == ["site_add_paths_a.json"]
+
+    def test_site_add_paths_multiple(self, config_root):
+        """Checks that multiple `hab.site.add_paths` entry_points are processed
+        when not added dynamically."""
+        site = Site(
+            [
+                config_root / "site" / "eps" / "site_add_paths_a.json",
+                config_root / "site" / "eps" / "site_add_paths.json",
+            ]
+        )
+
+        # Check that static and dynamic paths were added in the correct order.
+        # Note: `site_add_paths` ends up adding the `site_add_paths_a.json` path
+        # twice, the first time the path is encountered, all other instances of
+        # that path are discarded.
+        assert len(site.paths) == 4
+        assert site.paths[0].name == "site_add_paths_c.json"
+        assert site.paths[1].name == "site_add_paths_b.json"
+        assert site.paths[2].name == "site_add_paths_a.json"
+        assert site.paths[3].name == "site_add_paths.json"
+
+        # Check which "set" value was resolved by the end. To correctly process
+        # the list returned by the entry_points are processed in reverse order
+        assert site["test_data"] == ["site_add_paths_c.json"]
+
+    def test_site_finalize(self, config_root):
+        """Test that site entry_point `hab.site.finalize` is called.
+
+        This expects that the entry point will raise a `NotImplementedError` with
+        a specific message. This requires that each test has its own site json
+        file enabling that specific entry_point. See `tests/site/eps/README.md`.
+        """
+        with pytest.raises(
+            NotImplementedError,
+            match="hab_test_entry_points.site_finalize called successfully",
+        ):
+            Site(
+                [
+                    config_root / "site" / "eps" / "site_finalize.json",
+                ]
+            )

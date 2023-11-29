@@ -1,0 +1,13 @@
+{
+    "set": {
+        "test_data": "site_add_paths_a.json"
+    },
+    "append": {
+        "entry_points": {
+            "hab.site.add_paths": {
+                "main": "hab_test_entry_points:site_add_paths",
+                "a": "hab_test_entry_points:site_add_paths_a"
+            }
+        }
+    }
+}

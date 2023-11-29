@@ -1,0 +1,9 @@
+{
+    "append": {
+        "entry_points": {
+            "hab.site.finalize": {
+                "main": "hab_test_entry_points:site_finalize"
+            }
+        }
+    }
+}
