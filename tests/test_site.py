@@ -4,7 +4,7 @@ from pathlib import PurePosixPath, PureWindowsPath
 import colorama
 import pytest
 
-from hab import Site, utils
+from hab import Resolver, Site, utils
 
 
 def test_environment_variables(config_root, monkeypatch):
@@ -518,3 +518,31 @@ class TestEntryPoints:
             NotImplementedError, match=rf"{import_name}\.{fname} called successfully"
         ):
             funct()
+
+    @pytest.mark.parametrize(
+        "site_file,except_match",
+        (
+            (
+                "cfg_uri_validate.json",
+                "hab_test_entry_points.uri_validate_error called successfully",
+            ),
+        ),
+    )
+    def test_called_by_resolve(self, config_root, site_file, except_match):
+        """Test that site defined entry_points are called.
+
+        This expects that the entry point will raise a `NotImplementedError` with
+        a specific message. This requires that each test has its own site json
+        file enabling that specific entry_point. See `tests/site/eps/README.md`.
+        """
+        site = Site(
+            [
+                config_root / "site" / "eps" / site_file,
+                config_root / "site_main.json",
+            ]
+        )
+        resolver = Resolver(site=site)
+
+        # The module has now been imported and the correct function was loaded
+        with pytest.raises(NotImplementedError, match=except_match):
+            resolver.resolve("default")

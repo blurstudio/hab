@@ -724,3 +724,39 @@ def test_clear_caches(resolver):
     resolver.clear_caches()
     assert resolver._configs is None
     assert resolver._distros is None
+
+
+def test_uri_validate(config_root):
+    """Test the `hab.uri.validate` entry_point."""
+    resolver = Resolver(
+        site=Site(
+            [
+                config_root / "site" / "site_ep_uri_validate.json",
+                config_root / "site_main.json",
+            ]
+        )
+    )
+
+    # Test if an entry_point raises an exception
+    with pytest.raises(
+        Exception, match=r'URI "raise-error" was used, raising an exception.'
+    ):
+        cfg = resolver.resolve("raise-error")
+
+    # "project_a" should be lower cased by the first validator.
+    cfg = resolver.resolve("pRoJect_A/CammelCase")
+    assert cfg.uri == "project_a/CammelCase"
+
+    # "project_b" should be upper cased by the second validator.
+    cfg = resolver.resolve("pRoJect_B/CammelCase")
+    assert cfg.uri == "PROJECT_B/CammelCase"
+
+    # Other URI's are not modified by any of the validators.
+    cfg = resolver.resolve("proJECT_c/CammelCase")
+    assert cfg.uri == "proJECT_c/CammelCase"
+
+    # Test that the default behavior does nothing.
+    resolver = Resolver(site=Site([config_root / "site_main.json"]))
+    assert resolver.resolve("pRoJect_A/CammelCase").uri == "pRoJect_A/CammelCase"
+    assert resolver.resolve("pRoJect_B/CammelCase").uri == "pRoJect_B/CammelCase"
+    assert resolver.resolve("proJECT_c/CammelCase").uri == "proJECT_c/CammelCase"

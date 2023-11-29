@@ -439,6 +439,7 @@ for details on each item.
 |---|---|---|---|---|
 | hab.cli | Used by the hab cli to add extra commands. This is expected to be a `click.command` or `click.group` decorated function. |  |  | [All][tt-multi-all] |
 | hab.launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) |  |  | [First][tt-multi-first] |
+| hab.uri.validate | Used to validate and modify a URI. If the URI is invalid, this should raise an exception. If the URI should be modified, then return the modified URI as a string. | `resolver`, `uri` | Updated URI as string or None. | [All][tt-multi-all] |
 
 The name of each entry point is used to de-duplicate results from multiple site json files.
 This follows the general rule defined in [duplicate definitions](#duplicate-definitions).

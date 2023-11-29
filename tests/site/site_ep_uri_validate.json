@@ -1,0 +1,10 @@
+{
+    "append": {
+        "entry_points": {
+            "hab.uri.validate": {
+                "project_a": "hab_test_entry_points:uri_validate_project_a",
+                "project_b": "hab_test_entry_points:uri_validate_project_b"
+            }
+        }
+    }
+}
