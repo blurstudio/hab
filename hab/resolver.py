@@ -285,6 +285,7 @@ class Resolver(object):
 
     def resolve(self, uri):
         """Find the closest configuration and reduce it into its final form."""
+        uri = self.uri_validate(uri)
         context = self.closest_config(uri)
         return context.reduced(self, uri=uri)
 
@@ -301,6 +302,23 @@ class Resolver(object):
 
         solver = Solver(requirements, self, forced=self.forced_requirements)
         return solver.resolve()
+
+    def uri_validate(self, uri):
+        """Check for issues with the provided URI and possibly modify it.
+
+        This runs all `hab.uri.validate` entry points specified by site. These should
+        point to a callable that accepts `resolver` and `uri` kwargs. If an URI
+        is not valid, then an exception should be raised. The callback can update
+        the URI by returning a string.
+        """
+        # Run any configured entry_points before aliases are calculated
+        for ep in self.site.entry_points_for_group("hab.uri.validate"):
+            logger.debug(f"Running hab.uri.validate entry_point: {ep}")
+            func = ep.load()
+            ret = func(resolver=self, uri=uri)
+            if ret:
+                uri = ret
+        return uri
 
     def user_prefs(self, load=False):
         """Returns the `hab.user_prefs.UserPrefs` object for this resolver.
