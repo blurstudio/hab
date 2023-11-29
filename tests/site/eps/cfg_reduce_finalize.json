@@ -1,0 +1,9 @@
+{
+    "append": {
+        "entry_points": {
+            "hab.cfg.reduce.finalize": {
+                "a": "hab_test_entry_points:cfg_reduce_finalize"
+            }
+        }
+    }
+}

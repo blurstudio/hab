@@ -35,6 +35,9 @@ class FlatConfig(Config):
         # This call ensures that `self.frozen_data["environment"]` is populated.
         self.environment
 
+        # Run any configured entry_points before aliases are calculated
+        self.resolver.site.run_entry_points_for_group("hab.cfg.reduce.env", cfg=self)
+
         # Process version aliases, merging global env vars.
         platform_aliases = {}
         self.frozen_data["aliases"] = platform_aliases
@@ -43,6 +46,11 @@ class FlatConfig(Config):
                 version, existing=platform_aliases
             ):
                 platform_aliases.setdefault(platform, {})[alias] = data
+
+        # Run any configured entry_points before finishing
+        self.resolver.site.run_entry_points_for_group(
+            "hab.cfg.reduce.finalize", cfg=self
+        )
 
     def _process_version(self, version, existing=None):
         """Generator that yields each finalized alias definition dictionary

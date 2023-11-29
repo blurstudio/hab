@@ -9,6 +9,22 @@ def gui_alt():
     raise NotImplementedError("hab_test_entry_points.gui_alt called successfully")
 
 
+def cfg_reduce_env(cfg):
+    """Used to test that an entry point is called by raising an exception when
+    called. See `tests/site/eps/README.md` for details."""
+    raise NotImplementedError(
+        "hab_test_entry_points.cfg_reduce_env called successfully"
+    )
+
+
+def cfg_reduce_finalize(cfg):
+    """Used to test that an entry point is called by raising an exception when
+    called. See `tests/site/eps/README.md` for details."""
+    raise NotImplementedError(
+        "hab_test_entry_points.cfg_reduce_finalize called successfully"
+    )
+
+
 def uri_validate_error(resolver, uri):
     """Used to test that an entry point is called by raising an exception when
     called. See `tests/site/eps/README.md` for details."""

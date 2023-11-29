@@ -1,9 +1,12 @@
+import logging
 import os
 from collections import UserDict
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from . import utils
 from .merge_dict import MergeDict
+
+logger = logging.getLogger(__name__)
 
 
 class Site(UserDict):
@@ -183,6 +186,28 @@ class Site(UserDict):
                 path = dest.joinpath(relative)
 
         return str(path)
+
+    def run_entry_points_for_group(
+        self, group, default=None, entry_points=None, **kwargs
+    ):
+        """Iterates over `entry_points_for_group` calling the resolved object.
+
+        Args:
+            group (str): The name of the group of entry_points to process.
+            default (dict, optional): If the entry_point is not defined, return
+                the entry points defined by this dictionary. This is the contents
+                of the entry_points group, not the entire entry_points dict. For
+                example: `{"gui": "hab_gui.cli:gui"}`
+            entry_points (dict, optional): Use this dictionary instead of the one
+                defined on this Site object.
+            **kwargs: Any other kwargs are passed to the loaded entry_point record.
+        """
+        for ep in self.entry_points_for_group(
+            group, default=default, entry_points=entry_points
+        ):
+            logger.debug(f"Running {group} entry_point: {ep}")
+            func = ep.load()
+            func(**kwargs)
 
     def standardize_platform_path_maps(self):
         """Ensure the mappings defined in platform_path_maps are converted to
