@@ -25,6 +25,31 @@ def cfg_reduce_finalize(cfg):
     )
 
 
+def site_add_paths(site):
+    """Add a couple of extra site paths to hab using `hab.site.add_paths` entry_point."""
+    from pathlib import Path
+
+    return [
+        Path(__file__).parent / "site" / "eps" / "site_add_paths_a.json",
+        Path(__file__).parent / "site" / "eps" / "site_add_paths_b.json",
+    ]
+
+
+def site_add_paths_a(site):
+    """Add a couple of extra site paths to hab using `hab.site.add_paths` entry_point."""
+    from pathlib import Path
+
+    return [
+        Path(__file__).parent / "site" / "eps" / "site_add_paths_c.json",
+    ]
+
+
+def site_finalize(site):
+    """Used to test that an entry point is called by raising an exception when
+    called. See `tests/site/eps/README.md` for details."""
+    raise NotImplementedError("hab_test_entry_points.site_finalize called successfully")
+
+
 def uri_validate_error(resolver, uri):
     """Used to test that an entry point is called by raising an exception when
     called. See `tests/site/eps/README.md` for details."""

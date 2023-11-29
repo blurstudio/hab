@@ -127,11 +127,36 @@ class Site(UserDict):
         """Iterates over each file in self.path. Replacing the value of each key.
         The last file in the list will have its settings applied even if other
         files define them."""
+        # Process the main site files. These are the only ones that can add the
+        # `hab.site.add_paths` entry_points.
         for path in reversed(self.paths):
             self.load_file(path)
 
+        # Now that the main site files are handle `hab.site.add_paths` entry_points.
+        # This lets you add site json files where you can't hard code the path.
+        # For example if you want a site file included in a pip package installed
+        # on a host, the path would change depending on the python version being
+        # used and if using a editable pip install.
+        for ep in self.entry_points_for_group("hab.site.add_paths"):
+            logger.debug(f"Running hab.site.add_paths entry_point: {ep}")
+            func = ep.load()
+
+            # This entry_point needs to return a list of site file paths as
+            # `pathlib.Path` records.
+            paths = func(site=self)
+            for path in reversed(paths):
+                if path in self.paths:
+                    logger.debug(f"Path already added, skipping: {path}")
+                    continue
+                logger.debug(f"Path added by hab.site.add_paths: {path}")
+                self.paths.insert(0, path)
+                self.load_file(path)
+
         # Ensure any platform_path_maps are converted to pathlib objects.
         self.standardize_platform_path_maps()
+
+        # Entry_point to allow modification as a final step of loading site files
+        self.run_entry_points_for_group("hab.site.finalize", site=self)
 
     def load_file(self, filename):
         """Load an individual file path and merge its contents onto self.
