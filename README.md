@@ -438,6 +438,8 @@ for details on each item.
 | [Group][tt-group] | Description | [\*\*kwargs][tt-kwargs] | [Return][tt-return] | [Multiple][tt-multi] |
 |---|---|---|---|---|
 | hab.cli | Used by the hab cli to add extra commands. This is expected to be a `click.command` or `click.group` decorated function. |  |  | [All][tt-multi-all] |
+| hab.cfg.reduce.env | Used to make any modifications to a config after the global env is resolved but before aliases are resolved. | `cfg` |  | [All][tt-multi-all] |
+| hab.cfg.reduce.finalize | Used to make any modifications to a config after aliases are resolved and just before the the config finishes reducing. | `cfg` |  | [All][tt-multi-all] |
 | hab.launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) |  |  | [First][tt-multi-first] |
 | hab.uri.validate | Used to validate and modify a URI. If the URI is invalid, this should raise an exception. If the URI should be modified, then return the modified URI as a string. | `resolver`, `uri` | Updated URI as string or None. | [All][tt-multi-all] |
 

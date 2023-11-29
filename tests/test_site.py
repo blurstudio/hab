@@ -523,6 +523,14 @@ class TestEntryPoints:
         "site_file,except_match",
         (
             (
+                "cfg_reduce_env.json",
+                "hab_test_entry_points.cfg_reduce_env called successfully",
+            ),
+            (
+                "cfg_reduce_finalize.json",
+                "hab_test_entry_points.cfg_reduce_finalize called successfully",
+            ),
+            (
                 "cfg_uri_validate.json",
                 "hab_test_entry_points.uri_validate_error called successfully",
             ),
