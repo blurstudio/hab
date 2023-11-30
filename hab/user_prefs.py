@@ -93,7 +93,7 @@ class UserPrefs(dict):
 
     def load(self, force=False):
         """Load user preferences from self.filename if they haven't already
-        been loaded.
+        been loaded. Does not use pyjson5 as this file is entirely managed by hab.
 
         Args:
             force (bool, optional): Force re-loading of preferences.
@@ -108,7 +108,16 @@ class UserPrefs(dict):
             return True
 
         with self.filename.open() as fle:
-            data = utils.json.load(fle)
+            try:
+                # NOTE: This file is always saved using the native json library
+                # there is no reason to support json5 encoded files here.
+                data = json.load(fle)
+            except ValueError as error:
+                # When encountering corrupt saved user pref data, clear and
+                # reset the user prefs. Warn about it this isn't entirely hidden
+                logger.warning("User pref file corrupt, resetting.")
+                logger.info("User pref exception suppressed:", exc_info=error)
+                data = {}
             self.update(data)
             self._is_loaded = True
         return True
