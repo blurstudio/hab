@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 import pytest
 
@@ -157,3 +158,60 @@ def test_uri(resolver, tmpdir, monkeypatch):
     # Check UriObj.__str__ returns a string even if uri is None
     prefs_g = user_prefs.UriObj()
     assert isinstance(prefs_g.__str__(), str)
+
+
+@pytest.mark.parametrize(
+    "test_text",
+    (
+        # File was opened in write mode but no contents written
+        None,
+        # Process was killed half way through writing json output.
+        '{\n    "uri": "app',
+    ),
+)
+def test_corruption(resolver, tmpdir, monkeypatch, caplog, test_text):
+    """Check how UserPrefs handles trying to load an incomplete or empty existing
+    json document.
+    """
+    caplog.set_level(logging.INFO)
+
+    def assert_log_exists(level, msg):
+        for record in caplog.records:
+            if record.levelname != level:
+                continue
+            if msg in record.message:
+                print(record)
+                break
+        else:
+            raise AssertionError(
+                f"No logging message was made matching: {level} and {msg}"
+            )
+
+    # TODO: This duplicated code should probably be moved into a fixture
+    # Force the prefs to be saved into the test directory.
+    if utils.Platform.name() == "windows":
+        monkeypatch.setenv("LOCALAPPDATA", str(tmpdir))
+    else:
+        monkeypatch.setenv("HOME", str(tmpdir))
+    # Ensure we are using the modified filepath
+    prefs = user_prefs.UserPrefs(resolver)
+    assert prefs.filename.parent == tmpdir
+
+    prefs_file = tmpdir / ".hab_user_prefs.json"
+
+    # Create a empty file that won't resolve properly for json.
+    with prefs_file.open("w") as fle:
+        if test_text:
+            fle.write(test_text)
+
+    # Check that the expected log messages are emitted when invalid
+    # json file contents are encountered
+    caplog.clear()
+    prefs = user_prefs.UserPrefs(resolver)
+    # Even with invalid contents True will be returned
+    assert prefs.load()
+    # When corrupt prefs are encountered, default empty dict results
+    assert prefs == {}
+
+    assert_log_exists("WARNING", "User pref file corrupt, resetting.")
+    assert_log_exists("INFO", "User pref exception suppressed:")
