@@ -1,5 +1,5 @@
 import sys
-from pathlib import PurePosixPath, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import colorama
 import pytest
@@ -282,8 +282,8 @@ class TestOsSpecific:
         paths = [config_root / "site_os_specific.json"]
         site = Site(paths)
 
-        assert site.get("config_paths") == ["config/path/linux"]
-        assert site.get("distro_paths") == ["distro/path/linux"]
+        assert site.get("config_paths") == [Path("config/path/linux")]
+        assert site.get("distro_paths") == [Path("distro/path/linux")]
         assert site.get("platforms") == ["windows", "linux"]
 
     def test_osx(self, monkeypatch, config_root):
@@ -295,8 +295,8 @@ class TestOsSpecific:
         paths = [config_root / "site_os_specific.json"]
         site = Site(paths)
 
-        assert site.get("config_paths") == ["config/path/osx"]
-        assert site.get("distro_paths") == ["distro/path/osx"]
+        assert site.get("config_paths") == [Path("config/path/osx")]
+        assert site.get("distro_paths") == [Path("distro/path/osx")]
         assert site.get("platforms") == ["osx", "linux"]
 
     def test_win(self, monkeypatch, config_root):
@@ -308,8 +308,8 @@ class TestOsSpecific:
         paths = [config_root / "site_os_specific.json"]
         site = Site(paths)
 
-        assert site.get("config_paths") == ["config\\path\\windows"]
-        assert site.get("distro_paths") == ["distro\\path\\windows"]
+        assert site.get("config_paths") == [Path("config\\path\\windows")]
+        assert site.get("distro_paths") == [Path("distro\\path\\windows")]
         assert site.get("platforms") == ["windows", "osx"]
 
 

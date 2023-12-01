@@ -57,12 +57,6 @@ class Resolver(object):
         else:
             self.forced_requirements = {}
 
-        self.config_paths = utils.Platform.expand_paths(
-            self.site.get("config_paths", [])
-        )
-        self.distro_paths = utils.Platform.expand_paths(
-            self.site.get("distro_paths", [])
-        )
         logger.debug("config_paths: {}".format(self.config_paths))
         logger.debug("distro_paths: {}".format(self.distro_paths))
 
@@ -144,7 +138,7 @@ class Resolver(object):
 
     @property
     def config_paths(self):
-        return self._config_paths
+        return self.site["config_paths"]
 
     @config_paths.setter
     def config_paths(self, paths):
@@ -152,7 +146,7 @@ class Resolver(object):
         if isinstance(paths, str):
             paths = utils.Platform.expand_paths(paths)
 
-        self._config_paths = paths
+        self.site["config_paths"] = paths
         # Reset _configs so we re-generate them the next time they are requested
         self._configs = None
 
@@ -165,7 +159,7 @@ class Resolver(object):
 
     @property
     def distro_paths(self):
-        return self._distro_paths
+        return self.site["distro_paths"]
 
     @distro_paths.setter
     def distro_paths(self, paths):
@@ -173,7 +167,7 @@ class Resolver(object):
         if isinstance(paths, str):
             paths = utils.Platform.expand_paths(paths)
 
-        self._distro_paths = paths
+        self.site["distro_paths"] = paths
         # Reset _distros so we re-generate them the next time they are requested
         self._distros = None
 

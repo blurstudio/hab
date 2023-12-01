@@ -160,6 +160,10 @@ class Site(UserDict):
                 self.paths.insert(0, path)
                 self.load_file(path)
 
+        # Convert config_paths and distro_paths to lists of Path objects
+        self["config_paths"] = utils.Platform.expand_paths(self["config_paths"])
+        self["distro_paths"] = utils.Platform.expand_paths(self["distro_paths"])
+
         # Ensure any platform_path_maps are converted to pathlib objects.
         self.standardize_platform_path_maps()
 
