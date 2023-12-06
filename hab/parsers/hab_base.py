@@ -658,7 +658,8 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 specific environment variable changes.
             include_global (bool, optional): Used to disable adding the global
                 hab managed env vars. Disable this and use alias_name to only
-                get the env vars set by the alias, not the global ones.
+                get the env vars set by the alias, not the global ones. This
+                also adds `HAB_FREEZE` if possible.
             formatter (hab.formatter.Formatter, optional): Str formatter class
                 used to format the env var values.
         """
@@ -678,6 +679,12 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
         if include_global:
             _apply(self.environment)
+            # Add the HAB_FREEZE environment variable documenting the entire
+            # resolved hab configuration.
+            if hasattr(self, "freeze") and "HAB_FREEZE" not in env:
+                env["HAB_FREEZE"] = utils.encode_freeze(
+                    self.freeze(), site=self.resolver.site
+                )
         if alias_name:
             _apply(self.aliases[alias_name].get("environment", {}))
 
