@@ -930,15 +930,24 @@ def test_update_environ(resolver):
     def new_dict():
         return dict(inherited)
 
+    def check_freeze(env):
+        # Ensure the HAB_FREEZE variable was actually set on env and remove
+        # it to make checking the rest of the dict easier.
+        freeze = env.pop("HAB_FREEZE")
+        # Check that it starts with the version identifier.
+        assert re.match(r"v\d*:.+", freeze)
+
     # Check that global env vars were added
     env = new_dict()
     cfg.update_environ(env)
+    check_freeze(env)
     assert env == check_global
 
     # And that variables are removed that are set to unset
     env = {"ALIASED_GLOBAL_E": "To be removed"}
     env.update(inherited)
     cfg.update_environ(env)
+    check_freeze(env)
     assert env == check_global
 
     # Check aliased env vars are passed excluding global hab env vars
@@ -967,6 +976,7 @@ def test_update_environ(resolver):
     # Check aliased env vars are passed including global hab env vars
     env = new_dict()
     cfg.update_environ(env, alias_name="as_str", include_global=True)
+    check_freeze(env)
     assert env == check_global
 
     # Check aliased env vars are passed including global hab env vars
@@ -975,4 +985,5 @@ def test_update_environ(resolver):
     check = dict(check_global, **check_alias)
     # This env var is un-set by the alias
     del check["ALIASED_GLOBAL_D"]
+    check_freeze(env)
     assert env == check
