@@ -579,9 +579,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
         # This is a seperate set of if/elif/else statements than from above.
         # I became confused while reading so decided to add this reminder.
         if format_type == "freeze":
-            ret = encode_freeze(
-                ret.freeze(), version=resolver.site.get("freeze_version")
-            )
+            ret = encode_freeze(ret.freeze(), site=resolver.site)
         elif format_type == "json":
             ret = dumps_json(ret.freeze(), indent=2)
         elif format_type == "versions":
