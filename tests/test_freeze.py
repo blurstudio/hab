@@ -197,3 +197,14 @@ def test_encode_freeze(config_root, resolver):
     # Check that other version encodings return nothing
     assert utils.encode_freeze(freeze, version=0) is None
     assert utils.encode_freeze(freeze, version=3) is None
+
+    # Check that site kwarg is respected
+    site = Site()
+    # Force the site to version 1, but version is not specified
+    site["freeze_version"] = 1
+    version1 = utils.encode_freeze(freeze, version=None, site=site)
+    assert version1 == checks["version1"]
+
+    # If version is passed, site is ignored
+    version1 = utils.encode_freeze(freeze, version=2, site=site)
+    assert version1 == checks["version2"]

@@ -732,7 +732,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         )
         if hasattr(self, "freeze"):
             kwargs["freeze"] = utils.encode_freeze(
-                self.freeze(), version=self.resolver.site.get("freeze_version")
+                self.freeze(), site=self.resolver.site
             )
         if launch:
             # Write additional args into the launch command. This may not properly

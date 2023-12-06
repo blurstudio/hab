@@ -218,7 +218,7 @@ def dumps_json(data, **kwargs):
     return _json.dumps(data, **kwargs)
 
 
-def encode_freeze(data, version=None):
+def encode_freeze(data, version=None, site=None):
     """Encodes the provided data object in json. This string is stored on the
     "HAB_FREEZE" environment variable when run by the cli.
 
@@ -234,7 +234,12 @@ def encode_freeze(data, version=None):
         data: The data to freeze.
         version (int, optional): The version to encode the freeze with.
             If None is passed, then the default version encoding is used.
+        site (hab.site.Site, optional): If version is not specified, then
+            attempt to get version from `site.get("freeze_version")`.
     """
+    if version is None and site:
+        version = site.get("freeze_version")
+
     if version is None:
         # The current default is 2. Using None makes it easy to control this
         # with a site configuration.
