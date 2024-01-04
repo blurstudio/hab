@@ -38,6 +38,13 @@ class FlatConfig(Config):
         # Run any configured entry_points before aliases are calculated
         self.resolver.site.run_entry_points_for_group("hab.cfg.reduce.env", cfg=self)
 
+        # Ensure distros are populated before versions get processed
+        if self.distros is NotSet:
+            if self.resolver.forced_requirements:
+                self.distros = self.resolver.forced_requirements
+            else:
+                self.distros = {}
+
         # Process version aliases, merging global env vars.
         platform_aliases = {}
         self.frozen_data["aliases"] = platform_aliases
@@ -207,10 +214,7 @@ class FlatConfig(Config):
     def versions(self):
         distros = self.distros
         if distros is NotSet:
-            if self.resolver.forced_requirements:
-                distros = {}
-            else:
-                return []
+            return []
         if distros == []:
             distros = {}
 
