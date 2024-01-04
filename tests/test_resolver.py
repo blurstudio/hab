@@ -535,6 +535,29 @@ def test_forced_requirements(resolver, helpers, forced, check, check_versions):
         assert v.name == check_versions[i]
 
 
+def test_forced_requirements_uri(resolver, helpers):
+    resolver_forced = Resolver(
+        site=resolver.site,
+        forced_requirements={"houdini19.5": Requirement("houdini19.5")},
+    )
+    # We are checking cfg.versions, so these need to be resolved to `==` requirements
+    check = ["aliased==2.0", "houdini19.5==19.5.493"]
+
+    def cfg_versions_to_dict(cfg):
+        return {v.distro_name: Requirement(v.name) for v in cfg.versions}
+
+    # Forced requirement includes direct distro assignments from the config
+    cfg = resolver_forced.resolve("app/aliased")
+    versions = cfg_versions_to_dict(cfg)
+    helpers.assert_requirements_equal(versions, check)
+
+    # Check that forced requirements are correctly applied even if a config
+    # inherits it's distros from a parent config.
+    cfg = resolver_forced.resolve("app/aliased/config")
+    versions = cfg_versions_to_dict(cfg)
+    helpers.assert_requirements_equal(versions, check)
+
+
 @pytest.mark.parametrize(
     "value,check",
     (
