@@ -7,9 +7,8 @@ from pathlib import Path
 import click
 from colorama import Fore
 
-from . import Resolver, Site, __version__
+from . import Resolver, Site, __version__, utils
 from .parsers.unfrozen_config import UnfrozenConfig
-from .utils import decode_freeze, dumps_json, encode_freeze, json, verbosity_filter
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +109,7 @@ class UriArgument(click.Argument):
                 return uri_check.uri
         # User passed a frozen hab string
         if re.match(r"^v\d+:", value):
-            return decode_freeze(value)
+            return utils.decode_freeze(value)
 
         # If its not a string, convert to a Path object, if the path exists,
         # return the extracted dictionary assuming it was a json file.
@@ -118,7 +117,7 @@ class UriArgument(click.Argument):
             cpath = click.Path(path_type=Path, file_okay=True, resolve_path=True)
             data = cpath.convert(value, None, ctx=ctx)
             if data.exists():
-                return json.load(data.open())
+                return utils.json.load(data.open())
         except ValueError:
             self.fail(f"{value!r} is not a valid frozen file path.", ctx)
 
@@ -267,7 +266,7 @@ class SharedSettings(object):
             logger.warning("[Optimization warning]: Resetting ctx resolver.")
             ctx.obj._resolver = None
 
-        # Ensure verbosity is properly respected
+        # Ensure logging settings are properly respected
         if key == "verbosity":
             global _verbose_errors
 
@@ -277,6 +276,10 @@ class SharedSettings(object):
 
             level = [logging.WARNING, logging.INFO, logging.DEBUG][value]
             logging.basicConfig(level=level)
+        elif key == "logging_config":
+            if value is not None:
+                value = Path(value)
+            utils.Platform.configure_logging(value)
 
         return value
 
@@ -374,6 +377,17 @@ _verbose_errors = False
     is_eager=True,
     help="Increase the verbosity of the output. Can be used up to 3 times. "
     "This also enables showing a full traceback if an exception is raised.",
+)
+@click.option(
+    "--logging-config",
+    callback=SharedSettings.set_ctx_instance,
+    # Note: Using eager makes it so logging is configured as early as possible
+    # based on this argument.
+    is_eager=True,
+    type=click.Path(file_okay=True, resolve_path=True),
+    help="Path to json file defining a logging configuration based on "
+    "logging.config.dictConfig. If not specified uses .hab_logging_prefs.json "
+    "next to user prefs file if it exists.",
 )
 @click.option(
     "--script-dir",
@@ -548,7 +562,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
         if report_type in ("uris", "forest"):
             click.echo(f'{Fore.YELLOW}{" URIs ".center(50, "-")}{Fore.RESET}')
             # Filter out any URI's hidden by the requested verbosity level
-            with verbosity_filter(resolver, verbosity):
+            with utils.verbosity_filter(resolver, verbosity):
                 for line in resolver.dump_forest(resolver.configs):
                     echo_line(line)
         if report_type in ("versions", "forest"):
@@ -579,9 +593,9 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
         # This is a seperate set of if/elif/else statements than from above.
         # I became confused while reading so decided to add this reminder.
         if format_type == "freeze":
-            ret = encode_freeze(ret.freeze(), site=resolver.site)
+            ret = utils.encode_freeze(ret.freeze(), site=resolver.site)
         elif format_type == "json":
-            ret = dumps_json(ret.freeze(), indent=2)
+            ret = utils.dumps_json(ret.freeze(), indent=2)
         elif format_type == "versions":
             ret = "\n".join([v.name for v in ret.versions])
         else:

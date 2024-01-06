@@ -1,9 +1,57 @@
 import datetime
+import json
 import logging
 
 import pytest
 
 from hab import user_prefs, utils
+
+
+def test_user_prefs_filename():
+    """Check that user_prefs_filename generates the expected file paths."""
+    # Check the default for filename
+    path = utils.Platform.user_prefs_filename()
+    assert path.name == ".hab_user_prefs.json"
+
+    # Check overriding filename
+    new = utils.Platform.user_prefs_filename(filename="test.json")
+    assert new == path.parent / "test.json"
+
+
+def test_configure_logging(monkeypatch, tmpdir):
+    # Ensure we can read/write logging prefs, but using the test dir.
+    monkeypatch.setenv("HOME", str(tmpdir))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmpdir))
+
+    logger = logging.getLogger("hab.test")
+    default = utils.Platform.user_prefs_filename(".hab_logging_prefs.json")
+    custom = tmpdir / "test.json"
+
+    logging_cfg = {
+        "version": 1,
+        "incremental": True,
+        "loggers": {"hab.test": {"level": 10}},
+    }
+
+    # The default file doesn't exist yet, no configuration is loaded
+    assert not utils.Platform.configure_logging()
+    # The logger's level is not configured yet
+    assert logger.level == 0
+
+    # Create the configuration and ensure it gets loaded
+    with default.open("w") as fle:
+        json.dump(logging_cfg, fle)
+    assert utils.Platform.configure_logging()
+    # The logger had its level set to 10 by the config
+    assert logger.level == 10
+
+    # Check that passing a filename is respected
+    logging_cfg["loggers"]["hab.test"]["level"] = 30
+    with custom.open("w") as fle:
+        json.dump(logging_cfg, fle)
+    assert utils.Platform.configure_logging(filename=custom)
+    # The logger had its level set to 10 by the config
+    assert logger.level == 30
 
 
 def test_filename(resolver, tmpdir):
