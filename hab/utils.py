@@ -1,6 +1,7 @@
 import base64
 import errno
 import json as _json
+import logging.config
 import ntpath
 import os
 import re
@@ -404,6 +405,33 @@ class BasePlatform(ABC):
     _sep = ":"
 
     @classmethod
+    def configure_logging(cls, filename=None):
+        """Update the logging configuration with the contents of this json file
+        if exists.
+
+        See https://docs.python.org/3/library/logging.config.html#dictionary-schema-details
+        for details on how to construct this file.
+
+        You will most likely want to enable incremental so it doesn't fully reset
+        the logging basicConfig.
+
+        Example:
+            {"incremental": True,
+             "loggers": {"": {"level": 30}, "hab.parsers": {"level": 10}},
+             "version": 1}
+        """
+        if filename is None:
+            filename = cls.user_prefs_filename(".hab_logging_prefs.json")
+
+        if not filename.exists():
+            return False
+
+        with filename.open() as fle:
+            cfg = json.load(fle)
+            logging.config.dictConfig(cfg)
+            return True
+
+    @classmethod
     @abstractmethod
     def check_name(cls, name):
         """Checks if the provided name is valid for this class"""
@@ -496,9 +524,9 @@ class BasePlatform(ABC):
         return "linux"
 
     @classmethod
-    def user_prefs_filename(cls):
+    def user_prefs_filename(cls, filename=".hab_user_prefs.json"):
         """Returns the filename that contains the hab user preferences."""
-        return Path.home() / ".hab_user_prefs.json"
+        return Path.home() / filename
 
 
 class WinPlatform(BasePlatform):
@@ -545,9 +573,9 @@ class WinPlatform(BasePlatform):
         return cls._sep
 
     @classmethod
-    def user_prefs_filename(cls):
+    def user_prefs_filename(cls, filename=".hab_user_prefs.json"):
         """Returns the filename that contains the hab user preferences."""
-        return Path(os.path.expandvars("$LOCALAPPDATA")) / ".hab_user_prefs.json"
+        return Path(os.path.expandvars("$LOCALAPPDATA")) / filename
 
 
 class LinuxPlatform(BasePlatform):

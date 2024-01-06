@@ -119,6 +119,9 @@ not use `-` when using this option.
 hab --save-prefs dump project_a/Seq001/S0010
 ```
 
+User prefs are stored in the `%LOCALAPPDATA%` folder on Windows and in the user's
+home directory on other platforms.
+
 ## Installing
 
 Hab is installed using pip. It requires python 3.6 or above. It's recommended
@@ -1053,6 +1056,15 @@ scripts in the temp directory. Once you are finished exit the hab process and th
 will be removed. Alternatively if you use the `--dump-scripts` flag on hab commands
 that write scripts, to make it print the contents of every file to the shell
 instead of writing them to disk.
+
+## Logging configuration
+
+Hab uses python's logging module to output a ton of debugging information. For the
+most part you can control the output using the `hab -v ...` verbosity option.
+However if you need more fine grained control you can create a `.hab_logging_prefs.json`
+file next to your user [user prefs](#user-prefs) file. The cli also supports passing
+the path to a configuration file using `hab --logging-config [path/to/file.json]`
+that is used instead of the default file if pased.
 
 # Caveats
 
