@@ -95,3 +95,5 @@ function pip() {
 
 # Run the requested command
 as_str -c "print('Running...');import sys;print('sys', sys)"
+# Ensure the exit-code is reported to the calling process.
+exit $LASTEXITCODE

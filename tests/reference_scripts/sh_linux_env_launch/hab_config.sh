@@ -1,6 +1,11 @@
 # Customize the prompt
 export PS1="[not_set/child] $PS1"
 
+# Exit immediately if a command exits with a non-zero status.
+# This ensures that if any exit codes are encountered it gets propagated to
+# whatever originally called hab.
+set -e
+
 # Setting global environment variables:
 unset UNSET_VARIABLE
 export TEST="case"
