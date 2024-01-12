@@ -95,3 +95,5 @@ function pip() {
 
 # Run the requested command
 pip
+# Ensure the exit-code is reported to the calling process.
+exit $LASTEXITCODE
