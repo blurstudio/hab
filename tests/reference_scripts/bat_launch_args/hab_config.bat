@@ -19,7 +19,7 @@ REM Prepend the aliases directory to path so they can be called from the prompt
 set "PATH={{ tmpdir / "aliases" }};%PATH%"
 
 REM Run the requested command
-CALL pip list
+CALL as_str -c "print('Running...');import sys;print('sys', sys)"
 @REM The alias we just called restored echo, so re-disable it
 @ECHO OFF
 

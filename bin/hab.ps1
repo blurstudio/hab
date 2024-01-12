@@ -27,9 +27,13 @@ else {
     # Use system defined generic python call
     $py_exe = "py -3"
 }
+# For complex launch commands like `py -3` we need to separate the command from
+# additional arguments, we can't just pass the raw $py_exe variable
+$py_exe, $py_args = $py_exe.split(' ')
+# TODO: Test setting HAB_PYTHON to various values like `py`, `py -3` and many arguments `py -3 -u`
 
 # Call our worker python process that may write the temp filename
-Invoke-Expression "$py_exe -m hab --script-dir $temp_directory --script-ext .ps1 $args"
+& $py_exe $py_args -m hab --script-dir $temp_directory --script-ext .ps1 $args
 
 # Run the launch or config script if it was created on disk
 if (Test-Path $temp_launch -PathType Leaf)

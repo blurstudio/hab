@@ -746,7 +746,10 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             # add quotes around windows file paths if writing a shell script.
             # At this point we have lost the original double quote the user used.
             if isinstance(args, list):
-                args = " {}".format(self.shell_escape(ext, args))
+                if ext == ".ps1":
+                    args = " {}".format(subprocess.list2cmdline(args))
+                else:
+                    args = " {}".format(self.shell_escape(ext, args))
             else:
                 args = ""
 
