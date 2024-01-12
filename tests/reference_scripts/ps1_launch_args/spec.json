@@ -1,9 +1,9 @@
 {
-    "description": "PowerShell: Tests `hab launch not_set/child pip list` passing arguments",
+    "description": "PowerShell: Tests `hab launch not_set/child as_str` passing a complex string argument to python",
     "ext": ".ps1",
-    "launch": "pip",
+    "launch": "as_str",
     "exiting": true,
-    "args": ["list"],
+    "args": ["-c", "print('Running...');import sys;print('sys', sys)"],
     "create_launch": true,
     "platform": "win32",
     "uri": "not_set/child"

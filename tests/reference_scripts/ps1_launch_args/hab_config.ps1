@@ -94,4 +94,4 @@ function pip() {
 
 
 # Run the requested command
-pip list
+as_str -c "print('Running...');import sys;print('sys', sys)"
