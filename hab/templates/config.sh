@@ -1,6 +1,11 @@
 # Customize the prompt
 export PS1="[{{ hab_cfg.uri }}] $PS1"
 
+# Exit immediately if a command exits with a non-zero status.
+# This ensures that if any exit codes are encountered it gets propagated to
+# whatever originally called hab.
+set -e
+
 # Setting global environment variables:
 {% for key, value in hab_cfg.environment.items() %}
 {% if value %}

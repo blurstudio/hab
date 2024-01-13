@@ -47,3 +47,6 @@ elseif (Test-Path $temp_config -PathType Leaf)
 
 # Remove the temp directory if it exists
 Remove-Item $temp_directory -Force -Recurse -erroraction 'silentlycontinue'
+
+# Ensure the exit-code is reported to the calling process.
+exit $LASTEXITCODE

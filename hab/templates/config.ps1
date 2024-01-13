@@ -55,4 +55,6 @@ function {{ alias }}() {
 {% if launch_info %}
 # Run the requested command
 {{ launch_info.key }}{{ launch_info.args }}
+# Ensure the exit-code is reported to the calling process.
+exit $LASTEXITCODE
 {% endif %}
