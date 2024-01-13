@@ -192,3 +192,130 @@ def test_alias_entry_point(config_root):
     alias["hab.launch_cls"] = {"subprocess": "tests.test_launch:Topen"}
     proc = cfg.launch("global", blocking=True)
     assert type(proc).__name__ == "Topen"
+
+
+@pytest.mark.parametrize("exit_code", [5, 4, 0])
+class TestCliExitCodes:
+    """Test that calling `hab launch` runs python and passes a complex command string
+    correctly. Also checks that exit-codes are properly returned to the caller.
+    """
+
+    # Note: Using as_str to call python. I ran into lockups when trying to call
+    # a "python" alias defined in the hab tests.
+    sub_cmd = ["launch", "app/aliased", "as_str", "-c"]
+    # This complex string is passed to python, and ensures that complex strings
+    # get encoded correctly for the generated shell scripts. It also proves that
+    # we are getting text output from python. The sys.exit call is not required,
+    # but is used to ensure that exit-codes are returned to the calling process.
+    py_cmd = "print('Running...');import sys;print(sys);sys.exit({code})"
+    output_text = "Running...\n<module 'sys' (built-in)>\n"
+    run_kwargs = dict(stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5)
+    if sys.version_info.minor >= 7:
+        run_kwargs["text"] = True
+    else:
+        run_kwargs["universal_newlines"] = True
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
+    @missing_annotations_hack
+    def test_bat(self, config_root, exit_code):
+        hab_bin = (config_root / ".." / "bin" / "hab.bat").resolve()
+        # fmt: off
+        cmd = [
+            str(hab_bin), "--site", str(config_root / "site_main.json"),
+            *self.sub_cmd,
+            self.py_cmd.format(code=exit_code),
+        ]
+        # fmt: on
+
+        # Run the hab command in a subprocess
+        proc = subprocess.run(cmd, **self.run_kwargs)
+
+        # Check that the print statement was actually run
+        assert proc.stdout == self.output_text
+        assert proc.returncode == exit_code
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
+    @pytest.mark.skipif(
+        os.getenv("GITHUB_ACTIONS") == "true",
+        reason="PowerShell tests timeout when run in a github action",
+    )
+    @missing_annotations_hack
+    def test_ps1(self, config_root, exit_code):
+        # -File is needed to get the exit-code from powershell, and requires a full path
+        script = (config_root / ".." / "bin" / "hab.ps1").resolve()
+        # fmt: off
+        cmd = [
+            "powershell.exe", "-ExecutionPolicy", "Unrestricted",
+            "-File", str(script),
+            "--site", str(config_root / "site_main.json"),
+            *self.sub_cmd,
+            f"\"{self.py_cmd.format(code=exit_code)}\"",
+        ]
+        # fmt: on
+
+        # Run the hab command in a subprocess
+        proc = subprocess.run(cmd, **self.run_kwargs)
+
+        # Check that the print statement was actually run
+        assert proc.stdout == self.output_text
+        assert proc.returncode == exit_code
+
+    @pytest.mark.skip(reason="Find a way to make this test run successfully")
+    def test_bash_win(self, config_root, exit_code):
+        # fmt: off
+        cmd = [
+            "hab",
+            "--site", f'{(config_root / "site_main.json").as_posix()}',
+            *self.sub_cmd,
+            self.py_cmd.format(code=exit_code),
+        ]
+        cmd = [
+            # Note: This requires compatible with git bash, or the `--site` path
+            # gets mangled.
+            os.path.expandvars(r"%PROGRAMFILES%\Git\usr\bin\bash.exe"),
+            "--login", "-c", subprocess.list2cmdline(cmd)
+        ]
+        # fmt: on
+
+        # Run the hab command in a subprocess
+        print(
+            "# If you run this command in a command prompt the expected results "
+            "are printed, but calling it here doesn't return any results."
+        )
+        print('# Make sure to check the exit-code with "echo %ERRORLEVEL%"')
+        print(subprocess.list2cmdline(cmd))
+        proc = subprocess.run(cmd, **self.run_kwargs)
+        print(proc.stdout)
+        print(proc.stderr)
+
+        # Check that the print statement was actually run
+        assert proc.stdout == self.output_text
+        assert proc.returncode == exit_code
+
+    @pytest.mark.skip(reason="Find a way to make this test run successfully")
+    def test_bash_linux(self, config_root, exit_code):
+        hab_bin = (config_root / ".." / "bin" / "hab").resolve()
+
+        # fmt: off
+        cmd = [
+            hab_bin,
+            "--site", f'{(config_root / "site_main.json")}',
+            *self.sub_cmd,
+            self.py_cmd.format(code=exit_code),
+        ]
+        # fmt: on
+
+        # Run the hab command in a subprocess
+        print(
+            "# Run this command in a bash shell and verify that the expected results"
+            " are printed. TODO: figure out how to run this with pytest."
+        )
+        print('# Make sure to check the exit-code with "echo $?"')
+        print(subprocess.list2cmdline(cmd))
+        proc = subprocess.run(cmd, shell=True, **self.run_kwargs)
+        print(proc.stdout)
+        print(proc.stderr)
+
+        # Check that the print statement was actually run
+        assert proc.stdout == self.output_text
+        assert proc.returncode == exit_code
