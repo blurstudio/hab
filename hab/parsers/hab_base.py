@@ -631,11 +631,13 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         if ext in (".bat", ".cmd"):
             ret["launch"] = 'cmd.exe /k "{path}"\n'
         elif ext == ".ps1":
-            ret[
-                "launch"
-            ] = 'powershell.exe{launch_args} -ExecutionPolicy Unrestricted . "{path}"\n'
+            ret["launch"] = (
+                'powershell.exe{launch_args} -ExecutionPolicy Unrestricted -File "{path}"\n'
+                "exit $LASTEXITCODE\n"
+            )
         elif ext in (".sh", ""):  # Assume no ext is a .sh file
-            ret["launch"] = 'bash --init-file "{path}"\n'
+            # `set -e` propagates the error code returned by bash to the caller
+            ret["launch"] = 'set -e\nbash --init-file "{path}"\n'
 
         return ret
 

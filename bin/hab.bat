@@ -41,10 +41,12 @@ if exist %temp_launch_file% (
     )
 )
 
-:: the config scripts turn echo back on, turn it off again
-@ECHO OFF
+:: the config scripts turn echo back on, Make sure to prefix future commands
+:: with @ to prevent printing them to the console
 
 :: Remove the temp directory and its contents
-RMDIR /S /Q %temp_directory%
+@RMDIR /S /Q %temp_directory%
 
-@ECHO ON
+:: Ensure the errorlevel is reported to the calling process. This is needed
+:: when calling hab via subprocess/QtCore.QProcess calls to receive errorlevel
+@exit /b %ERRORLEVEL%
