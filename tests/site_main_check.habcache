@@ -1,0 +1,1433 @@
+{
+    "version": 1,
+    "config_paths": {
+        "{config-root}/configs/*": {
+            "{config-root}/configs/app/app_aliased.json": {
+                "name": "aliased",
+                "context": [
+                    "app"
+                ],
+                "inherits": false,
+                "distros": [
+                    "aliased"
+                ]
+            },
+            "{config-root}/configs/app/app_aliased_config.json": {
+                "name": "config",
+                "context": [
+                    "app",
+                    "aliased"
+                ],
+                "inherits": true,
+                "alias_mods": {
+                    "as_dict": {
+                        "environment": {
+                            "os_specific": true,
+                            "linux": {
+                                "prepend": {
+                                    "ALIASED_LOCAL": "{relative_root}/config",
+                                    "ALIASED_MOD_LOCAL_A": "Local Config A"
+                                }
+                            },
+                            "windows": {
+                                "prepend": {
+                                    "ALIASED_LOCAL": "{relative_root}/config",
+                                    "ALIASED_MOD_LOCAL_A": "Local Config A"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "{config-root}/configs/app/app_aliased_mod.json": {
+                "name": "mod",
+                "context": [
+                    "app",
+                    "aliased"
+                ],
+                "inherits": true,
+                "distros": [
+                    "aliased",
+                    "aliased_mod"
+                ],
+                "environment": {
+                    "set": {
+                        "CONFIG_DEFINED": "config_variable"
+                    }
+                }
+            },
+            "{config-root}/configs/app/app_aliased_mod_config.json": {
+                "name": "config",
+                "context": [
+                    "app",
+                    "aliased",
+                    "mod"
+                ],
+                "inherits": true,
+                "alias_mods": {
+                    "as_dict": {
+                        "environment": {
+                            "os_specific": true,
+                            "linux": {
+                                "prepend": {
+                                    "ALIASED_LOCAL": "{relative_root}/config_mod",
+                                    "ALIASED_MOD_LOCAL_A": "Local Config Mod A"
+                                }
+                            },
+                            "windows": {
+                                "prepend": {
+                                    "ALIASED_LOCAL": "{relative_root}/config_mod",
+                                    "ALIASED_MOD_LOCAL_A": "Local Config Mod A"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "{config-root}/configs/app/app_houdini_a.json": {
+                "name": "a",
+                "context": [
+                    "app",
+                    "houdini"
+                ],
+                "description": "Test that the duplicated alias houdini is resolved against 18.5.",
+                "inherits": false,
+                "distros": [
+                    "houdini18.5",
+                    "houdini19.5"
+                ]
+            },
+            "{config-root}/configs/app/app_houdini_b.json": {
+                "name": "b",
+                "context": [
+                    "app",
+                    "houdini"
+                ],
+                "description": "Test that the duplicated alias houdini is resolved against 19.5.",
+                "inherits": false,
+                "distros": [
+                    "houdini19.5",
+                    "houdini18.5"
+                ]
+            },
+            "{config-root}/configs/app/app_maya.json": {
+                "name": "maya",
+                "context": [
+                    "app"
+                ],
+                "inherits": false,
+                "min_verbosity": {
+                    "global": 2,
+                    "hab": 2,
+                    "hab-gui": 1
+                }
+            },
+            "{config-root}/configs/app/app_maya_2020.json": {
+                "name": "2020",
+                "context": [
+                    "app",
+                    "maya"
+                ],
+                "inherits": true,
+                "distros": [
+                    "maya2020"
+                ]
+            },
+            "{config-root}/configs/default/default.json": {
+                "name": "default",
+                "context": [],
+                "inherits": false,
+                "distros": {
+                    "maya2020": [
+                        "the_dcc_plugin_a",
+                        "the_dcc_plugin_b",
+                        "the_dcc_plugin_c"
+                    ],
+                    "houdini18.5": [
+                        "the_dcc_plugin_d"
+                    ]
+                }
+            },
+            "{config-root}/configs/default/default_Sc1.json": {
+                "name": "Sc1",
+                "context": [
+                    "default"
+                ],
+                "inherits": false,
+                "distros": {
+                    "maya2020": [
+                        "the_dcc_plugin_a",
+                        "the_dcc_plugin_b",
+                        "the_dcc_plugin_c"
+                    ],
+                    "houdini18.5": [
+                        "the_dcc_plugin_d"
+                    ]
+                }
+            },
+            "{config-root}/configs/default/default_Sc11.json": {
+                "name": "Sc11",
+                "context": [
+                    "default"
+                ],
+                "inherits": false,
+                "distros": {
+                    "maya2020": [
+                        "the_dcc_plugin_a",
+                        "the_dcc_plugin_b",
+                        "the_dcc_plugin_c"
+                    ],
+                    "houdini18.5": [
+                        "the_dcc_plugin_d"
+                    ]
+                }
+            },
+            "{config-root}/configs/not_set/child.json": {
+                "name": "child",
+                "context": [
+                    "not_set"
+                ],
+                "environment": {
+                    "unset": [
+                        "UNSET_VARIABLE"
+                    ],
+                    "set": {
+                        "TEST": "case",
+                        "FMT_FOR_OS": "a{;}b;c:{PATH!e}{;}d"
+                    }
+                },
+                "inherits": true
+            },
+            "{config-root}/configs/not_set/env.json": {
+                "name": "env1",
+                "context": [
+                    "not_set"
+                ],
+                "environment": {
+                    "unset": [
+                        "UNSET_VARIABLE",
+                        "UNSET_VARIABLE_1",
+                        "RELATIVE_VARIABLE"
+                    ],
+                    "set": {
+                        "SET_RELATIVE": "{relative_root}",
+                        "RELATIVE_VARIABLE": "{relative_root}/set",
+                        "SET_VARIABLE": "set_value",
+                        "MAYA_MODULE_PATH": "MMP_Set"
+                    },
+                    "append": {
+                        "RELATIVE_VARIABLE": "{relative_root}/append",
+                        "APPEND_VARIABLE": "append_value"
+                    },
+                    "prepend": {
+                        "RELATIVE_VARIABLE": "{relative_root}/prepend",
+                        "PREPEND_VARIABLE": "prepend_value"
+                    }
+                },
+                "inherits": true
+            },
+            "{config-root}/configs/not_set/env_path_hab_uri.json": {
+                "name": "env_path_hab_uri",
+                "context": [
+                    "not_set"
+                ],
+                "environment": {
+                    "set": {
+                        "HAB_URI": "invalid value"
+                    }
+                },
+                "inherits": true
+            },
+            "{config-root}/configs/not_set/env_path_set.json": {
+                "name": "env_path_set",
+                "context": [
+                    "not_set"
+                ],
+                "environment": {
+                    "set": {
+                        "PATH": "path_variable"
+                    }
+                },
+                "inherits": true
+            },
+            "{config-root}/configs/not_set/env_path_unset.json": {
+                "name": "env_path_unset",
+                "context": [
+                    "not_set"
+                ],
+                "environment": {
+                    "unset": [
+                        "PATH"
+                    ]
+                },
+                "inherits": true
+            },
+            "{config-root}/configs/not_set/not_set.json": {
+                "name": "not_set",
+                "context": [],
+                "inherits": false,
+                "distros": [
+                    "aliased",
+                    "maya2020"
+                ]
+            },
+            "{config-root}/configs/not_set/not_set_distros.json": {
+                "name": "distros",
+                "context": [
+                    "not_set"
+                ],
+                "inherits": false,
+                "distros": {
+                    "the_dcc": []
+                },
+                "environment": {
+                    "append": {
+                        "Test": "Case"
+                    }
+                }
+            },
+            "{config-root}/configs/not_set/not_set_empty_lists.json": {
+                "name": "empty_lists",
+                "context": [
+                    "not_set"
+                ],
+                "inherits": false,
+                "aliases": [],
+                "distros": []
+            },
+            "{config-root}/configs/not_set/not_set_no_distros.json": {
+                "name": "no_distros",
+                "context": [
+                    "not_set"
+                ],
+                "inherits": false,
+                "environment": {
+                    "append": {
+                        "Test": "Case"
+                    }
+                }
+            },
+            "{config-root}/configs/not_set/not_set_no_env.json": {
+                "name": "no_env",
+                "context": [
+                    "not_set"
+                ],
+                "inherits": false,
+                "distros": {
+                    "the_dcc": []
+                }
+            },
+            "{config-root}/configs/not_set/os_env.json": {
+                "name": "os",
+                "context": [
+                    "not_set"
+                ],
+                "environment": {
+                    "os_specific": true,
+                    "linux": {
+                        "unset": [
+                            "UNSET_VARIABLE_LIN"
+                        ],
+                        "set": {
+                            "SET_VARIABLE_LIN": "set_value_lin"
+                        },
+                        "append": {
+                            "APPEND_VARIABLE_LIN": "append_value_lin"
+                        },
+                        "prepend": {
+                            "PREPEND_VARIABLE_LIN": "prepend_value_lin"
+                        }
+                    },
+                    "windows": {
+                        "unset": [
+                            "UNSET_VARIABLE_WIN"
+                        ],
+                        "set": {
+                            "SET_VARIABLE_WIN": "set_value_win"
+                        },
+                        "append": {
+                            "APPEND_VARIABLE_WIN": "append_value_win"
+                        },
+                        "prepend": {
+                            "PREPEND_VARIABLE_WIN": "prepend_value_win"
+                        }
+                    }
+                },
+                "inherits": false
+            },
+            "{config-root}/configs/place-holder/place-holder_child.json": {
+                "name": "child",
+                "context": [
+                    "place-holder"
+                ],
+                "inherits": false,
+                "distros": [
+                    "the_dcc"
+                ]
+            },
+            "{config-root}/configs/place-holder/place-holder_inherits.json": {
+                "name": "inherits",
+                "context": [
+                    "place-holder"
+                ],
+                "inherits": true,
+                "environment": {
+                    "set": {
+                        "TEST": "case"
+                    }
+                }
+            },
+            "{config-root}/configs/project_a/project_a.json": {
+                "name": "project_a",
+                "context": [],
+                "inherits": false,
+                "distros": [
+                    "maya2020",
+                    "houdini18.5"
+                ]
+            },
+            "{config-root}/configs/project_a/project_a_Sc001.json": {
+                "name": "Sc001",
+                "context": [
+                    "project_a"
+                ],
+                "inherits": true,
+                "distros": [
+                    "maya2020==2020.0"
+                ]
+            },
+            "{config-root}/configs/project_a/project_a_Sc001_animation.json": {
+                "name": "Animation",
+                "context": [
+                    "project_a",
+                    "Sc001"
+                ],
+                "inherits": true,
+                "distros": [
+                    "maya2020"
+                ]
+            },
+            "{config-root}/configs/project_a/project_a_Sc001_rigging.json": {
+                "name": "Rigging",
+                "context": [
+                    "project_a",
+                    "Sc001"
+                ],
+                "inherits": true,
+                "distros": [
+                    "maya2020"
+                ]
+            },
+            "{config-root}/configs/verbosity/verbosity.json": {
+                "name": "verbosity",
+                "context": [],
+                "description": "Defines verbosity settings that can be inherited",
+                "environment": {
+                    "set": {
+                        "VERBOSITY": "verbosity"
+                    }
+                },
+                "inherits": false,
+                "min_verbosity": {
+                    "global": 2,
+                    "hab-gui": 1
+                }
+            },
+            "{config-root}/configs/verbosity/verbosity_hidden.json": {
+                "name": "hidden",
+                "context": [
+                    "verbosity"
+                ],
+                "description": "Verbosity global setting above the normal max of 2. Should only be visible if verbosity is None.",
+                "inherits": true,
+                "environment": {
+                    "set": {
+                        "VERBOSITY": "verbosity/hidden"
+                    }
+                },
+                "min_verbosity": {
+                    "global": 3,
+                    "hab-gui": 2
+                }
+            },
+            "{config-root}/configs/verbosity/verbosity_inherit-no.json": {
+                "name": "inherit-no",
+                "context": [
+                    "verbosity"
+                ],
+                "description": "Doesn't define verbosity and doesn't inherit it from parent.",
+                "inherits": false,
+                "environment": {
+                    "set": {
+                        "VERBOSITY": "verbosity/inherit-no"
+                    }
+                }
+            },
+            "{config-root}/configs/verbosity/verbosity_inherit-override.json": {
+                "name": "inherit-override",
+                "context": [
+                    "verbosity"
+                ],
+                "description": "Inherits from parent but defines verbosity on itself.",
+                "inherits": true,
+                "environment": {
+                    "set": {
+                        "VERBOSITY": "verbosity/inherit-override"
+                    }
+                },
+                "min_verbosity": {
+                    "global": 1
+                }
+            },
+            "{config-root}/configs/verbosity/verbosity_inherit.json": {
+                "name": "inherit",
+                "context": [
+                    "verbosity"
+                ],
+                "description": "Doesn't define verbosity but does inherit it from parent.",
+                "distros": [
+                    "aliased_verbosity"
+                ],
+                "inherits": true,
+                "environment": {
+                    "set": {
+                        "VERBOSITY": "verbosity/inherit"
+                    }
+                }
+            }
+        }
+    },
+    "distro_paths": {
+        "{config-root}/distros/*": {
+            "{config-root}/distros/aliased/2.0/.hab.json": {
+                "name": "aliased",
+                "aliases": {
+                    "linux": [
+                        [
+                            "as_dict",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "prepend": {
+                                        "ALIASED_LOCAL": "{relative_root}/test"
+                                    }
+                                }
+                            }
+                        ],
+                        [
+                            "inherited",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "append": {
+                                        "PATH": [
+                                            "{PATH!e}",
+                                            "{relative_root}/PATH/env/with  spaces",
+                                            "/mnt/shared_resources/with spaces"
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
+                        [
+                            "as_list",
+                            [
+                                "python",
+                                "{relative_root}/list_vars.py"
+                            ]
+                        ],
+                        [
+                            "as_str",
+                            "python"
+                        ],
+                        [
+                            "global",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "append": {
+                                        "ALIASED_GLOBAL_A": "Local A Append"
+                                    },
+                                    "prepend": {
+                                        "ALIASED_GLOBAL_A": "Local A Prepend"
+                                    },
+                                    "set": {
+                                        "ALIASED_GLOBAL_C": "Local C Set"
+                                    },
+                                    "unset": [
+                                        "ALIASED_GLOBAL_D"
+                                    ]
+                                }
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "as_dict",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "prepend": {
+                                        "ALIASED_LOCAL": "{relative_root}/test"
+                                    }
+                                }
+                            }
+                        ],
+                        [
+                            "inherited",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "append": {
+                                        "PATH": [
+                                            "{PATH!e}",
+                                            "{relative_root}/PATH/env/with  spaces",
+                                            "\\\\example\\shared_resources\\with spaces"
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
+                        [
+                            "as_list",
+                            [
+                                "python",
+                                "{relative_root}/list_vars.py"
+                            ]
+                        ],
+                        [
+                            "as_str",
+                            "python"
+                        ],
+                        [
+                            "global",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "append": {
+                                        "ALIASED_GLOBAL_A": "Local A Append"
+                                    },
+                                    "prepend": {
+                                        "ALIASED_GLOBAL_A": "Local A Prepend"
+                                    },
+                                    "set": {
+                                        "ALIASED_GLOBAL_C": "Local C Set"
+                                    },
+                                    "unset": [
+                                        "ALIASED_GLOBAL_D"
+                                    ]
+                                }
+                            }
+                        ]
+                    ]
+                },
+                "environment": {
+                    "append": {
+                        "ALIASED_GLOBAL_A": "Global A"
+                    },
+                    "set": {
+                        "ALIASED_GLOBAL_B": "Global B",
+                        "ALIASED_GLOBAL_C": "Global C",
+                        "ALIASED_GLOBAL_D": "Global D",
+                        "ALIASED_GLOBAL_F": "Global F"
+                    },
+                    "unset": [
+                        "ALIASED_GLOBAL_E"
+                    ]
+                },
+                "version": "2.0"
+            },
+            "{config-root}/distros/aliased_mod/1.0/.hab.json": {
+                "name": "aliased_mod",
+                "description": "Modifies the aliases defined in the aliased distro.",
+                "alias_mods": {
+                    "as_dict": {
+                        "environment": {
+                            "os_specific": true,
+                            "linux": {
+                                "prepend": {
+                                    "ALIASED_LOCAL": "{relative_root}/modified",
+                                    "ALIASED_MOD_LOCAL_A": "Local Mod A"
+                                }
+                            },
+                            "windows": {
+                                "prepend": {
+                                    "ALIASED_LOCAL": "{relative_root}/modified",
+                                    "ALIASED_MOD_LOCAL_A": "Local Mod A"
+                                }
+                            }
+                        }
+                    },
+                    "as_list": {
+                        "environment": {
+                            "os_specific": true,
+                            "linux": {
+                                "prepend": {
+                                    "ALIASED_MOD_LOCAL_B": "Local Mod B"
+                                }
+                            },
+                            "windows": {
+                                "prepend": {
+                                    "ALIASED_MOD_LOCAL_B": "Local Mod B"
+                                }
+                            }
+                        }
+                    },
+                    "global": {
+                        "environment": {
+                            "os_specific": true,
+                            "linux": {
+                                "prepend": {
+                                    "ALIASED_GLOBAL_A": "Local Mod A",
+                                    "ALIASED_MOD_LOCAL_B": "Local Mod B",
+                                    "ALIASED_GLOBAL_F": "Local Mod F"
+                                }
+                            },
+                            "windows": {
+                                "prepend": {
+                                    "ALIASED_GLOBAL_A": "Local Mod A",
+                                    "ALIASED_MOD_LOCAL_B": "Local Mod B",
+                                    "ALIASED_GLOBAL_F": "Local Mod F"
+                                }
+                            }
+                        }
+                    }
+                },
+                "environment": {
+                    "set": {
+                        "ALIASED_MOD_GLOBAL_A": "Global Mod A"
+                    }
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/aliased_verbosity/1.0/.hab.json": {
+                "name": "aliased_verbosity",
+                "aliases": {
+                    "linux": [
+                        [
+                            "vb_default",
+                            [
+                                "python"
+                            ]
+                        ],
+                        [
+                            "vb0",
+                            {
+                                "cmd": [
+                                    "python"
+                                ],
+                                "min_verbosity": {
+                                    "global": 0,
+                                    "hab-gui": 3
+                                }
+                            }
+                        ],
+                        [
+                            "vb1",
+                            {
+                                "cmd": [
+                                    "python"
+                                ],
+                                "min_verbosity": {
+                                    "global": 1,
+                                    "hab-gui": 2
+                                }
+                            }
+                        ],
+                        [
+                            "vb2",
+                            {
+                                "cmd": [
+                                    "python"
+                                ],
+                                "min_verbosity": {
+                                    "global": 2,
+                                    "hab-gui": 1
+                                }
+                            }
+                        ],
+                        [
+                            "vb3",
+                            {
+                                "cmd": [
+                                    "python"
+                                ],
+                                "min_verbosity": {
+                                    "global": 3,
+                                    "hab-gui": 0
+                                }
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "vb_default",
+                            [
+                                "python"
+                            ]
+                        ],
+                        [
+                            "vb0",
+                            {
+                                "cmd": [
+                                    "python"
+                                ],
+                                "min_verbosity": {
+                                    "global": 0,
+                                    "hab-gui": 3
+                                }
+                            }
+                        ],
+                        [
+                            "vb1",
+                            {
+                                "cmd": [
+                                    "python"
+                                ],
+                                "min_verbosity": {
+                                    "global": 1,
+                                    "hab-gui": 2
+                                }
+                            }
+                        ],
+                        [
+                            "vb2",
+                            {
+                                "cmd": [
+                                    "python"
+                                ],
+                                "min_verbosity": {
+                                    "global": 2,
+                                    "hab-gui": 1
+                                }
+                            }
+                        ],
+                        [
+                            "vb3",
+                            {
+                                "cmd": [
+                                    "python"
+                                ],
+                                "min_verbosity": {
+                                    "global": 3,
+                                    "hab-gui": 0
+                                }
+                            }
+                        ]
+                    ]
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/all_settings/0.1.0.dev1/.hab.json": {
+                "name": "all_settings",
+                "version": "0.1.0.dev1",
+                "environment": {
+                    "unset": [
+                        "OTHER"
+                    ],
+                    "set": {
+                        "TEST": "case"
+                    },
+                    "append": {
+                        "MAYA_MODULE_PATH": "."
+                    },
+                    "prepend": {
+                        "TEST_VARIABLE": "prepend_value"
+                    }
+                },
+                "distros": [
+                    "Maya2020"
+                ],
+                "aliases": {
+                    "windows": [
+                        [
+                            "maya",
+                            "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"
+                        ],
+                        [
+                            "mayapy",
+                            "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"
+                        ]
+                    ]
+                }
+            },
+            "{config-root}/distros/houdini18.5/18.5.351/.hab.json": {
+                "name": "houdini18.5",
+                "version": "18.5.351",
+                "aliases": {
+                    "linux": [
+                        [
+                            "houdini",
+                            "/opt/hfs18.5.351/bin/houdini"
+                        ],
+                        [
+                            "houdini18.5",
+                            {
+                                "cmd": "/opt/hfs18.5.351/bin/houdini",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "houdinicore",
+                            {
+                                "cmd": "/opt/hfs18.5.351/bin/houdinicore",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "hhoudinicore18.5",
+                            {
+                                "cmd": "/opt/hfs18.5.351/bin/houdinicore",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "husk",
+                            {
+                                "cmd": "/opt/hfs18.5.351/bin/husk",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "husk18.5",
+                            {
+                                "cmd": "/opt/hfs18.5.351/bin/husk",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "houdini",
+                            "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\houdini.exe"
+                        ],
+                        [
+                            "houdini18.5",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\houdini.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "houdinicore",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\houdinicore.exe"
+                            }
+                        ],
+                        [
+                            "houdinicore18.5",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\houdinicore.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "husk",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\husk.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "husk18.5",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 18.5.351\\bin\\husk.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ]
+                    ]
+                }
+            },
+            "{config-root}/distros/houdini19.5/19.5.493/.hab.json": {
+                "name": "houdini19.5",
+                "version": "19.5.493",
+                "aliases": {
+                    "linux": [
+                        [
+                            "houdini",
+                            "/opt/hfs19.5.493/bin/houdini"
+                        ],
+                        [
+                            "houdini19.5",
+                            {
+                                "cmd": "/opt/hfs19.5.493/bin/houdini",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "houdinicore",
+                            {
+                                "cmd": "/opt/hfs19.5.493/bin/houdinicore",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "hhoudinicore19.5",
+                            {
+                                "cmd": "/opt/hfs19.5.493/bin/houdinicore",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "husk",
+                            {
+                                "cmd": "/opt/hfs19.5.493/bin/husk",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "husk19.5",
+                            {
+                                "cmd": "/opt/hfs19.5.493/bin/husk",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "houdini",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe",
+                                "hab.launch_cls": {
+                                    "subprocess": "subprocess:Popen"
+                                }
+                            }
+                        ],
+                        [
+                            "houdini19.5",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                },
+                                "hab.launch_cls": {
+                                    "subprocess": "subprocess:Popen"
+                                }
+                            }
+                        ],
+                        [
+                            "houdinicore",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdinicore.exe",
+                                "hab.launch_cls": {
+                                    "subprocess": "subprocess:Popen"
+                                }
+                            }
+                        ],
+                        [
+                            "houdinicore19.5",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdinicore.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                },
+                                "hab.launch_cls": {
+                                    "subprocess": "subprocess:Popen"
+                                }
+                            }
+                        ],
+                        [
+                            "husk",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\husk.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "husk19.5",
+                            {
+                                "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\husk.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ]
+                    ]
+                }
+            },
+            "{config-root}/distros/maya/2020.0/.hab.json": {
+                "name": "maya2020",
+                "environment": {},
+                "aliases": {
+                    "windows": [
+                        [
+                            "maya",
+                            "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe"
+                        ],
+                        [
+                            "mayapy",
+                            "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"
+                        ]
+                    ]
+                },
+                "version": "2020.0"
+            },
+            "{config-root}/distros/maya/2020.1/.hab.json": {
+                "name": "maya2020",
+                "version": "2020.1",
+                "environment": {},
+                "aliases": {
+                    "windows": [
+                        [
+                            "maya",
+                            {
+                                "cmd": "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe",
+                                "icon": "C:\\Windows\\Installer\\{{0EBFFCF6-F972-4D40-863F-E673B5C38236}}\\maya.ico"
+                            }
+                        ],
+                        [
+                            "mayapy",
+                            {
+                                "cmd": "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "maya20",
+                            {
+                                "cmd": "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe",
+                                "icon": "C:\\Windows\\Installer\\{{0EBFFCF6-F972-4D40-863F-E673B5C38236}}\\maya.ico",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "mayapy20",
+                            {
+                                "cmd": "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "pip",
+                            {
+                                "cmd": [
+                                    "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe",
+                                    "-m",
+                                    "pip"
+                                ],
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ]
+                    ],
+                    "linux": [
+                        [
+                            "maya",
+                            {
+                                "cmd": "/usr/local/bin/maya2020"
+                            }
+                        ],
+                        [
+                            "mayapy",
+                            {
+                                "cmd": "/usr/local/bin/mayapy2020",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "maya20",
+                            {
+                                "cmd": "/usr/local/bin/maya2020",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "mayapy20",
+                            {
+                                "cmd": "/usr/local/bin/mayapy2020",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "pip",
+                            {
+                                "cmd": [
+                                    "/usr/local/bin/mayapy2020",
+                                    "-m",
+                                    "pip"
+                                ],
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ]
+                    ]
+                }
+            },
+            "{config-root}/distros/the_dcc/1.0/.hab.json": {
+                "name": "the_dcc",
+                "environment": {},
+                "distros": [
+                    "the_dcc_plugin_a>=1.0",
+                    "the_dcc_plugin_b>=0.9",
+                    "the_dcc_plugin_e"
+                ],
+                "aliases": {
+                    "windows": [
+                        [
+                            "dcc",
+                            "{relative_root}\\the_dcc.exe"
+                        ]
+                    ]
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/the_dcc/1.1/.hab.json": {
+                "name": "the_dcc",
+                "environment": {},
+                "distros": [
+                    "the_dcc_plugin_a>=1.0"
+                ],
+                "aliases": {
+                    "windows": [
+                        [
+                            "dcc",
+                            "{relative_root}\\the_dcc.exe"
+                        ]
+                    ]
+                },
+                "version": "1.1"
+            },
+            "{config-root}/distros/the_dcc/1.2/.hab.json": {
+                "name": "the_dcc",
+                "environment": {},
+                "distros": [
+                    "the_dcc_plugin_a>=1.0",
+                    "the_dcc_plugin_b>=0.9",
+                    "the_dcc_plugin_e"
+                ],
+                "aliases": {
+                    "linux": [
+                        [
+                            "dcc",
+                            "{relative_root}//the_dcc"
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "dcc",
+                            "{relative_root}\\the_dcc.exe"
+                        ]
+                    ]
+                },
+                "version": "1.2"
+            },
+            "{config-root}/distros/the_dcc_plugin_a/0.9/.hab.json": {
+                "name": "the_dcc_plugin_a",
+                "distros": [
+                    "the_dcc_plugin_d",
+                    "the_dcc_plugin_e<2.0",
+                    "the_dcc<1.2"
+                ],
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "0.9"
+            },
+            "{config-root}/distros/the_dcc_plugin_a/1.0/.hab.json": {
+                "name": "the_dcc_plugin_a",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/the_dcc_plugin_a/1.1/.hab.json": {
+                "name": "the_dcc_plugin_a",
+                "distros": [
+                    "the_dcc_plugin_e<2.0",
+                    "the_dcc_plugin_d"
+                ],
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}",
+                        "DCC_CONFIG_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.1"
+            },
+            "{config-root}/distros/the_dcc_plugin_b/0.9/.hab.json": {
+                "name": "the_dcc_plugin_b",
+                "distros": [
+                    "the_dcc<1.2"
+                ],
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "0.9"
+            },
+            "{config-root}/distros/the_dcc_plugin_b/1.0/.hab.json": {
+                "name": "the_dcc_plugin_b",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/the_dcc_plugin_b/1.1/.hab.json": {
+                "name": "the_dcc_plugin_b",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    },
+                    "prepend": {
+                        "DCC_CONFIG_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.1"
+            },
+            "{config-root}/distros/the_dcc_plugin_c/0.9/.hab.json": {
+                "name": "the_dcc_plugin_c",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "0.9"
+            },
+            "{config-root}/distros/the_dcc_plugin_c/1.0/.hab.json": {
+                "name": "the_dcc_plugin_c",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/the_dcc_plugin_c/1.1/.hab.json": {
+                "name": "the_dcc_plugin_c",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.1"
+            },
+            "{config-root}/distros/the_dcc_plugin_d/0.9/.hab.json": {
+                "name": "the_dcc_plugin_d",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "0.9"
+            },
+            "{config-root}/distros/the_dcc_plugin_d/1.0/.hab.json": {
+                "name": "the_dcc_plugin_d",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/the_dcc_plugin_d/1.1/.hab.json": {
+                "name": "the_dcc_plugin_d",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    },
+                    "prepend": {
+                        "DCC_CONFIG_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.1"
+            },
+            "{config-root}/distros/the_dcc_plugin_e/0.9/.hab.json": {
+                "name": "the_dcc_plugin_e",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "0.9"
+            },
+            "{config-root}/distros/the_dcc_plugin_e/1.0/.hab.json": {
+                "name": "the_dcc_plugin_e",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/the_dcc_plugin_e/1.1/.hab.json": {
+                "name": "the_dcc_plugin_e",
+                "environment": {
+                    "append": {
+                        "DCC_MODULE_PATH": "{relative_root}",
+                        "DCC_CONFIG_PATH": "{relative_root}"
+                    }
+                },
+                "version": "1.1"
+            }
+        }
+    }
+}

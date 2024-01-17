@@ -14,7 +14,7 @@ reference_names = [x.name for x in reference_scripts.iterdir()]
 
 
 @pytest.mark.parametrize("reference_name", reference_names)
-def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
+def test_scripts(uncached_resolver, tmpdir, monkeypatch, config_root, reference_name):
     """Checks all of the scripts HabBase.write_script generates for a specified
     set of arguments.
 
@@ -62,7 +62,7 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
     assert platform in ("linux", "osx", "win32")
     monkeypatch.setattr(utils, "Platform", utils.BasePlatform.get_platform(platform))
 
-    cfg = resolver.resolve(spec["uri"])
+    cfg = uncached_resolver.resolve(spec["uri"])
     reference = config_root / "reference_scripts" / reference_name
     ext = spec["ext"]
 
@@ -172,7 +172,7 @@ def test_scripts(resolver, tmpdir, monkeypatch, config_root, reference_name):
 
 
 @pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
-def test_complex_alias_bat(tmpdir, config_root, resolver):
+def test_complex_alias_bat(tmpdir, config_root):
     """This test is a placeholder for a future that can actually call hab's `hab.cli`
     and its aliases to check that they function correctly in Batch.
 
@@ -209,7 +209,7 @@ def test_complex_alias_bat(tmpdir, config_root, resolver):
 
 
 @pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
-def test_complex_alias_ps1(tmpdir, config_root, resolver):
+def test_complex_alias_ps1(tmpdir, config_root):
     """This test is a placeholder for a future that can actually call hab's `hab.cli`
     and its aliases to check that they function correctly in PowerShell.
 
@@ -246,7 +246,7 @@ def test_complex_alias_ps1(tmpdir, config_root, resolver):
 
 
 @pytest.mark.skip(reason="Find a way to test complex alias evaluation in pytest")
-def test_complex_alias_sh(tmpdir, config_root, resolver):
+def test_complex_alias_sh(tmpdir, config_root):
     """This test is a placeholder for a future that can actually call hab's `hab.cli`
     and its aliases to check that they function correctly in Bash.
 
@@ -283,14 +283,14 @@ def test_complex_alias_sh(tmpdir, config_root, resolver):
 
 
 @pytest.mark.parametrize("ext", (".bat", ".ps1", ".sh"))
-def test_invalid_alias(resolver, tmpdir, ext):
+def test_invalid_alias(uncached_resolver, tmpdir, ext):
     """Check that useful errors are raised if an invalid alias is passed or if
     the alias doesn't have "cmd" defined.
     """
     kwargs = dict(ext=ext, exit=True, args=None, create_launch=True)
 
     # Check that calling a bad alias name raises a useful error message
-    cfg = resolver.resolve("not_set/child")
+    cfg = uncached_resolver.resolve("not_set/child")
     with pytest.raises(errors.HabError, match=r'"bad-alias" is not a valid alias name'):
         cfg.write_script(str(tmpdir), launch="bad-alias", **kwargs)
 

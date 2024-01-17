@@ -54,8 +54,8 @@ def test_configure_logging(monkeypatch, tmpdir):
     assert logger.level == 30
 
 
-def test_filename(resolver, tmpdir):
-    prefs = resolver.user_prefs(load=True)
+def test_filename(uncached_resolver, tmpdir):
+    prefs = uncached_resolver.user_prefs(load=True)
     # Defaults to Platform path
     assert prefs.filename == utils.Platform.user_prefs_filename()
 
@@ -67,10 +67,10 @@ def test_filename(resolver, tmpdir):
     assert prefs.load() is False
 
 
-def test_enabled_no_default(resolver):
+def test_enabled_no_default(uncached_resolver):
     """If prefs_default is not specified default to disabled."""
-    resolver.site.pop("prefs_default", None)
-    prefs = user_prefs.UserPrefs(resolver)
+    uncached_resolver.site.pop("prefs_default", None)
+    prefs = user_prefs.UserPrefs(uncached_resolver)
     assert prefs.enabled is False
 
 
@@ -93,18 +93,18 @@ def test_enabled_no_default(resolver):
         ([False], False, False, False),
     ),
 )
-def test_enabled(resolver, setting, default, value, check):
-    resolver.site["prefs_default"] = setting
-    prefs = user_prefs.UserPrefs(resolver)
+def test_enabled(uncached_resolver, setting, default, value, check):
+    uncached_resolver.site["prefs_default"] = setting
+    prefs = user_prefs.UserPrefs(uncached_resolver)
 
     assert prefs.enabled == default
     prefs.enabled = value
     assert prefs.enabled == check
 
 
-def test_timeout(resolver):
-    resolver.site.pop("prefs_uri_timeout", None)
-    prefs = user_prefs.UserPrefs(resolver)
+def test_timeout(uncached_resolver):
+    uncached_resolver.site.pop("prefs_uri_timeout", None)
+    prefs = user_prefs.UserPrefs(uncached_resolver)
 
     def set_uri_last_changed(**kwargs):
         d = datetime.datetime.today()
@@ -120,21 +120,21 @@ def test_timeout(resolver):
     assert prefs.uri_timeout is None
 
     # prefs_uri_timeout enables uri timeout
-    resolver.site["prefs_uri_timeout"] = dict(minutes=5)
+    uncached_resolver.site["prefs_uri_timeout"] = dict(minutes=5)
     assert prefs.uri_timeout == datetime.timedelta(minutes=5)
     assert prefs.uri_is_timedout is False
     set_uri_last_changed(minutes=6)
     assert prefs.uri_is_timedout is True
 
-    resolver.site["prefs_uri_timeout"] = dict(days=30)
+    uncached_resolver.site["prefs_uri_timeout"] = dict(days=30)
     assert prefs.uri_timeout == datetime.timedelta(days=30)
     assert prefs.uri_is_timedout is False
     set_uri_last_changed(days=40)
     assert prefs.uri_is_timedout is True
 
 
-def test_uri(resolver, tmpdir, monkeypatch):
-    resolver.site.pop("prefs_uri_timeout", None)
+def test_uri(uncached_resolver, tmpdir, monkeypatch):
+    uncached_resolver.site.pop("prefs_uri_timeout", None)
 
     # Force the prefs to be saved into the test directory.
     if utils.Platform.name() == "windows":
@@ -142,18 +142,18 @@ def test_uri(resolver, tmpdir, monkeypatch):
     else:
         monkeypatch.setenv("HOME", str(tmpdir))
     # Ensure we are using the modified filepath
-    prefs_a = user_prefs.UserPrefs(resolver)
+    prefs_a = user_prefs.UserPrefs(uncached_resolver)
     assert prefs_a.filename.parent == tmpdir
 
     # No preferences are saved
-    prefs_b = user_prefs.UserPrefs(resolver)
+    prefs_b = user_prefs.UserPrefs(uncached_resolver)
     prefs_b._enabled = False
     assert prefs_b.uri is None
 
     # Preferences store an uri
     prefs_b["uri"] = "app/aliased"
     prefs_b.save()
-    prefs_c = user_prefs.UserPrefs(resolver)
+    prefs_c = user_prefs.UserPrefs(uncached_resolver)
     # Prefs are disabled
     prefs_c._enabled = False
     assert prefs_c.uri is None
@@ -167,17 +167,17 @@ def test_uri(resolver, tmpdir, monkeypatch):
     prefs_c["uri_last_changed"] = last.isoformat()
     prefs_c.save()
 
-    prefs_d = user_prefs.UserPrefs(resolver)
+    prefs_d = user_prefs.UserPrefs(uncached_resolver)
     prefs_d._enabled = True
     # Timeout has not expired
-    resolver.site["prefs_uri_timeout"] = dict(hours=2)
+    uncached_resolver.site["prefs_uri_timeout"] = dict(hours=2)
     assert prefs_d.uri_check().timedout is False
     # Timeout has expired
-    resolver.site["prefs_uri_timeout"] = dict(minutes=5)
+    uncached_resolver.site["prefs_uri_timeout"] = dict(minutes=5)
     assert prefs_d.uri_check().timedout is True
 
     # Check that uri.setter is processed correctly
-    prefs_e = user_prefs.UserPrefs(resolver)
+    prefs_e = user_prefs.UserPrefs(uncached_resolver)
 
     # uri.setter is ignored if prefs are disabled
     prefs_e._enabled = False
@@ -217,7 +217,7 @@ def test_uri(resolver, tmpdir, monkeypatch):
         '{\n    "uri": "app',
     ),
 )
-def test_corruption(resolver, tmpdir, monkeypatch, caplog, test_text):
+def test_corruption(uncached_resolver, tmpdir, monkeypatch, caplog, test_text):
     """Check how UserPrefs handles trying to load an incomplete or empty existing
     json document.
     """
@@ -242,7 +242,7 @@ def test_corruption(resolver, tmpdir, monkeypatch, caplog, test_text):
     else:
         monkeypatch.setenv("HOME", str(tmpdir))
     # Ensure we are using the modified filepath
-    prefs = user_prefs.UserPrefs(resolver)
+    prefs = user_prefs.UserPrefs(uncached_resolver)
     assert prefs.filename.parent == tmpdir
 
     prefs_file = tmpdir / ".hab_user_prefs.json"
@@ -255,7 +255,7 @@ def test_corruption(resolver, tmpdir, monkeypatch, caplog, test_text):
     # Check that the expected log messages are emitted when invalid
     # json file contents are encountered
     caplog.clear()
-    prefs = user_prefs.UserPrefs(resolver)
+    prefs = user_prefs.UserPrefs(uncached_resolver)
     # Even with invalid contents True will be returned
     assert prefs.load()
     # When corrupt prefs are encountered, default empty dict results

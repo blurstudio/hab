@@ -62,14 +62,14 @@ def test_simplify_requirements(helpers, value, check):
         ),
     ),
 )
-def test_invalid_requirement_errors(resolver, requirements, match):
+def test_invalid_requirement_errors(uncached_resolver, requirements, match):
     """Test that the correct error is raised if an invalid or missing requirement
     is specified."""
     with pytest.raises(InvalidRequirementError, match=match):
-        resolver.resolve_requirements(requirements)
+        uncached_resolver.resolve_requirements(requirements)
 
 
-def test_solver_errors(resolver):
+def test_solver_errors(uncached_resolver):
     """Test that the correct errors are raised"""
 
     # Check that if we exceed max_redirects a MaxRedirectError is raised
@@ -83,7 +83,7 @@ def test_solver_errors(resolver):
         )
     )
 
-    solver = Solver(requirements, resolver)
+    solver = Solver(requirements, uncached_resolver)
     solver.max_redirects = 0
     with pytest.raises(MaxRedirectError, match="Redirect limit of 0 reached"):
         solver.resolve()

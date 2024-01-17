@@ -1,10 +1,11 @@
 import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
-import colorama
 import pytest
+from colorama import Fore, Style
 
 from hab import Resolver, Site, utils
+from hab.cache import Cache
 
 
 def test_environment_variables(config_root, monkeypatch):
@@ -258,10 +259,7 @@ def test_dump(config_root):
 
     result = site.dump()
     for check in checks:
-        assert (
-            check.format(green=colorama.Fore.GREEN, reset=colorama.Style.RESET_ALL)
-            in result
-        )
+        assert check.format(green=Fore.GREEN, reset=Style.RESET_ALL) in result
 
     paths = [config_root / "site_override.json"]
     site = Site(paths)
@@ -270,6 +268,65 @@ def test_dump(config_root):
     result = site.dump()
     for check in checks:
         assert check.format(green="", reset="") in result
+
+
+def test_dump_cached(config_root, habcached_site_file):
+    """Test that cached indicators are shown properly for site dump based on
+    verbosity setting."""
+
+    # Create the hab setup with caching only on one of the two site files
+    other_site = config_root / "site_os_specific.json"
+    site = Site([habcached_site_file, other_site])
+    resolver = Resolver(site)
+    site.cache.save_cache(resolver, habcached_site_file)
+
+    # Build a check string to verify that the dump is correctly formatted
+    # Note: To simplify the check_template for testing we will force the dump
+    # to a smaller width to ensure it always wraps the file paths.
+    platform = utils.Platform.name()
+    check_template = (
+        f"{{green}}HAB_PATHS:  {{reset}}{habcached_site_file}{{cached}}",
+        f"            {other_site}",
+        f"{{green}}config_paths:  {{reset}}config\\path\\{platform}",
+        f"               {config_root}\\configs\\*{{cached}}",
+        f"{{green}}distro_paths:  {{reset}}distro\\path\\{platform}",
+        f"               {config_root}\\distros\\*{{cached}}",
+    )
+    check_template = "\n".join(check_template)
+    colors = {
+        "green": Fore.GREEN,
+        "reset": Style.RESET_ALL,
+    }
+    if platform != "windows":
+        check_template = check_template.replace("\\", "/")
+
+    # With color enabled:
+    # No verbosity, should not show cached status
+    assert site.get("colorize") is None
+    result = site.dump(width=60)
+    check = check_template.format(cached="", **colors)
+    assert check in result
+
+    # verbosity enabled, should show cached status
+    result = site.dump(verbosity=1, width=60)
+    check = check_template.format(
+        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}", **colors
+    )
+    assert check in result
+
+    # Disable Color:
+    site["colorize"] = False
+    assert site.get("colorize") is False
+
+    # No verbosity, should not show cached status
+    result = site.dump(width=60)
+    check = check_template.format(cached="", green="", reset="")
+    assert check in result
+
+    # verbosity enabled, should show cached status
+    result = site.dump(verbosity=1, width=60)
+    check = check_template.format(cached=" (cached)", green="", reset="")
+    assert check in result
 
 
 class TestOsSpecific:
@@ -324,16 +381,28 @@ class TestPlatformPathMap:
         assert out == "/usr/local/host/root"
         out = site.platform_path_map("/usr/local/host/root/extra", platform="linux")
         assert out == "/usr/local/host/root/extra"
+        out = site.platform_path_key("/usr/local/host/root", platform="linux")
+        assert out.as_posix() == "{host-root}"
+        out = site.platform_path_key("/usr/local/host/root/extra", platform="linux")
+        assert out.as_posix() == "{host-root}/extra"
 
         out = site.platform_path_map("/usr/local/host/root", platform="osx")
         assert out == "/usr/local/osx/host/root"
         out = site.platform_path_map("/usr/local/host/root/extra", platform="osx")
         assert out == "/usr/local/osx/host/root/extra"
+        out = site.platform_path_key("/usr/local/host/root", platform="osx")
+        assert out.as_posix() == "{host-root}"
+        out = site.platform_path_key("/usr/local/host/root/extra", platform="osx")
+        assert out.as_posix() == "{host-root}/extra"
 
         out = site.platform_path_map("/usr/local/host/root", platform="windows")
         assert out == r"c:\host\root"
         out = site.platform_path_map("/usr/local/host/root/extra", platform="windows")
         assert out == r"c:\host\root\extra"
+        out = site.platform_path_key("/usr/local/host/root", platform="windows")
+        assert out.as_posix() == "{host-root}"
+        out = site.platform_path_key("/usr/local/host/root/extra", platform="windows")
+        assert out.as_posix() == "{host-root}/extra"
 
     def test_win(self, monkeypatch, config_root):
         """For windows check that various inputs are correctly processed."""
@@ -347,6 +416,10 @@ class TestPlatformPathMap:
         assert out == "/usr/local/host/root/extra"
         out = site.platform_path_map("c:/host/root", platform="linux")
         assert out == "/usr/local/host/root"
+        out = site.platform_path_key(r"c:\host\root", platform="linux")
+        assert out.as_posix() == "{host-root}"
+        out = site.platform_path_key(r"c:\host\root\extra", platform="linux")
+        assert out.as_posix() == "{host-root}/extra"
 
         out = site.platform_path_map(r"c:\host\root", platform="osx")
         assert out == "/usr/local/osx/host/root"
@@ -354,6 +427,10 @@ class TestPlatformPathMap:
         assert out == "/usr/local/osx/host/root/extra"
         out = site.platform_path_map("c:/host/root", platform="osx")
         assert out == "/usr/local/osx/host/root"
+        out = site.platform_path_key(r"c:\host\root", platform="osx")
+        assert out.as_posix() == "{host-root}"
+        out = site.platform_path_key(r"c:\host\root\extra", platform="osx")
+        assert out.as_posix() == "{host-root}/extra"
 
         out = site.platform_path_map(r"c:\host\root", platform="windows")
         assert out == r"c:\host\root"
@@ -361,6 +438,16 @@ class TestPlatformPathMap:
         assert out == r"c:\host\root\extra"
         out = site.platform_path_map("c:/host/root", platform="windows")
         assert out == r"c:\host\root"
+        out = site.platform_path_key(r"c:\host\root", platform="windows")
+        assert out.as_posix() == "{host-root}"
+        out = site.platform_path_key(r"c:\host\root\extra", platform="windows")
+        assert out.as_posix() == "{host-root}/extra"
+
+    def test_unset_variables(self, config_root):
+        """Don't modify variables that are not specified in platform_path_map"""
+        site = Site([config_root / "site_main.json"])
+        out = site.platform_path_key("{unset-variable}/is/not/modified")
+        assert out.as_posix() == "{unset-variable}/is/not/modified"
 
 
 class TestPlatformPathMapDict:
@@ -652,3 +739,15 @@ class TestEntryPoints:
                     config_root / "site" / "eps" / "site_finalize.json",
                 ]
             )
+
+    def test_habcache_cls(self, config_root, uncached_resolver):
+        """Test that site entry_point `hab.habcache_cls` is respected."""
+        # By default `hab.cache.Cache` class is used
+        assert isinstance(uncached_resolver.site.cache, Cache)
+
+        # The `hab.habcache_cls` entry_point uses the requested class
+        with pytest.raises(
+            NotImplementedError,
+            match="hab_test_entry_points.CacheVX class was used",
+        ):
+            Site([config_root / "site" / "eps" / "site_habcache_cls.json"])
