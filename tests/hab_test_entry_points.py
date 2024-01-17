@@ -86,3 +86,14 @@ def uri_validate_project_b(resolver, uri):
         splits[0] = "PROJECT_B"
         uri = HabBase.separator.join(splits)
         return uri
+
+
+class CacheVX:
+    """Used to validate that the entry_point `hab_habcache_cls` is respected by
+    raising an exception when initialized.
+
+    Note: A real example of this class would subclass `hab.cache.Cache`.
+    """
+
+    def __init__(self, site):
+        raise NotImplementedError("hab_test_entry_points.CacheVX class was used")

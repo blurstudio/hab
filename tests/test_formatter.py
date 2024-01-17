@@ -53,9 +53,9 @@ def test_language_from_ext(monkeypatch):
         assert Formatter.language_from_ext("") == "sh"
 
 
-def test_format_environment_value(resolver):
+def test_format_environment_value(uncached_resolver):
     forest = {}
-    config = Config(forest, resolver)
+    config = Config(forest, uncached_resolver)
 
     # test_format_environment_value doesn't replace the special formatters.
     # This allows us to delay these formats to only when creating the final

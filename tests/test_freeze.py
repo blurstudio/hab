@@ -140,7 +140,7 @@ def test_unfreeze(config_root, resolver):
     assert cfg.alias_mods is NotSet
 
 
-def test_decode_freeze(config_root, resolver):
+def test_decode_freeze(config_root):
     check_file = config_root / "frozen_no_distros.json"
     checks = utils.json.load(check_file.open())
     v1 = checks["version1"]

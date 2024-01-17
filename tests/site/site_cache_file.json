@@ -1,0 +1,5 @@
+{
+    "set": {
+        "site_cache_file_template": ".{{stem}}.hab_cache"
+    }
+}

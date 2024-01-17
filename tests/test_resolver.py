@@ -749,6 +749,18 @@ def test_clear_caches(resolver):
     assert resolver._distros is None
 
 
+def test_clear_caches_cached(habcached_resolver):
+    """Test that Resolver.clear_cache works when using a habcache."""
+
+    # Populate resolver cache data
+    habcached_resolver.resolve("not_set")
+    assert isinstance(habcached_resolver.site.cache._cache, dict)
+    assert len(habcached_resolver.site.cache._cache)
+
+    habcached_resolver.clear_caches()
+    assert habcached_resolver.site.cache._cache is None
+
+
 def test_uri_validate(config_root):
     """Test the `hab.uri.validate` entry_point."""
     resolver = Resolver(
