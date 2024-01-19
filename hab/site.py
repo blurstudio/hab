@@ -86,7 +86,9 @@ class Site(UserDict):
         ret = "\n".join(ret)
         return utils.dump_title("Dump of Site", f"{site_ret}\n{ret}", color=color)
 
-    def entry_points_for_group(self, group, default=None, entry_points=None):
+    def entry_points_for_group(
+        self, group, default=None, entry_points=None, omit_none=True
+    ):
         """Returns a list of importlib_metadata.EntryPoint objects enabled by
         this site config. To import and resolve the defined object call `ep.load()`.
 
@@ -98,6 +100,9 @@ class Site(UserDict):
                 example: `{"gui": "hab_gui.cli:gui"}`
             entry_points (dict, optional): Use this dictionary instead of the one
                 defined on this Site object.
+            omit_none (bool, optional): If an entry_point's value is set to null/None
+                then don't include an EntryPoint object for it in the return. This
+                allows a second site file to disable a entry_point already set.
         """
         # Delay this import to when required. It's faster than pkg_resources but
         # no need to pay the import price for it if you are not using it.
@@ -119,6 +124,9 @@ class Site(UserDict):
         # using it's `entry_points` function. We want the current site configuration
         # to define the entry points being loaded not the installed pip packages.
         for name, value in ep_defs.items():
+            if omit_none and value is None:
+                continue
+
             ep = EntryPoint(name=name, group=group, value=value)
             ret.append(ep)
         return ret

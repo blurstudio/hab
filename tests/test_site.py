@@ -482,32 +482,68 @@ class TestEntryPoints:
         assert ep.value == "case:func"
 
     @pytest.mark.parametrize(
-        "site_files,import_name,fname",
+        # Note: The default for omit_none is True
+        "site_files,import_name,fname,omit_none",
         (
-            (["site/site_entry_point_a.json"], "hab_test_entry_points", "gui"),
+            (["site/site_entry_point_a.json"], "hab_test_entry_points", "gui", True),
             (
                 ["site/site_entry_point_b.json", "site/site_entry_point_a.json"],
                 "hab_test_entry_points",
                 "gui_alt",
+                True,
             ),
             (
                 ["site/site_entry_point_a.json", "site/site_entry_point_b.json"],
                 "hab_test_entry_points",
                 "gui",
+                True,
+            ),
+            # Tests handling an entry_point value of None
+            (
+                # None value is ignored due to order
+                ["site/site_entry_point_a.json", "site/site_entry_point_c.json"],
+                "hab_test_entry_points",
+                "gui",
+                True,
+            ),
+            (
+                # None value is used, but ignored due to omit_none setting
+                ["site/site_entry_point_c.json", "site/site_entry_point_a.json"],
+                None,
+                None,
+                True,
+            ),
+            (
+                # None value is used, but still returned due to omit_none setting
+                ["site/site_entry_point_c.json", "site/site_entry_point_a.json"],
+                None,
+                None,
+                False,
             ),
         ),
     )
-    def test_site_cli(self, config_root, site_files, import_name, fname):
+    def test_site_cli(self, config_root, site_files, import_name, fname, omit_none):
         """Test a site defining an entry point for `hab.cli`, possibly multiple times."""
         site = Site([config_root / f for f in site_files])
-        entry_points = site.entry_points_for_group("hab.cli")
+        entry_points = site.entry_points_for_group("hab.cli", omit_none=omit_none)
+
+        if import_name is None and omit_none is True:
+            assert len(entry_points) == 0
+            # Nothing else to test if the value is null
+            return
+
         assert len(entry_points) == 1
 
         # Test that the `test-gui` `hab.cli` entry point is handled correctly
         ep = entry_points[0]
         assert ep.name == "test-gui"
         assert ep.group == "hab.cli"
-        assert ep.value == f"{import_name}:{fname}"
+        if omit_none is False:
+            assert ep.value is None
+            # Noting else to test, we can't load a value of None.
+            return
+        else:
+            assert ep.value == f"{import_name}:{fname}"
 
         # Load the module's function
         funct = ep.load()
