@@ -1,0 +1,9 @@
+{
+    "append": {
+        "entry_points": {
+            "hab.cli": {
+                "test-gui": null
+            }
+        }
+    }
+}

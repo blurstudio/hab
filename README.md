@@ -463,6 +463,53 @@ This follows the general rule defined in [duplicate definitions](#duplicate-defi
 Entry_point names should start with `hab.` and use `.` between each following word
 following the group specification on https://packaging.python.org/en/latest/specifications/entry-points/#data-model.
 
+##### Overriding Entry Points
+
+When using multiple site config files you may end up needing to disable a entry point
+in specific conditions. For example you want to enable
+[hab-gui's cli integration](https://github.com/blurstudio/hab-gui) by default,
+but need to disable it for linux farm nodes that have no gui enabled. If you set
+a entry point's value to `null` hab will ignore it and not attempt to load it.
+
+For example if you have your `HAB_PATH` set to `c:\hab\host.json;\\server\share\studio.json`.
+- The `host.json` site file is stored on each workstation and adds distros that
+are not able to be run from over the network.
+- The `studio.json` site file that is shared on the network for ease of deployment.
+It is used by all hab users on all platforms to define most of the studio defaults
+including adding the hab-gui cli as well as the URI configs.
+
+```json5
+// studio.json
+{
+   "append": {
+      "entry_points": {
+         "cli": {
+            "gui": "hab_gui.cli:gui"
+         }
+      }
+   }
+}
+```
+
+For workstations that don't support a gui you modify the workstations `host.json`
+site file, adding a override of the value from `"hab_gui.cli:gui"` to `null`.
+```json5
+// host.json
+{
+   "append": {
+      "entry_points": {
+         "hab.cli": {
+            "gui": null
+         }
+      }
+   }
+}
+```
+Alternatively, you could create a second host site file named `c:\hab\host_no_gui.json`
+put the gui disabling config in that file and on the host's you want to disable
+the gui prepend to `HAB_PATHS=c:\hab\host_no_gui.json;c:\hab\host.json;\\server\share\studio.json`.
+
+
 ### Python version
 
 Hab uses shell script files instead of an entry_point executable. This allows it
