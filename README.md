@@ -417,6 +417,41 @@ Note the order of left/middle/right in the test_paths variable. Also, for
 site file with it defined is used. The other path maps are picked up from the
 site file they are defined in.
 
+#### Platform Path Maps
+
+The site setting `platform_path_maps` is a dictionary, the key is a unique name
+for each mapping, and value is a dictionary of leading directory paths for each platform.
+[PurePath.relative_to](https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.relative_to)
+is used to match, so full directory names need to be used. The unique name allows
+for multiple site json files to override the setting as well as converting
+resolved file paths to str.format style paths (`{server-main}/folder/file.txt`).
+If multiple site json files specify the same key, the right-most site json file
+specifying that key is used. It is safe to use forward slashes for windows paths.
+
+```json
+{
+    "append": {
+        "platform_path_maps": {
+            "server-main": {
+                "linux": "/mnt/main",
+                "windows": "//example//main"
+            },
+            "server-dev": {
+                "linux": "/mnt/dev",
+                "windows": "//example//dev"
+            }
+        }
+    },
+    "set": {
+        "platforms": ["linux", "windows"]
+    }
+}
+```
+
+With these settings, if a path on a linux host, starts with `/mnt/main` when
+generating the corresponding windows file path it will translate it to
+`\\example\main`. Note the use of `platforms` to disable osx platform support.
+
 #### Hab Entry Points
 
 The site file can be used to replace some hab functionality with custom plugins.
@@ -452,6 +487,7 @@ for details on each item.
 | hab.cli | Used by the hab cli to add extra commands. This is expected to be a `click.command` or `click.group` decorated function. |  |  | [All][tt-multi-all] |
 | hab.cfg.reduce.env | Used to make any modifications to a config after the global env is resolved but before aliases are resolved. | `cfg` |  | [All][tt-multi-all] |
 | hab.cfg.reduce.finalize | Used to make any modifications to a config after aliases are resolved and just before the the config finishes reducing. | `cfg` |  | [All][tt-multi-all] |
+| hab.habcache_cls | The class Site uses for its habcache features. This can be used to add features to the habcache system. | `site` |  | [First][tt-multi-first] |
 | hab.launch_cls | Used as the default `cls` by `hab.parsers.Config.launch()` to launch aliases from inside of python. This should be a subclass of subprocess.Popen. A [complex alias](#complex-aliases) may override this per alias. Defaults to [`hab.launcher.Launcher`](hab/launcher.py). [Example](tests/site/site_entry_point_a.json) |  |  | [First][tt-multi-first] |
 | hab.site.add_paths | Dynamically prepends extra [site configuration files](#site) to the current configuration. This entry_point is ignored for any configs added using this entry_point. | `site` | A `list` of `pathlib.Path` for existing site .json files. | [All][tt-multi-all] |
 | hab.site.finalize | Used to modify site configuration files just before the site is fully initialized. | `site` |  | [All][tt-multi-all] |
@@ -509,6 +545,37 @@ Alternatively, you could create a second host site file named `c:\hab\host_no_gu
 put the gui disabling config in that file and on the host's you want to disable
 the gui prepend to `HAB_PATHS=c:\hab\host_no_gui.json;c:\hab\host.json;\\server\share\studio.json`.
 
+#### Habcache
+
+By default hab has to find and process all available configs and distros every
+time it's launched. This has to glob the file paths in `config_paths` and
+`distro_paths`, and parse each file it finds. As you add more distro versions
+and configs this can slow down the launching of hab. This is especially true
+when storing them on the network and when using windows.
+
+To address this you can add per-site habcache files. This is a cross-platform
+collection of all of the found files for a specific site file's `config_paths`
+and `distro_paths` glob strings.
+
+To enable caching run `hab cache /path/to/site_file.json`. This will create a
+habcache file next to the `site_file.json`.
+
+It will be named matching `site["site_cache_file_template"][0]`, which defaults
+to `{stem}.habcache` where stem is the site filename without extension. For the
+example command it would create the file `/path/to/site_file.habcache`. To ensure
+cross platform support, make sure your `HAB_PATHS` configuration contains all of
+the required [`platform_path_maps`](#platform-path-maps) site mappings.
+
+While the `site_file.habcache` exists and `HAB_PATHS` includes `site_file.json`
+hab will use the cached value unless the `--no-cache` flag is used. After adding,
+updating or removing a config or distro, you will need to run the `hab cache`
+command to update the cache with your changes. If using a distribution ci you
+should add this command call there.
+
+The habcache is cross platform as long as the hab site configuration loaded when
+calling `hab cache` has all of the required `platform_path_maps` defined. The
+cache will replace the start of file paths matching one of the current platform's
+mapping values with the mappings key.
 
 ### Python version
 
@@ -528,9 +595,14 @@ the scripts:
 * `colorize`: If `hab dump` should colorize its output for ease of reading.
 * `config_paths`: Configures where URI configs are discovered. See below.
 * `distro_paths`: Configures where distros discovered. See below.
-* `platform_path_maps`: Configures mappings used to convert paths from one
-operating system to another. This is used by the freeze system to ensure that if
-unfrozen on another platform it will still work.
+* `ignored_distros`: Don't use distros that have this version number. This makes
+it possible for a ci to deploy some non-versioned copies of distros next to the
+distros so non-hab workflows can access known file paths. For example this could
+be used to put a latest folder next to each of the releases of a distro and not
+have to remove the .hab.json file in that folder.
+* [`platform_path_maps`](#platform-path-maps): Configures mappings used to convert
+paths from one operating system to another. This is used by the freeze system to
+ensure that if unfrozen on another platform it will still work.
 * `platforms`: A list of platforms that are supported by these hab configurations.
 When using freeze, all of these platforms will be stored. Defaults to linux, osx, windows.
 * `prereleases`: If pre-release distros should be allowed. Works the same as
@@ -545,6 +617,8 @@ to override the default(as long as its not disabled.) `hab --prefs dump ...`.
 than this duration, force the user to re-save the URI returned for `-` when using
 the `--save-prefs` flag. To enable a timeout set this to a dictionary of kwargs
 to initialize a `datetime.timedelta` object.
+* `site_cache_file_template`: The str.format template defining the name of
+[habcache](#habcache) files.
 
 `config_paths` and `distro_paths` take a list of glob paths. For a given glob
 string in these variables you can not have duplicate values. For configs a
@@ -560,35 +634,6 @@ global shared configs/distros they are not working on.
 See [specifying distro version](#specifying-distro-version) for details on specifying a
 distro version in a git repo.
 
-`platform_path_maps` is a dictionary, the key is a unique name for each mapping,
-and value is a dictionary of leading paths for each platform. The unique name
-allows for multiple site json files to override the setting. If multiple site
-json files specify the same key, the right-most site json file specifying that
-key is used.
-
-```json
-{
-    "append": {
-        "platform_path_maps": {
-            "server-main": {
-                "linux": "/mnt/main",
-                "windows": "\\\\example\\main"
-            },
-            "server-dev": {
-                "linux": "/mnt/dev",
-                "windows": "\\\\example\\dev"
-            }
-        }
-    },
-    "set": {
-        "platforms": ["linux", "windows"]
-    }
-}
-```
-
-With these settings, if a path on a linux host, starts with `/mnt/main` when
-generating the corresponding windows file path it will translate it to
-`\\example\main`. Note the use of `platforms` to disable osx platform support.
 
 ### Distro
 

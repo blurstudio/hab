@@ -3,7 +3,10 @@ import os
 from collections import UserDict
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+from colorama import Fore, Style
+
 from . import utils
+from .cache import Cache
 from .merge_dict import MergeDict
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,7 @@ class Site(UserDict):
             "distro_paths": [],
             "ignored_distros": ["release", "pre"],
             "platforms": ["windows", "osx", "linux"],
+            "site_cache_file_template": ["{{stem}}.habcache"],
         }
     }
 
@@ -47,17 +51,28 @@ class Site(UserDict):
 
         self.load()
 
+        # Create the caching class instance using the entry point
+        eps = self.entry_points_for_group("hab.habcache_cls")
+        if eps:
+            habcache_cls = eps[0].load()
+        else:
+            # If not defined use the default cache class
+            habcache_cls = Cache
+        self.cache = habcache_cls(self)
+
     @property
     def data(self):
         return self.frozen_data.get(self.platform)
 
-    def dump(self, verbosity=0, color=None):
+    def dump(self, verbosity=0, color=None, width=80):
         """Return a string of the properties and their values.
 
         Args:
             verbosity (int, optional): More information is shown with higher values.
             color (bool, optional): Add console colorization to output. If None,
                 respect the site property "colorize" defaulting to True.
+            width (int, optional): The desired width for wrapping. The output may
+                exceed this value, but it will attempt to respect it.
 
         Returns:
             str: The configuration converted to a string
@@ -65,21 +80,49 @@ class Site(UserDict):
         if color is None:
             color = self.get("colorize", True)
 
+        def cached_fmt(path, cached):
+            if not cached:
+                return path
+            if color:
+                return f"{path} {Fore.YELLOW}(cached){Style.RESET_ALL}"
+            else:
+                return f"{path} (cached)"
+
         # Include the paths used to configure this site object
-        site_ret = utils.dump_object(
-            {"HAB_PATHS": [str(p) for p in self.paths]}, color=color
-        )
+        hab_paths = []
+        for path in self.paths:
+            if verbosity:
+                # Indicate if a cache file exists for each site config file.
+                cache_file = self.cache.site_cache_path(path)
+                path = cached_fmt(path, cache_file.is_file())
+            hab_paths.append(str(path))
+        site_ret = utils.dump_object({"HAB_PATHS": hab_paths}, color=color, width=width)
         # Include all of the resolved site configurations
         ret = []
         for prop, value in self.items():
-            if verbosity < 1 and isinstance(value, dict):
+            if verbosity and prop in ("config_paths", "distro_paths"):
+                cache = getattr(self.cache, prop)()
+                paths = []
+                for dirname, _, cached in self.cache.iter_cache_paths(
+                    prop, value, cache, include_path=False
+                ):
+                    paths.append(cached_fmt(dirname, cached))
+                txt = utils.dump_object(
+                    paths, label=f"{prop}:  ", color=color, width=width
+                )
+            elif verbosity < 1 and isinstance(value, dict):
                 # This is too complex for most site dumps, hide the details behind
                 # a higher verbosity setting.
                 txt = utils.dump_object(
-                    f"Dictionary keys: {len(value)}", label=f"{prop}:  ", color=color
+                    f"Dictionary keys: {len(value)}",
+                    label=f"{prop}:  ",
+                    color=color,
+                    width=width,
                 )
             else:
-                txt = utils.dump_object(value, label=f"{prop}:  ", color=color)
+                txt = utils.dump_object(
+                    value, label=f"{prop}:  ", color=color, width=width
+                )
 
             ret.append(txt)
 
@@ -191,6 +234,34 @@ class Site(UserDict):
     def paths(self, paths):
         self._paths = paths
 
+    def platform_path_key(self, path, platform=None):
+        """Converts the provided full path to a str.format style path.
+
+        Uses mappings defined in `site.get('platform_path_maps', {})` to convert
+        full file paths to the map key name.
+        """
+        if self.platform == "windows":
+            path = PureWindowsPath(path)
+        else:
+            path = PurePosixPath(path)
+
+        platform = utils.Platform.name()
+        mappings = self.get("platform_path_maps", {})
+
+        for key in mappings:
+            m = mappings[key][platform]
+            try:
+                relative = path.relative_to(m)
+            except ValueError:
+                relative = ""
+            is_relative = bool(relative)
+            if is_relative:
+                # platform_path_maps only replace the start of a file path so
+                # there is no need to continue checking other mappings
+                relative = Path(f"{{{key}}}").joinpath(relative)
+                return relative
+        return path
+
     def platform_path_map(self, path, platform=None):
         """Convert the provided path to one valid for the platform.
 
@@ -259,3 +330,17 @@ class Site(UserDict):
                     mapping[platform] = PureWindowsPath(mapping[platform])
                 else:
                     mapping[platform] = PurePosixPath(mapping[platform])
+
+    def config_paths(self, config_paths):
+        cache = self.cache.config_paths()
+        for dirname, path, _ in self.cache.iter_cache_paths(
+            "config_paths", config_paths, cache, "*.json"
+        ):
+            yield dirname, path
+
+    def distro_paths(self, distro_paths):
+        cache = self.cache.distro_paths()
+        for dirname, path, _ in self.cache.iter_cache_paths(
+            "distro_paths", distro_paths, cache, "*/.hab.json"
+        ):
+            yield dirname, path
