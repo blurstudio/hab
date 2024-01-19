@@ -2,6 +2,7 @@ import logging
 import re
 import sys
 import traceback
+from datetime import datetime
 from pathlib import Path
 
 import click
@@ -168,6 +169,7 @@ class SharedSettings(object):
         dump_scripts=False,
         enable_user_prefs=None,
         enable_user_prefs_save=False,
+        cached=True,
     ):
         self.verbosity = verbosity
         self.script_dir = Path(script_dir or ".").resolve()
@@ -179,6 +181,7 @@ class SharedSettings(object):
         self.site_paths = site_paths if site_paths else []
         self.enable_user_prefs = enable_user_prefs
         self.enable_user_prefs_save = enable_user_prefs_save
+        self.cached = cached
 
     @classmethod
     def log_context(cls, uri):
@@ -192,6 +195,7 @@ class SharedSettings(object):
     def resolver(self):
         if self._resolver is None:
             site = Site(self.site_paths)
+            site.cache.enabled = self.cached
             self._resolver = Resolver(
                 site=site,
                 prereleases=self.prereleases,
@@ -393,7 +397,7 @@ _verbose_errors = False
     "--script-dir",
     callback=SharedSettings.set_ctx_instance,
     type=click.Path(file_okay=False, resolve_path=False),
-    help="This directory will contain the shell specific script files to enable"
+    help="This directory will contain the shell specific script files to enable "
     "this environment configuration.",
 )
 @click.option(
@@ -401,6 +405,13 @@ _verbose_errors = False
     callback=SharedSettings.set_ctx_instance,
     help="The shell specific scripts created in script-dir will have this "
     "format and extension.",
+)
+@click.option(
+    "--cache/--no-cache",
+    "cached",
+    callback=SharedSettings.set_ctx_instance,
+    default=True,
+    help="Allow per-site caching of configs and distros.",
 )
 @click.option(
     "--pre/--no-pre",
@@ -661,6 +672,24 @@ def launch(settings, uri, alias, args):
     any quotes used may not make it to the alias launch arguments. (ie: '/c/Program\\ Files').
     """
     settings.write_script(uri, create_launch=True, launch=alias, exit=True, args=args)
+
+
+# Cache command
+@_cli.command()
+@click.argument("path", type=click.Path(file_okay=True, resolve_path=True))
+@click.pass_obj
+def cache(settings, path):
+    """Create/update the cache for a given site file. The path argument is the
+    site config file. To allow for cross-platform support you should make sure
+    you are loading the same site configuration that will be used by this cache
+    or at least a site configuration that defines the same `platform_path_maps`.
+    """
+    path = Path(path)
+    click.echo(f"Caching: {path}")
+    s = datetime.now()
+    out = settings.resolver.site.cache.save_cache(settings.resolver, path)
+    e = datetime.now()
+    click.echo(f"Cache took: {e - s}, cache file: {out}")
 
 
 def cli(*args, **kwargs):

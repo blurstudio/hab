@@ -18,6 +18,9 @@ class Config(HabBase):
         self._alias_mods = NotSet
         super().__init__(*args, **kwargs)
 
+    def _cache(self):
+        return self.resolver.site.cache.config_paths(flat=True)
+
     @hab_property(process_order=120)
     def aliases(self):
         """Dict of the names and commands that need created to launch desired

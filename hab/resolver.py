@@ -1,6 +1,5 @@
 # __all__ = ["Resolver"]
 
-import glob
 import logging
 
 import anytree
@@ -75,6 +74,7 @@ class Resolver(object):
         logger.debug("Resolver cache cleared.")
         self._configs = None
         self._distros = None
+        self.site.cache.clear()
 
     def closest_config(self, path, default=False):
         """Returns the most specific leaf or the tree root matching path. Ignoring any
@@ -261,20 +261,18 @@ class Resolver(object):
     def parse_configs(self, config_paths, forest=None):
         if forest is None:
             forest = {}
-        for dirname in config_paths:
-            for path in sorted(glob.glob(str(dirname / "*.json"))):
-                Config(forest, self, path, root_paths=set((dirname,)))
+        for dirname, path in self.site.config_paths(config_paths):
+            Config(forest, self, path, root_paths=set((dirname,)))
         return forest
 
     def parse_distros(self, distro_paths, forest=None):
         if forest is None:
             forest = {}
-        for dirname in distro_paths:
-            for path in sorted(glob.glob(str(dirname / "*" / ".hab.json"))):
-                try:
-                    DistroVersion(forest, self, path, root_paths=set((dirname,)))
-                except _IgnoredVersionError as error:
-                    logger.debug(str(error))
+        for dirname, path in self.site.distro_paths(distro_paths):
+            try:
+                DistroVersion(forest, self, path, root_paths=set((dirname,)))
+            except _IgnoredVersionError as error:
+                logger.debug(str(error))
         return forest
 
     def resolve(self, uri):

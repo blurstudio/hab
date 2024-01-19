@@ -62,6 +62,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         cls = type(self)
         return "{}.{}('{}')".format(cls.__module__, cls.__name__, self.fullpath)
 
+    def _cache(self):
+        return {}
+
     def _collect_values(self, node, props=None, default=False):
         """Recursively process this config node and its parents until all
         missing_values have been resolved or we run out of parents.
@@ -517,10 +520,23 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         # Note: Sub-classes need to override this method to enable inheritance.
         return False
 
-    def _load(self, filename):
-        """Sets self.filename and parses the json file returning the data."""
+    def _load(self, filename, cached=True):
+        """Sets self.filename and parses the json file returning the data dict.
+
+        Args:
+            filename (pathlib.Path): The file to load.
+            cached (bool, optional): Enables loading of cached data instead of
+                loading the data from disk.
+        """
         self.filename = Path(filename)
-        logger.debug('Loading "{}"'.format(filename))
+
+        if cached:
+            ret = self._cache().get(Path(filename).as_posix())
+            if ret:
+                logger.debug(f'Cached: "{filename}"')
+                return ret
+
+        logger.debug(f'Loading "{filename}"')
         return utils.load_json_file(self.filename)
 
     def load(self, filename, data=None):
