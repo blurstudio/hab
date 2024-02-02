@@ -769,20 +769,57 @@ and `Sc11`. The URI of `not_a_project/Sc101` would end up using `default/Sc1`. T
 `not_a_project/Sc110` would use `default/Sc11`. The URI `not_a_project/Sc200` would
 use `default`.
 
-### Variable Formatting
+### Str Formatting
 
-The configuration environment variables and aliases can be formatted using str.format syntax.
+The configuration environment variables and aliases can be formatted using
+`str.format`. Hab extends the python [Format Specification Mini-Language](https://docs.python.org/3/library/string.html#formatspec)
+with these extra features:
+* `{ANYTHING!e}`: `!e` is a special conversion flag for Environment variables. This will
+be replaced with the correct shell environment variable. For bash it becomes `$ANYTHING`,
+in power shell `$env:ANYTHING`, and in command prompt `%ANYTHING%`. `ANYTHING` is the name
+of the environment variable.
 
-Currently supported variables:
+#### Hab specific variables
+
+Hab defines some specific variables. These are used when parsing an individual json file:
 * `{relative_root}`: The directory name of the .json config file. Think of this as the relative path
 `.` when using the command line, but this is a clear indication that it needs to be
 replaced with the dirname and not left alone.
-* `{ANYTHING!e}`: `!e` is a special conversion flag for Environment variables. This will
-be replaced with the correct shell environment variable. For bash it becomes `$ANYTHING`,
-in power shell `$env:ANYTHING`, and in command prompt `%ANYTHING%`. ANYTHING is the name
-of the environment variable.
 * `{;}`: This is replaced with the path separator for the shell. Ie `:` for bash, and `;`
 on windows(including bash).
+
+#### Custom variables
+
+You can define custom variables in a json file by defining a "variables" dictionary.
+You can use these keys in other parts of that file. An `ReservedVariableNameError`
+will be raised if you try to replace hab specific variables like `relative_root` and `;`.
+
+```json5
+{
+   "name": "maya2024",
+   "variables": {
+     "maya_root_linux": "/usr/autodesk/maya2024/bin",
+     "maya_root_windows": "C:/Program Files/Autodesk/Maya2024/bin"
+   },
+   "aliases": {
+     "linux": [
+         ["maya", {"cmd": "{maya_root_linux}/maya"}]
+      ],
+     "windows": [
+         ["maya", {"cmd": "{maya_root_windows}\\maya.exe"}]
+      ]
+   }
+}
+```
+
+The [maya2024](tests/distros/maya2024/2024.0/.hab.json) testing example shows a
+way to centralize the path to the Maya bin directory. This way automated tools
+can easily change the install directory of maya if it needs to be installed
+into a custom location on specific workstations, or remote computers.
+
+Note: Using hard coded paths like `maya_root_windows` should be avoided unless
+you really can't use `relative_root`. `relative_root` is more portable across
+workstation setups as it doesn't require any modifications when the path changes.
 
 ### Min_Verbosity
 

@@ -9,7 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 from packaging.version import Version
 
 from .. import NotSet, utils
-from ..errors import DuplicateJsonError, HabError
+from ..errors import DuplicateJsonError, HabError, ReservedVariableNameError
 from ..formatter import Formatter
 from ..site import MergeDict
 from ..solvers import Solver
@@ -48,6 +48,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         self._filename = None
         self._dirname = None
         self._distros = NotSet
+        self._variables = NotSet
         self._uri = NotSet
         self.parent = parent
         self.root_paths = set()
@@ -472,9 +473,14 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             # Just return boolean values, no need to format
             return value
 
-        # Expand and format any variables like "relative_root" using the current
-        # platform for paths.
-        kwargs = dict(relative_root=utils.path_forward_slash(self.dirname))
+        # Include custom variables in the format dictionary.
+        kwargs = {}
+        if self.variables:
+            kwargs.update(self.variables)
+
+        # Custom variables do not override hab variables, ensure they are set
+        # to the correct value.
+        kwargs["relative_root"] = utils.path_forward_slash(self.dirname)
         ret = Formatter(ext).format(value, **kwargs)
 
         # Use site.the platform_path_maps to convert the result to the target platform
@@ -553,6 +559,8 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         # Check for NotSet so sub-classes can set values before calling super
         if self.name is NotSet:
             self.name = data["name"]
+        if self.variables is NotSet:
+            self.variables = data.get("variables", NotSet)
         if "version" in data and self.version is NotSet:
             self.version = data.get("version")
         if self.distros is NotSet:
@@ -705,6 +713,25 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 )
         if alias_name:
             _apply(self.aliases[alias_name].get("environment", {}))
+
+    @hab_property(verbosity=3)
+    def variables(self):
+        """A configurable dict of reusable key/value pairs to use when formatting
+        text strings in the rest of the json file. This value is stored in the
+        `variables` dictionary of the json file.
+        """
+        return self._variables
+
+    @variables.setter
+    def variables(self, variables):
+        # Raise an exception if a reserved variable name is used.
+        if variables and isinstance(variables, dict):
+            invalid = ReservedVariableNameError._reserved_variable_names.intersection(
+                variables
+            )
+            if invalid:
+                raise ReservedVariableNameError(invalid, self.filename)
+        self._variables = variables
 
     @property
     def version(self):

@@ -10,8 +10,13 @@ import setuptools_scm
 from packaging.version import Version
 
 from hab import NotSet, utils
-from hab.errors import DuplicateJsonError, InvalidVersionError, _IgnoredVersionError
-from hab.parsers import Config, DistroVersion
+from hab.errors import (
+    DuplicateJsonError,
+    InvalidVersionError,
+    ReservedVariableNameError,
+    _IgnoredVersionError,
+)
+from hab.parsers import Config, DistroVersion, FlatConfig
 
 
 def test_distro_parse(config_root, resolver):
@@ -214,6 +219,7 @@ def test_metaclass():
             "filename",
             "min_verbosity",
             "name",
+            "variables",
             "version",
         ]
     )
@@ -229,6 +235,7 @@ def test_metaclass():
             "inherits",
             "name",
             "uri",
+            "variables",
         ]
     )
 
@@ -987,3 +994,102 @@ def test_update_environ(resolver):
     del check["ALIASED_GLOBAL_D"]
     check_freeze(env)
     assert env == check
+
+
+class TestCustomVariables:
+    def test_distro(self, uncached_resolver):
+        """Test that a distro processes valid custom variables correctly."""
+        distro = uncached_resolver.distros["maya2024"].latest_version("maya2024")
+        assert distro.name == "maya2024==2024.0"
+
+        # Check that the custom variables are assigned
+        check = {
+            "maya_root_linux": "/usr/autodesk/maya2024/bin",
+            "maya_root_windows": "C:/Program Files/Autodesk/Maya2024/bin",
+        }
+        assert distro.variables == check
+
+        # Check that the aliases have not had their custom vars replaced
+        alias = distro.aliases["windows"][0]
+        assert alias[0] == "maya"
+        assert alias[1]["cmd"] == "{maya_root_windows}/maya.exe"
+        alias = distro.aliases["linux"][0]
+        assert alias[0] == "maya"
+        assert alias[1]["cmd"] == "{maya_root_linux}/maya"
+
+        # Check that the custom variables are replaced when formatting
+        formatted = distro.format_environment_value(distro.aliases)
+
+        alias = formatted["windows"][0]
+        assert alias[0] == "maya"
+        assert alias[1]["cmd"] == f"{check['maya_root_windows']}/maya.exe"
+        alias = formatted["linux"][0]
+        assert alias[0] == "maya"
+        assert alias[1]["cmd"] == f"{check['maya_root_linux']}/maya"
+
+    @pytest.mark.parametrize("config_class", ("Config", "FlatConfig"))
+    def test_config(self, uncached_resolver, config_class):
+        """Test that a config processes valid custom variables correctly."""
+        if config_class == "Config":
+            cfg = uncached_resolver.closest_config("project_a")
+            assert type(cfg) == Config
+        else:
+            cfg = uncached_resolver.resolve("project_a")
+            assert type(cfg) == FlatConfig
+
+        check = {
+            "mount_linux": "/blur/g",
+            "mount_windows": "G:",
+        }
+        assert cfg.variables == check
+
+        cfg.environment
+        env = cfg.frozen_data["environment"]
+        # Check the mount_linux variable was replaced correctly
+        assert env["linux"]["HOUDINI_OTLSCAN_PATH"] == [
+            "/blur/g/project_a/cfg/hdas",
+            "/blur/g/_shared/cfg/hdas",
+            "&",
+        ]
+        assert env["linux"]["OCIO"] == ["/blur/g/project_a/cfg/ocio/v0001/config.ocio"]
+
+        # Check the mount_windows variable was replaced correctly
+        assert env["windows"]["HOUDINI_OTLSCAN_PATH"] == [
+            "G:/project_a/cfg/hdas",
+            "G:/_shared/cfg/hdas",
+            "&",
+        ]
+        assert env["windows"]["OCIO"] == ["G:/project_a/cfg/ocio/v0001/config.ocio"]
+
+    @pytest.mark.parametrize(
+        "variables,invalid",
+        (
+            ({"relative_root": "Not Valid"}, "relative_root"),
+            ({"relative_root": "Not Valid", ";": "Not Valid"}, ";, relative_root"),
+            ({"valid": "Valid", ";": "Not Valid"}, ";"),
+        ),
+    )
+    def test_reserved(self, uncached_resolver, variables, invalid, tmpdir):
+        """Test that using a reserved variable raises an exception."""
+
+        # Create a test distro file using the given reserved variables
+        template = {
+            "name": "maya2024",
+            "version": "2024.99",
+            "variables": variables,
+        }
+        distro_file = tmpdir / "maya2024" / ".hab.json"
+        Path(distro_file).parent.mkdir()
+        with distro_file.open("w") as fle:
+            json.dump(template, fle, indent=4, cls=utils.HabJsonEncoder)
+
+        # Add the test distro to hab's distro search. We don't need to call
+        # `clear_caches` because distros haven't been resolved yet.
+        uncached_resolver.distro_paths.append(Path(tmpdir))
+
+        # When distros are resolved, an exception should be raised
+        with pytest.raises(
+            ReservedVariableNameError,
+            match=rf"'{invalid}' are reserved variable name\(s\) for hab",
+        ):
+            uncached_resolver.distros

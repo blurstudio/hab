@@ -1,0 +1,8 @@
+{
+    "name": "2024",
+    "context": ["app", "maya"],
+    "inherits": true,
+    "distros": [
+        "maya2024"
+    ]
+}

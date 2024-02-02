@@ -5,5 +5,32 @@
     "distros": [
         "maya2020",
         "houdini18.5"
-    ]
+    ],
+    "environment": {
+        "os_specific": true,
+        "linux": {
+            "set": {
+                "OCIO": "{mount_linux}/project_a/cfg/ocio/v0001/config.ocio",
+                "HOUDINI_OTLSCAN_PATH": [
+                    "{mount_linux}/project_a/cfg/hdas",
+                    "{mount_linux}/_shared/cfg/hdas",
+                    "&"
+                ]
+            }
+        },
+        "windows": {
+            "set": {
+                "OCIO": "{mount_windows}/project_a/cfg/ocio/v0001/config.ocio",
+                "HOUDINI_OTLSCAN_PATH": [
+                    "{mount_windows}/project_a/cfg/hdas",
+                    "{mount_windows}/_shared/cfg/hdas",
+                    "&"
+                ]
+            }
+        }
+    },
+    "variables": {
+        "mount_linux": "/blur/g",
+        "mount_windows": "G:"
+    }
 }

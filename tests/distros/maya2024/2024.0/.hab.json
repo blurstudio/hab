@@ -1,0 +1,79 @@
+{
+    "name": "maya2024",
+    "variables": {
+        "maya_root_linux": "/usr/autodesk/maya2024/bin",
+        "maya_root_windows": "C:/Program Files/Autodesk/Maya2024/bin"
+    },
+    "aliases": {
+        "windows": [
+            [
+                "maya", {
+                    "cmd": "{maya_root_windows}/maya.exe"
+                }
+            ],
+            [
+                "mayapy", {
+                    "cmd": "{maya_root_windows}/mayapy.exe",
+                    "min_verbosity": {"global": 2}
+                }
+            ],
+            [
+                "maya24", {
+                    "cmd": "{maya_root_windows}/maya.exe",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            [
+                "mayapy24", {
+                    "cmd": "{maya_root_windows}/mayapy.exe",
+                    "min_verbosity": {"global": 2}
+                }
+            ],
+            [
+                "pip", {
+                    "cmd": [
+                        "{maya_root_windows}/mayapy.exe",
+                        "-m",
+                        "pip"
+                    ],
+                    "min_verbosity": {"global": 2}
+                }
+            ]
+        ],
+        "linux": [
+            [
+                "maya", {
+                    "cmd": "{maya_root_linux}/maya"
+                }
+            ],
+            [
+                "mayapy", {
+                    "cmd": "{maya_root_linux}/mayapy",
+                    "min_verbosity": {"global": 2}
+                }
+            ],
+            [
+                "maya24", {
+                    "cmd": "{maya_root_linux}/maya",
+                    "min_verbosity": {"global": 1}
+                }
+            ],
+            [
+                "mayapy24", {
+                    "cmd": "{maya_root_linux}/mayapy",
+                    "min_verbosity": {"global": 2}
+                }
+            ],
+            [
+                "pip", {
+                    "cmd": [
+                        "{maya_root_linux}/mayapy",
+                        "-m",
+                        "pip"
+                    ],
+                    "min_verbosity": {"global": 2}
+                }
+            ]
+        ]
+    }
+}

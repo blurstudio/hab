@@ -52,3 +52,20 @@ class InvalidVersionError(LookupError):
         if self.error:
             ret = f"[{type(self.error).__name__}] {self.error}\n{ret}"
         return ret
+
+
+class ReservedVariableNameError(HabError):
+    """Raised if a custom variable uses a reserved variable name."""
+
+    _reserved_variable_names = {"relative_root", ";"}
+    """A set of variable names hab reserved for hab use and should not be defined
+    by custom variables."""
+
+    def __init__(self, invalid, filename):
+        self.filename = filename
+        msg = (
+            f"{', '.join(sorted(invalid))!r} are reserved variable name(s) for "
+            "hab and can not be used in the variables section. "
+            f"Filename: '{self.filename}'"
+        )
+        super().__init__(msg)
