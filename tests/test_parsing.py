@@ -32,7 +32,7 @@ def test_distro_parse(config_root, resolver):
     # Verify that if the json file doesn't have "version" defined it uses the
     # parent directory as its version.
     app = DistroVersion(forest, resolver)
-    path = config_root / "distros" / "maya" / "2020.0" / ".hab.json"
+    path = config_root / "distros" / "maya2020" / "2020.0" / ".hab.json"
     app.load(path)
     check = json.load(path.open())
 

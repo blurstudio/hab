@@ -1093,7 +1093,7 @@
                     ]
                 }
             },
-            "{config-root}/distros/maya/2020.0/.hab.json": {
+            "{config-root}/distros/maya2020/2020.0/.hab.json": {
                 "name": "maya2020",
                 "environment": {},
                 "aliases": {
@@ -1110,7 +1110,7 @@
                 },
                 "version": "2020.0"
             },
-            "{config-root}/distros/maya/2020.1/.hab.json": {
+            "{config-root}/distros/maya2020/2020.1/.hab.json": {
                 "name": "maya2020",
                 "version": "2020.1",
                 "environment": {},
