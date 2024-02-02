@@ -133,6 +133,17 @@
                     "maya2020"
                 ]
             },
+            "{config-root}/configs/app/app_maya_2024.json": {
+                "name": "2024",
+                "context": [
+                    "app",
+                    "maya"
+                ],
+                "inherits": true,
+                "distros": [
+                    "maya2024"
+                ]
+            },
             "{config-root}/configs/default/default.json": {
                 "name": "default",
                 "context": [],
@@ -384,7 +395,34 @@
                 "distros": [
                     "maya2020",
                     "houdini18.5"
-                ]
+                ],
+                "environment": {
+                    "os_specific": true,
+                    "linux": {
+                        "set": {
+                            "OCIO": "{mount_linux}/project_a/cfg/ocio/v0001/config.ocio",
+                            "HOUDINI_OTLSCAN_PATH": [
+                                "{mount_linux}/project_a/cfg/hdas",
+                                "{mount_linux}/_shared/cfg/hdas",
+                                "&"
+                            ]
+                        }
+                    },
+                    "windows": {
+                        "set": {
+                            "OCIO": "{mount_windows}/project_a/cfg/ocio/v0001/config.ocio",
+                            "HOUDINI_OTLSCAN_PATH": [
+                                "{mount_windows}/project_a/cfg/hdas",
+                                "{mount_windows}/_shared/cfg/hdas",
+                                "&"
+                            ]
+                        }
+                    }
+                },
+                "variables": {
+                    "mount_linux": "/blur/g",
+                    "mount_windows": "G:"
+                }
             },
             "{config-root}/configs/project_a/project_a_Sc001.json": {
                 "name": "Sc001",
@@ -1214,6 +1252,112 @@
                         ]
                     ]
                 }
+            },
+            "{config-root}/distros/maya2024/2024.0/.hab.json": {
+                "name": "maya2024",
+                "variables": {
+                    "maya_root_linux": "/usr/autodesk/maya2024/bin",
+                    "maya_root_windows": "C:/Program Files/Autodesk/Maya2024/bin"
+                },
+                "aliases": {
+                    "windows": [
+                        [
+                            "maya",
+                            {
+                                "cmd": "{maya_root_windows}/maya.exe"
+                            }
+                        ],
+                        [
+                            "mayapy",
+                            {
+                                "cmd": "{maya_root_windows}/mayapy.exe",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "maya24",
+                            {
+                                "cmd": "{maya_root_windows}/maya.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "mayapy24",
+                            {
+                                "cmd": "{maya_root_windows}/mayapy.exe",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "pip",
+                            {
+                                "cmd": [
+                                    "{maya_root_windows}/mayapy.exe",
+                                    "-m",
+                                    "pip"
+                                ],
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ]
+                    ],
+                    "linux": [
+                        [
+                            "maya",
+                            {
+                                "cmd": "{maya_root_linux}/maya"
+                            }
+                        ],
+                        [
+                            "mayapy",
+                            {
+                                "cmd": "{maya_root_linux}/mayapy",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "maya24",
+                            {
+                                "cmd": "{maya_root_linux}/maya",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "mayapy24",
+                            {
+                                "cmd": "{maya_root_linux}/mayapy",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "pip",
+                            {
+                                "cmd": [
+                                    "{maya_root_linux}/mayapy",
+                                    "-m",
+                                    "pip"
+                                ],
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ]
+                    ]
+                },
+                "version": "2024.0"
             },
             "{config-root}/distros/the_dcc/1.0/.hab.json": {
                 "name": "the_dcc",

@@ -117,6 +117,7 @@ class TestDumpForest:
         "  app/houdini/b",
         "  app/maya",
         "  app/maya/2020",
+        "  app/maya/2024",
         "default",
         "  default/Sc1",
         "  default/Sc11",
@@ -166,6 +167,7 @@ class TestDumpForest:
             result = list(resolver.dump_forest(resolver.configs))
         check.remove("  app/maya")
         check.remove("  app/maya/2020")
+        check.remove("  app/maya/2024")
         check.remove("verbosity")
         check.remove("  verbosity/inherit")
         assert result == check
@@ -213,6 +215,7 @@ class TestDumpForest:
             result = list(resolver.dump_forest(resolver.configs))
         check.remove("  app/maya")
         check.remove("  app/maya/2020")
+        check.remove("  app/maya/2024")
         check.remove("verbosity")
         check.remove("  verbosity/inherit")
         check.remove("  verbosity/inherit-override")
@@ -237,6 +240,8 @@ class TestDumpForest:
             "maya2020",
             "  maya2020==2020.0",
             "  maya2020==2020.1",
+            "maya2024",
+            "  maya2024==2024.0",
             "the_dcc",
             "  the_dcc==1.0",
             "  the_dcc==1.1",
@@ -283,6 +288,8 @@ class TestDumpForest:
             "maya2020",
             "  maya2020==2020.0",
             "  maya2020==2020.1",
+            "maya2024",
+            "  maya2024==2024.0",
             "the_dcc",
             "  the_dcc==1.0",
             "  ...",
