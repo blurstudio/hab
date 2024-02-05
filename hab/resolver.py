@@ -85,8 +85,8 @@ class Resolver(object):
             default (bool, optional): If True, search the default tree instead of the
                 tree specified by the first name in path. The leaf nodes do not need to
                 match names exactly, it will pick a default leaf that starts with the
-                most common characters. Ie if path is `:project_a:Sc001` it would match
-                `:default:Sc0` not `:default:Sc01`.
+                most common characters. Ie if path is `project_a/Sc001` it would match
+                `default/Sc0` not `default/Sc01`.
         """
         if not path.startswith(HabBase.separator):
             path = "".join((HabBase.separator, path))
