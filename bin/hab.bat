@@ -5,9 +5,22 @@
 
 @ECHO OFF
 
-:: Generate a unique temp file name
+:: Generate a unique temp folder to store hab's short term temp .bat files.
+:: Batch's %RANDOM% isn't so random, https://devblogs.microsoft.com/oldnewthing/20100617-00/?p=13673
+:: So if you are calling hab as a batch of subprocesses, you may run into issues
+:: where multiple processes use the same random folder causing the dir to get
+:: removed while the later processes finish.
+
+:: 1. To work around this issue we add the current process's PID to the filename.
+:: https://superuser.com/a/1746190
+for /f "USEBACKQ TOKENS=2 DELIMS=="  %%A in (`wmic process where ^(Name^="WMIC.exe" AND CommandLine LIKE "%%%%TIME%%%%"^) get ParentProcessId /value`) do set "PID=%%A"
+rem echo PID: %PID%
+rem timeout 10
+
+:: 2. We also add a random number to hopefully reduce the chance of name conflicts
 :uniqLoop
-set "temp_directory=%tmp%\hab~%RANDOM%"
+set "temp_directory=%tmp%\hab~%RANDOM%-%PID%"
+:: If the folder already exists, re-generate a new folder name
 if exist "%temp_directory%" goto :uniqLoop
 
 :: Create the launch and config filenames we will end up using
