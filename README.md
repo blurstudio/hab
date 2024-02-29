@@ -1214,6 +1214,69 @@ to work with Houdini 19.5 that ships with very dated versions of these packages.
 In practice this just means that we have to cast pathlib objects to strings before
 passing them to Jinja2.
 
+## Concurrency
+This is the recommended way to launch a bunch of alias commands at once from
+within a python process.
+
+```py
+import hab
+
+# Resolve the hab configuration
+hab_uri = 'app/aliased'
+resolver = hab.Resolver()
+cfg = resolver.resolve(hab_uri)
+
+# Launch the processes concurrently
+procs = []
+for _ in range(10):
+    proc = cfg.launch("as_str", ["-c", "print('done')"])
+    procs.append(proc)
+
+# Example of waiting for all of them to finish and check for issues
+errors = 0
+for proc in procs:
+    out, _ = proc.communicate()
+    print(proc.returncode, '-' * 50, '\n', out)
+    if proc.returncode:
+        print("# BROKEN", proc.returncode)
+        errors += 1
+print(f'Finished with {errors} errors')
+```
+
+Using `cfg.launch` directly calls the alias with the correct environment variables
+without the need for each subprocess to have to re-evaluate the hab environment,
+then launch the actual alias application as its own subprocess.
+
+If not using python, the preferred method is to use `hab env` to configure your
+environment once, and then call the aliases in bulk.
+
+### Concurrency in Command Prompt
+
+This only applies to running hab in batch mode on windows using the cli and
+launching multiple processes at once using the same user. You may
+run into issues where the temp dir each hab command creates gets re-used by
+multiple processes.
+
+By default `hab.bat` uses `%RANDOM%` which is very fast but uses time for its seed
+which has a [maximum resolution of seconds](https://devblogs.microsoft.com/oldnewthing/20100617-00/?p=13673).
+This is normally not an issue as a user is not able to call hab fast enough to
+cause the issue.
+```
+A subdirectory or file C:\Users\username\AppData\Local\Temp\hab~7763 already exists.
+```
+If you end up seeing this message, or run into deleted file errors, then you can
+set the env var `HAB_RANDOM` to one of these values. It is only respected when using
+hab in batch mode.
+
+| Value | Notes | ~ Time |
+|---|---|---|
+| fast | The default, uses `%RANDOM%` which is fast but may conflict when running concurrently. | 0.07s |
+| safe | Uses python to generate a UUID. This is somewhat slower or it would be used by default. | 0.22s |
+| [Anything else] | Anything else is a command to run and the output is captured as the unique value. |  |
+
+Approximate time generated using `time cmd.exe /c  "hab -h"` in git bash after
+omitting the `%py_exe% -m ...` call.
+
 # Glosary
 
 * **activate:** Update the current process(shell) for a given configuration. Name taken
