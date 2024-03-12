@@ -324,7 +324,35 @@ an int value or None. If not specified(ie None), then the default version is use
 
 ## API
 
-TODO
+Simple example of resolving an hab URI using the python api.
+```py
+import hab
+
+# Ensure the env var `HAB_PATHS` is set pointing to one or more site files.
+resolver = hab.Resolver.instance()
+# Load the config for the given URI
+cfg = resolver.resolve("app/aliased")
+# Launch the alias and run a command in a sub-process
+proc = cfg.launch("as_str", ["-c", "print('done')"])
+```
+The `hab.Resolver.instance()` call allows you to cache the configuration of all
+configs and distros so they only need to be processed once. This allows isolated
+code to access the same resolver information without needing a storage variable.
+If you need more than one shared instance of `Resolver` you can pass name to
+`hab.Resolver.instance(name="studio")`. You can also pass any kwargs that
+`hab.Resolver` accepts, but they are ignored after the first call
+(`hab.Resolver.instance(name="studio", site=studio_site)`).
+
+The above examples are relying on the `HAB_PATHS` env var to define site. You can
+also directly define a Site.
+```py
+import hab
+from pathlib import Path
+
+root = Path(r'/mnt/studio/config')
+site = hab.Site([root / "site_main.json", root / "site_override.json"])
+resolver = hab.Resolver(site=site)
+```
 
 ## Configuration
 
@@ -1223,7 +1251,7 @@ import hab
 
 # Resolve the hab configuration
 hab_uri = 'app/aliased'
-resolver = hab.Resolver()
+resolver = hab.Resolver.instance()
 cfg = resolver.resolve(hab_uri)
 
 # Launch the processes concurrently

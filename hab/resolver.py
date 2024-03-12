@@ -29,6 +29,8 @@ class Resolver(object):
             ease of hab package development and should not be used in production.
     """
 
+    _instances = {}
+
     def __init__(
         self,
         site=None,
@@ -257,6 +259,33 @@ class Resolver(object):
         if requirement.name in self.distros:
             app = self.distros[requirement.name]
             return app.latest_version(requirement)
+
+    @classmethod
+    def instance(cls, name="main", **kwargs):
+        """Returns a shared Resolver instance for name, initializing it if required.
+
+        The Resolver class caches a lot of information so you only need to pay
+        the price of processing a hab config once per instance. When using hab
+        as an api, this lets you easily re-use the same resolver across distinct
+        code paths. Be aware that **kwargs is ignored once a specific instance
+        is created if you need to customize the resolver instance.
+
+        Args:
+            name (str, optional): The name of the desired instance. This allows
+                you to have multiple Resolver instances with their own settings.
+            **kwargs: All kwargs are passed to the Resolver initialization if
+                this call needs to create the instance. Otherwise its ignored.
+        """
+        # Return the previously created instance if it exists
+        instance = cls._instances.get(name)
+        if instance:
+            return instance
+
+        # Otherwise, create a new instance, cache and return it
+        logger.debug(f"Creating {cls} instance with kwargs: {kwargs}")
+        instance = cls(**kwargs)
+        cls._instances[name] = instance
+        return instance
 
     def parse_configs(self, config_paths, forest=None):
         if forest is None:
