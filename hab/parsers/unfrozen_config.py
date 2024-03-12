@@ -1,7 +1,7 @@
 import logging
 from copy import deepcopy
 
-from .. import NotSet
+from .. import NotSet, utils
 from .config import Config
 from .meta import hab_property
 
@@ -9,8 +9,21 @@ logger = logging.getLogger(__name__)
 
 
 class UnfrozenConfig(Config):
-    def __init__(self, frozen_data, resolver, uri=NotSet, forest=None):
+    """Config class specifically for thawing frozen hab config data.
+
+    Args:
+        frozen_data (dict or str): The frozen data to thaw. Ultimately this needs
+            to be the dict returned by `FlatConfig.freeze`. If a dict is passed
+            it is used directly. If a string is passed `hab.utils.decode_freeze`
+            is called on it and the resulting dict is used.
+        resolver (hab.Resolver): The Resolver used to lookup non-frozen data.
+    """
+
+    def __init__(self, frozen_data, resolver):
         super().__init__(None, resolver)
+        if isinstance(frozen_data, str):
+            # If a str is passed, assume its a frozen string and decode it
+            frozen_data = utils.decode_freeze(frozen_data)
         self.frozen_data = deepcopy(frozen_data)
 
         # Restore the HAB_URI env variable that was removed during freeze
