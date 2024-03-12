@@ -139,6 +139,18 @@ def test_unfreeze(config_root, resolver):
     # already baked into aliases
     assert cfg.alias_mods is NotSet
 
+    # Check passing a string to UnfrozenConfig instead of a dict
+    check_file = config_root / "frozen_no_distros.json"
+    checks = utils.json.load(check_file.open())
+    v2 = checks["version2"]
+    cfg = UnfrozenConfig(v2, resolver)
+
+    # The HAB_URI env var is included in the frozen config on a UnfrozenConfig
+    check = checks["raw"]
+    check["environment"]["linux"]["HAB_URI"] = check["uri"]
+    check["environment"]["windows"]["HAB_URI"] = check["uri"]
+    assert cfg.frozen_data == check
+
 
 def test_decode_freeze(config_root):
     check_file = config_root / "frozen_no_distros.json"
