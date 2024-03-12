@@ -802,3 +802,32 @@ def test_uri_validate(config_root):
     assert resolver.resolve("pRoJect_A/CammelCase").uri == "pRoJect_A/CammelCase"
     assert resolver.resolve("pRoJect_B/CammelCase").uri == "pRoJect_B/CammelCase"
     assert resolver.resolve("proJECT_c/CammelCase").uri == "proJECT_c/CammelCase"
+
+
+def test_instance(config_root):
+    # Check that a resolver instance is created and returned on first call,
+    # respecting passed in arguments.
+    assert Resolver._instances == {}
+    site = Site([config_root / "site_main.json"])
+    resolver = Resolver.instance(name="instance_test", site=site, target="test")
+    assert resolver is Resolver._instances["instance_test"]
+    assert resolver.site is site
+    assert resolver._verbosity_target == "test"
+
+    # **kwargs are ignored if you try to access the same instance a again.
+    site1 = Site([config_root / "site_main.json", config_root / "site_override.json"])
+    resolver1 = Resolver.instance(
+        name="instance_test", site=site1, target="ignored_target"
+    )
+    # The same resolver instance was returned
+    assert resolver1 is resolver
+    # The kwargs were ignored on the second call
+    assert resolver1.site is site
+    assert resolver1._verbosity_target == "test"
+
+    # **kwargs are not ignored if requesting a new resolver name.
+    resolver2 = Resolver.instance(name="another_ins", site=site1, target="new")
+    assert resolver2 is Resolver._instances["another_ins"]
+    assert resolver2 is not resolver
+    assert resolver2.site is site1
+    assert resolver2._verbosity_target == "new"
