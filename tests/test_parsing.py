@@ -12,6 +12,7 @@ from packaging.version import Version
 from hab import NotSet, utils
 from hab.errors import (
     DuplicateJsonError,
+    HabError,
     InvalidVersionError,
     ReservedVariableNameError,
     _IgnoredVersionError,
@@ -26,6 +27,9 @@ def test_distro_parse(config_root, resolver):
     path = config_root / "distros" / "all_settings" / "0.1.0.dev1" / ".hab.json"
     app.load(path)
     check = json.load(path.open())
+    # Add dynamic alias settings like "distro" to the testing reference.
+    # That should never be defined in the raw alias json data.
+    app.standardize_aliases(check["aliases"])
 
     assert "{name}=={version}".format(**check) == app.name
     assert Version(check["version"]) == app.version
@@ -46,6 +50,18 @@ def test_distro_parse(config_root, resolver):
     # version number from the parent directory not the json file.
     assert "version" not in check
     assert app.version == Version("2020.0")
+
+
+def test_distro_exceptions(config_root, uncached_resolver):
+    """Check that a exception is raised if you define "distro" on an alias."""
+    forest = {}
+    app = DistroVersion(forest, uncached_resolver)
+    # This file is used to test this feature and otherwise should be ignored.
+    path = config_root / "distros" / "all_settings" / "0.1.0.dev1" / "invalid.hab.json"
+    with pytest.raises(
+        HabError, match=r'The "distro" value on an alias dict is reserved.'
+    ):
+        app.load(path)
 
 
 def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch, tmpdir):

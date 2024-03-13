@@ -100,10 +100,8 @@ class FlatConfig(Config):
                     continue
 
                 host_platform = utils.Platform.name()
-                # Ensure that we always have a dictionary for aliases
+                # Ensure the aliases are formatted and variables expanded
                 data = version.format_environment_value(aliases[i])
-                if not isinstance(data, dict):
-                    data = dict(cmd=data)
 
                 mods = self._alias_mods.get(alias_name, [])
                 if "environment" not in data and not mods:

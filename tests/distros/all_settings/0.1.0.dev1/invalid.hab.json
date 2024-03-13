@@ -1,0 +1,22 @@
+{
+    "name": "all_settings",
+    "version": "0.1.0.dev1",
+    "aliases": {
+        "windows": [
+            [
+                "maya",
+                {
+                    "cmd": "C:\\Program Files\\Autodesk\\Maya2020\\bin\\maya.exe",
+                    "distro": ["all_settings", "0.1.0"]
+                }
+            ],
+            [
+                "mayapy",
+                {
+                    "cmd": "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe",
+                    "distro": ["all_settings", "0.1.0"]
+                }
+            ]
+        ]
+    }
+}

@@ -1,7 +1,7 @@
 from packaging.version import InvalidVersion, Version
 
 from .. import NotSet
-from ..errors import InvalidVersionError, _IgnoredVersionError
+from ..errors import HabError, InvalidVersionError, _IgnoredVersionError
 from .distro import Distro
 from .hab_base import HabBase
 from .meta import hab_property
@@ -114,17 +114,45 @@ class DistroVersion(HabBase):
         # Fill in the DistroVersion specific settings before calling super
         data = self._load(filename)
 
-        self.aliases = data.get("aliases", NotSet)
-        # Store any alias_mods, they will be processed later when flattening
-        self._alias_mods = data.get("alias_mods", NotSet)
-
         # The name should be the version == specifier.
         self.distro_name = data.get("name")
         self.name = "{}=={}".format(self.distro_name, self.version)
 
+        self.aliases = self.standardize_aliases(data.get("aliases", NotSet))
+        # Store any alias_mods, they will be processed later when flattening
+        self._alias_mods = data.get("alias_mods", NotSet)
+
         data = super().load(filename, data=data)
 
         return data
+
+    def standardize_aliases(self, aliases):
+        """Process a raw aliases dict adding distro information.
+
+        Converts any non-dict alias definitions into dicts and adds the "distro"
+        tuple containing `(distro_name, version)`. Does nothing if passed NotSet.
+
+        Returns:
+            dict: The same aliases object that was passed in. If it was a dict
+                the original dict's contents are modified.
+        """
+        if aliases is NotSet:
+            return aliases
+
+        version_info = (self.distro_name, str(self.version))
+        for platform in aliases.values():
+            for alias in platform:
+                # Ensure that we always have a dictionary for aliases
+                if not isinstance(alias[1], dict):
+                    alias[1] = dict(cmd=alias[1])
+                if "distro" in alias[1]:
+                    raise HabError(
+                        'The "distro" value on an alias dict is reserved. You '
+                        "can not set this manually."
+                    )
+                # Store the distro information on each alias dict.
+                alias[1]["distro"] = version_info
+        return aliases
 
     @hab_property()
     def version(self):

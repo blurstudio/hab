@@ -933,12 +933,26 @@ defined as a two part list where the first item is the name of the created alias
 command. The second argument is the actual command to run and configuration
 definition.
 
-Ultimately all alias definitions are turned into dictionaries like `as_dict`, but
-you can also define aliases as lists of strings or a single string. It's
-recommended that you use a list of strings for any commands that require multiple
-arguments, for more details see args documentation in
+Ultimately all alias definitions are turned into [dictionaries](#complex-aliases)
+like `as_dict`, but you can also define aliases as lists of strings or a single
+string. It's recommended that you use a list of strings for any commands that
+require multiple arguments, for more details see args documentation in
 [subprocess.Popen](https://docs.python.org/3/library/subprocess.html#subprocess.Popen).
 
+When the aliases are converted to dicts, they automatically get a "distro" key
+added to them. This contains a two item tuple containing the `distro_name` and
+`version`. This is preserved when frozen. You can use this to track down what
+distro created a [duplicate alias](#duplicate-definitions). This is also useful
+if you need to tie a farm job to a specific version of a dcc based on the active
+hab setup.
+```py
+import hab
+import os
+
+resolver = hab.Resolver.instance()
+cfg = resolver.resolve(os.environ["HAB_URI"])
+version = cfg.aliases["houdinicore"]["distro"][1]
+```
 
 #### Complex Aliases
 

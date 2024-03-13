@@ -441,10 +441,13 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             self._dirname = self._filename.parent
 
     def format_environment_value(self, value, ext=None, platform=None):
-        """Apply standard formatting to environment variable values.
+        """Apply standard formatting to string values.
+
+         If passed a list, tuple, dict, recursively calls this function on them
+         converting any strings found. Any bool or int values are not modified.
 
         Args:
-            value (str): The string to format
+            value: The string to format.
             ext (str, optional): Language passed to ``hab.formatter.Formatter``
                 for special formatters. In most cases this should not be used.
             platform (str, optional): Convert path values from the current
@@ -463,6 +466,12 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 self.format_environment_value(v, ext=ext, platform=platform)
                 for v in value
             ]
+        elif isinstance(value, tuple):
+            # Format the individual items if a tuple of args is used.
+            return tuple(
+                self.format_environment_value(v, ext=ext, platform=platform)
+                for v in value
+            )
         elif isinstance(value, dict):
             # Format the values each dictionary pair
             return {
