@@ -276,11 +276,11 @@ $ hab env projectDummy/Thug
 The cli prompt is updated while inside a hab config is active. It is `[URI] [cwd]`
 Where URI is the URI requested and cwd is the current working directory.
 
-## Restoring resolved configuration
+### Restoring resolved configuration
 
 Under normal operation hab resolves the configuration it loads each time it is run.
 This makes it easy to get updates to the configuration by re-launching hab. However,
-if you want to load the same hab configuration at a later date or on another computer
+if you want to load the same hab configuration at a later date or on another workstation
 it's possible a new distro version has been released or some config settings have
 been modified. For example if you submit a render job to the farm, you want every
 frame to render using the same hab configuration not what ever it happens to
@@ -321,6 +321,23 @@ an int value or None. If not specified(ie None), then the default version is use
 ```json
 {"set": {"freeze_version": 1}}
 ```
+
+## Hab Environment Variables
+
+These environment variables are used to configure hab.
+
+| Name | Info |
+|---|---|
+| HAB_PATHS | Configure hab for the current computer. See [site configuration files](#site). |
+| HAB_PYTHON | Configures the python used by the hab shell commands. See [Python version](#python-version). |
+| HAB_RANDOM | Windows only, see [Concurrency in Command Prompt](#concurrency-in-command-prompt). |
+
+These environment variables are set by hab when it resolves a URI.
+
+| Name | Info |
+|---|---|
+| HAB_FREEZE | A copy of the hab state used to activate the current session. This can be copied to another host and used to re-create the exact same state even across platforms. See [restoring a resolved configuration](#restoring-resolved-configuration). |
+| HAB_URI | The [URI](#URI) used to activate the current session. |
 
 ## API
 
@@ -375,7 +392,7 @@ that follow that rule and links to details:
 
 ### Site
 
-Hab uses the `HAB_PATH` environment variable to point to one or more site
+Hab uses the `HAB_PATHS` environment variable to point to one or more site
 configuration files. If the `--site` option is passed to the cli, it is used instead of
 the environment variable.
 
@@ -388,7 +405,7 @@ rules to keep in mind.
 on the outside of the the right site file's paths.
 3. For `platform_path_maps`, only the first key is kept and any duplicates
 are discarded.
-4. The entry_point `hab.site.add_paths` is processed separately after `HAB_PATH`
+4. The entry_point `hab.site.add_paths` is processed separately after `HAB_PATHS`
 or `--site` paths are processed, so:
    * Each path added is treated as left most when merging into the final configuration.
    * The entry_point `hab.site.add_paths` will be ignored for dynamically added paths.
@@ -535,7 +552,7 @@ in specific conditions. For example you want to enable
 but need to disable it for linux farm nodes that have no gui enabled. If you set
 a entry point's value to `null` hab will ignore it and not attempt to load it.
 
-For example if you have your `HAB_PATH` set to `c:\hab\host.json;\\server\share\studio.json`.
+For example if you have your `HAB_PATHS` set to `c:\hab\host.json;\\server\share\studio.json`.
 - The `host.json` site file is stored on each workstation and adds distros that
 are not able to be run from over the network.
 - The `studio.json` site file that is shared on the network for ease of deployment.
@@ -843,7 +860,7 @@ will be raised if you try to replace hab specific variables like `relative_root`
 The [maya2024](tests/distros/maya2024/2024.0/.hab.json) testing example shows a
 way to centralize the path to the Maya bin directory. This way automated tools
 can easily change the install directory of maya if it needs to be installed
-into a custom location on specific workstations, or remote computers.
+into a custom location on specific workstations, or remote workstations.
 
 Note: Using hard coded paths like `maya_root_windows` should be avoided unless
 you really can't use `relative_root`. `relative_root` is more portable across
