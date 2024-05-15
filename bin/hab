@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Hab needs to modify the existing terminal's environment in some cases.
 # To do this we can't use a setuptools exe and must use a script the terminal
