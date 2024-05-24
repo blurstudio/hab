@@ -52,9 +52,9 @@ class Config(HabBase):
 
         Args:
             alias_name (str): The alias name to run.
-            args (list): The command to be run by subprocess. This should be a list
-                of each individual string argument. If a kwarg is being passed it
-                should be passed as two items. ['--key', 'value'].
+            args (list): Additional arguments for the command to be run by subprocess.
+                This should be a list of each individual string argument. If a kwarg
+                is being passed it should be passed as two items. ['--key', 'value'].
             blocking (bool or str, optional): Makes this method blocking by calling
                 Popen.communicate. If a str value is used, is included in the call.
                 The results of calling `proc.communicate` can be accessed from the
