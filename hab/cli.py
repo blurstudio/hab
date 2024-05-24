@@ -24,6 +24,8 @@ class UriArgument(click.Argument):
     - If a frozen string or json file path is passed returns the unfrozen data
         dictionary.
     - If a uri is provided, the string is returned unmodified.
+    - If a `-` is passed and the `prompt` kwarg is False, the `hab.user_prefs.UriObj`
+        is returned and the command is responsible for resolving and saving the URI.
     - If a `-` is passed and user prefs are enabled, the stored uri in the
         current user's prefs is returned. If a stored uri is not resolved a
         UsageError is raised if required, or returned for later error handling.
@@ -40,7 +42,19 @@ class UriArgument(click.Argument):
 
     Note: Using `err=True` so this output doesn't affect capturing of hab output from
     cmds like `hab dump - --format json > output.json `.
+
+    Args:
+        prompt (bool, optional): Controls how the special `-` URI is processed.
+            if False then `hab.user_prefs.UriObj` is always returned via
+            `resolver.user_prefs().uri_check()` and the click command is responsible
+            for parsing the URI. Otherwise the stored user_pref is used or the
+            `__uri_prompt` method is used to ask the user for a updated URI.
+        **kwargs: Other click.Argument keyword arguments.
     """
+
+    def __init__(self, *args, prompt=True, **kwargs):
+        self.prompt = prompt
+        super().__init__(*args, **kwargs)
 
     def __uri_prompt(self, uri=None):
         """Wrapper function of click.prompt.
@@ -73,6 +87,12 @@ class UriArgument(click.Argument):
         # User wants to use saved user prefs for the uri
         if value == "-":
             uri_check = ctx.obj.resolver.user_prefs().uri_check()
+
+            # If not using the prompt then just return the uri_check and allow
+            # the click.command to handle resolving the URI.
+            if not self.prompt:
+                return uri_check
+
             # This will indicate that no user_pref.json was saved
             # and the user will be required to enter a uri path.
             if uri_check.uri is None:
