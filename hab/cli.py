@@ -721,11 +721,13 @@ def cli(*args, **kwargs):
         return _cli(*args, **kwargs)
     except Exception:
         click.echo(f"{Fore.RED}Hab encountered an error:{Fore.RESET}")
-        if _verbose_errors:
-            # In verbose mode show the full traceback
+        if _verbose_errors or sys.excepthook != sys.__excepthook__:
+            # If a plugin has replaced sys.excepthook it likely want's to handle
+            # how the traceback is handled.
+            # Ensure the full traceback is shown when in verbose mode.
             raise
 
-        # Print the traceback message without the stack trace.
+        # Otherwise print the traceback message without the stack trace.
         click.echo(traceback.format_exc(limit=0))
         return 1
 
