@@ -291,7 +291,10 @@ def test_invalid_alias(uncached_resolver, tmpdir, ext):
 
     # Check that calling a bad alias name raises a useful error message
     cfg = uncached_resolver.resolve("not_set/child")
-    with pytest.raises(errors.HabError, match=r'"bad-alias" is not a valid alias name'):
+    with pytest.raises(
+        errors.InvalidAliasError,
+        match=r'The alias "bad-alias" is not found for URI "not_set/child".',
+    ):
         cfg.write_script(str(tmpdir), launch="bad-alias", **kwargs)
 
     # Remove the "cmd" value to test an invalid configuration

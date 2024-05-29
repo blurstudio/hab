@@ -8,7 +8,7 @@ import sys
 import pytest
 
 from hab import Resolver, Site, utils
-from hab.errors import HabError
+from hab.errors import HabError, InvalidAliasError
 
 
 class Topen(subprocess.Popen):
@@ -115,7 +115,10 @@ def test_pythonw(monkeypatch, resolver):
 
 def test_invalid_alias(resolver):
     cfg = resolver.resolve("app/aliased/mod")
-    with pytest.raises(HabError, match='"not-a-alias" is not a valid alias name'):
+    with pytest.raises(
+        InvalidAliasError,
+        match='The alias "not-a-alias" is not found for URI "app/aliased/mod".',
+    ):
         cfg.launch("not-a-alias")
 
     # Remove the "cmd" value to test an invalid configuration
