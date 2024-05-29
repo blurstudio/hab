@@ -22,6 +22,24 @@ class MaxRedirectError(RequirementError):
     """The maximum number of redirects was reached without resolving successfully."""
 
 
+class InvalidAliasError(HabError):
+    """Raised the requested alias was not found.
+
+    Args:
+        alias (str): The requested alias name.
+        cfg (hab.parser.Config): The hab config used to launch the alias.
+        msg (str, optional): The error message. `str.format` is called on this
+            passing the kwargs `alias` and `uri`.
+    """
+
+    def __init__(self, alias, cfg, msg=None):
+        self.alias = alias
+        self.cfg = cfg
+        if msg is None:
+            msg = 'The alias "{alias}" is not found for URI "{uri}".'
+        super().__init__(msg.format(alias=alias, uri=cfg.uri))
+
+
 class InvalidRequirementError(RequirementError):
     """Raised if unable to resolve a given requirement."""
 

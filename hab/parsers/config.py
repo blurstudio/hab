@@ -2,7 +2,7 @@ import logging
 import os
 
 from .. import NotSet, utils
-from ..errors import HabError
+from ..errors import HabError, InvalidAliasError
 from .hab_base import HabBase
 from .meta import hab_property
 
@@ -71,7 +71,7 @@ class Config(HabBase):
         """
         # Construct the command line arguments to execute
         if alias_name not in self.aliases:
-            raise HabError(f'"{alias_name}" is not a valid alias name')
+            raise InvalidAliasError(alias_name, self)
         alias = self.aliases[alias_name]
 
         # Get the subprocess.Popen like class to use to launch the alias

@@ -9,7 +9,12 @@ from jinja2 import Environment, FileSystemLoader
 from packaging.version import Version
 
 from .. import NotSet, utils
-from ..errors import DuplicateJsonError, HabError, ReservedVariableNameError
+from ..errors import (
+    DuplicateJsonError,
+    HabError,
+    InvalidAliasError,
+    ReservedVariableNameError,
+)
 from ..formatter import Formatter
 from ..site import MergeDict
 from ..solvers import Solver
@@ -809,7 +814,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
             # Get the cmd to launch, raising useful errors if invalid
             if launch not in self.aliases:
-                raise HabError(f'"{launch}" is not a valid alias name')
+                raise InvalidAliasError(launch, self)
             alias = self.aliases.get(launch, {})
 
             try:
