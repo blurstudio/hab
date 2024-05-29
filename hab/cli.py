@@ -243,23 +243,52 @@ class SharedSettings(object):
 
         if isinstance(uri, dict):
             # Load frozen json data instead of processing the URI
-            ret = UnfrozenConfig(uri, self.resolver)
+            cfg = UnfrozenConfig(uri, self.resolver)
         elif uri is None:
             # If a uri wasn't provided by the user raise the exception click
             # would have raised if uri didn't have `required=False`.
             raise click.UsageError("Missing argument 'URI'.")
         else:
             # Otherwise just process the uri like normal
-            ret = self.resolver.resolve(uri)
+            cfg = self.resolver.resolve(uri)
 
-        ret.write_script(
-            self.script_dir,
-            self.script_ext,
-            launch=launch,
-            exit=exit,
-            args=args,
-            create_launch=create_launch,
-        )
+        msg = f"Launching alias: {launch} {' '.join(args)} for URI: {cfg.uri}"
+        if self.script_dir:
+            # Hab was called using the shell scripts, use them to launch the alias
+            # using the same system as `hab launch - alias_name`. This allows the
+            # python process used to parse the hab config to exit before the alias
+            # is launched ensuring that if something kills python processes it won't
+            # affect the launched alias or any host shells
+            if launch:
+                logger.info(f"{msg} using shell.")
+            cfg.write_script(
+                self.script_dir,
+                self.script_ext,
+                launch=launch,
+                exit=exit,
+                args=args,
+                create_launch=create_launch,
+            )
+        elif launch:
+            # The shell scripts were not used, so we need to launch using a sub-process
+            kwargs = {}
+            # If using pythonw we won't get any cli output so it doesn't make sense
+            # to keep this python instance open while the alias is running. Only block
+            # if using the console version of python.
+            blocking = not sys.executable.endswith("w.exe")
+            if blocking:
+                # When blocking, don't let the launcher redirect stdout/stderr so the
+                # host shell can receive the output of this program in real time.
+                # Note: This leaves the hab process running for the duration of
+                # the launched alias. If something kills this python process
+                # it may lead to odd output in the host shell.
+                kwargs["stderr"] = None
+                kwargs["stdout"] = None
+
+            logger.info(f"{msg} as subprocess.")
+            proc = cfg.launch(launch, args, blocking=blocking, **kwargs)
+            if blocking:
+                sys.exit(proc.returncode)
 
     @classmethod
     def set_ctx_instance(cls, ctx, key, value):
