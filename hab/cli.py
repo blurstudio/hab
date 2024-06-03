@@ -252,7 +252,9 @@ class SharedSettings(object):
             # Otherwise just process the uri like normal
             cfg = self.resolver.resolve(uri)
 
-        msg = f"Launching alias: {launch} {' '.join(args)} for URI: {cfg.uri}"
+        if launch:
+            _args = f" {' '.join(args)}" if args else ""
+            launch_msg = f"Launching alias: {launch}{_args} for URI: {cfg.uri}"
         if self.script_dir:
             # Hab was called using the shell scripts, use them to launch the alias
             # using the same system as `hab launch - alias_name`. This allows the
@@ -260,7 +262,7 @@ class SharedSettings(object):
             # is launched ensuring that if something kills python processes it won't
             # affect the launched alias or any host shells
             if launch:
-                logger.info(f"{msg} using shell.")
+                logger.info(f"{launch_msg} using shell.")
             cfg.write_script(
                 self.script_dir,
                 self.script_ext,
@@ -285,7 +287,7 @@ class SharedSettings(object):
                 kwargs["stderr"] = None
                 kwargs["stdout"] = None
 
-            logger.info(f"{msg} as subprocess.")
+            logger.info(f"{launch_msg} as subprocess.")
             proc = cfg.launch(launch, args, blocking=blocking, **kwargs)
             if blocking:
                 sys.exit(proc.returncode)
