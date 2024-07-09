@@ -264,6 +264,26 @@ class Resolver(object):
             app = self.distros[requirement.name]
             return app.latest_version(requirement)
 
+    def freeze_configs(self):
+        """Returns a composite dict of the freeze for all URI configs.
+
+        Returns a dict for every non-placeholder URI where the value is the freeze
+        dict of that URI. If a error is encountered when generating the freeze
+        the exception subject is stored as a string instead.
+        """
+        out = {}
+        for node in self.dump_forest(self.configs, attr=None):
+            if isinstance(node.node, HabBase._placeholder):
+                continue
+            uri = node.node.uri
+            try:
+                cfg = self.resolve(uri)
+            except Exception as error:
+                out[uri] = f"Error resolving {uri}: {error}"
+            else:
+                out[uri] = cfg.freeze()
+        return out
+
     @classmethod
     def instance(cls, name="main", **kwargs):
         """Returns a shared Resolver instance for name, initializing it if required.

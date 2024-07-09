@@ -42,23 +42,12 @@ def test_site_cache_path(config_root, uncached_resolver, tmpdir):
     assert site.cache.cache_template == ".{stem}.hab_cache"
 
 
-def test_save_cache(config_root, tmpdir, habcached_resolver):
+def test_save_cache(config_root, tmpdir, habcached_resolver, helpers):
     # Check that the habcache file generated the expected output text
     # Note: This file will need updated as the test configuration is updated
     check_path = config_root / "site_main_check.habcache"
     cache_file = habcached_resolver._test_cache_file
-    check = check_path.open().readlines()
-    cache = cache_file.open().readlines()
-    # Add trailing white space to match template file's trailing white space
-    cache[-1] += "\n"
-    assert len(cache) == len(
-        check
-    ), f"Generated cache does not have the same number of lines: {cache_file}"
-
-    for i in range(len(cache)):
-        assert (
-            cache[i] == check[i]
-        ), f"Difference on line: {i} between the generated cache and {check_path}."
+    helpers.compare_files(cache_file, check_path)
 
 
 def test_load_cache(config_root, uncached_resolver, habcached_site_file):
