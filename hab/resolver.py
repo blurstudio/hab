@@ -1,5 +1,6 @@
 # __all__ = ["Resolver"]
 
+import copy
 import logging
 
 import anytree
@@ -57,6 +58,9 @@ class Resolver(object):
             self.forced_requirements = Solver.simplify_requirements(forced_requirements)
         else:
             self.forced_requirements = {}
+        # Store a copy of the original forced_requirements so plugins can restore
+        # the original value if they need to temporarily modify it.
+        self.__forced_requirements__ = copy.deepcopy(self.forced_requirements)
 
         logger.debug("config_paths: {}".format(self.config_paths))
         logger.debug("distro_paths: {}".format(self.distro_paths))
