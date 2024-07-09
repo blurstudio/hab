@@ -1,4 +1,5 @@
 import os
+import sys
 from collections import OrderedDict
 from pathlib import Path
 
@@ -533,6 +534,22 @@ def test_forced_requirements(resolver, helpers, forced, check, check_versions):
     )
     resolved = resolver_forced.resolve_requirements(requirements)
     helpers.assert_requirements_equal(resolved, check)
+    if forced is None:
+        assert resolver_forced.__forced_requirements__ == {}
+    else:
+        assert resolver_forced.__forced_requirements__.keys() == forced.keys()
+
+        # Ensure this is a deepcopy of forced and ensure the values are equal
+        assert resolver_forced.__forced_requirements__ is not forced
+        for k, v in resolver_forced.__forced_requirements__.items():
+            if sys.version_info.minor == 6:
+                # NOTE: packaging>22.0 doesn't support equal checks for Requirement
+                # objects. Python 3.6 only has a 21 release, so we have to compare str
+                # TODO: Once we drop py3.6 support drop this if statement
+                assert str(forced[k]) == str(v)
+            else:
+                assert forced[k] == v
+            assert forced[k] is not v
 
     # Check that forced_requirements work if the config defines zero distros
     cfg = resolver_forced.resolve("not_set/no_distros")
