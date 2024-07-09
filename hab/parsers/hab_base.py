@@ -583,6 +583,8 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             self.environment_config = data.get("environment", NotSet)
         if self.min_verbosity is NotSet:
             self.min_verbosity = data.get("min_verbosity", NotSet)
+        if self.optional_distros is NotSet:
+            self.optional_distros = data.get("optional_distros", NotSet)
 
         if self.context is NotSet:
             # TODO: make these use override methods
@@ -634,6 +636,20 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
     @name.setter
     def name(self, name):
         self.frozen_data["name"] = name
+
+    @hab_property(verbosity=1)
+    def optional_distros(self):
+        """Information about distros chosen to be optionally enabled for a config.
+
+        The key is the distro including version specifier text. The value is a 2
+        item list containing a description to shown next to the key and a bool
+        indicating that it should be enabled by default when used.
+        """
+        return self.frozen_data.get("optional_distros", NotSet)
+
+    @optional_distros.setter
+    def optional_distros(self, value):
+        self.frozen_data["optional_distros"] = value
 
     def reduced(self, resolver=None, uri=None):
         """Returns a new instance with the final settings applied respecting inheritance"""

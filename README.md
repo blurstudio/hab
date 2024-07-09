@@ -276,6 +276,44 @@ $ hab env projectDummy/Thug
 The cli prompt is updated while inside a hab config is active. It is `[URI] [cwd]`
 Where URI is the URI requested and cwd is the current working directory.
 
+### Forced Requirements
+
+In most cases you will associate distros with URI's by specifying them in [config](#config)
+files with the [distros](#defining-distros) property.
+
+There are times when you want to quickly load a new distro or force a distro to
+use other requirements. Here are a few reason why this might be useful.
+
+- Change the version of a distro that is loaded temporarily.
+- A plugin that only specific users would find useful, and others find annoying.
+  For example department specific shelves in Maya/Houdini.
+- Loading a plugin that requires an expensive license and only a few users will need.
+- Adding a new distro to an existing URI when under development.
+- Quickly testing a custom configuration of an existing URI.
+- If you define a special empty URI that doesn't load any distros you can load any
+  arbitrary set of distros to prototype a new URI.
+
+A forced requirement must contain the name of the distro to use(`the_dcc_plugin_a`).
+It can optionally contain requirement specifiers (`the_dcc_plugin_a==1.0`). When
+used, the forced requirement replaces any distro requirements defined by the config.
+
+This allows the forced requirement to replace an existing distro even if the
+forced requirement normally wouldn't be allowed. For this reason use it with caution.
+[Optional distros](#optional-distros) provides you with a way to communicate what forced
+requirements are safe for users to use.
+
+To use a forced requirement in the hab cli, use the `-r` or `--requirement` flag
+before the COMMAND.
+```bash
+hab -r the_dcc_plugin_a dump -
+```
+
+You can use it multiple times to load multiple distros:
+```bash
+hab -r the_dcc_plugin_a -r the_dcc==1.0 dump -
+```
+
+
 ### Restoring resolved configuration
 
 Under normal operation hab resolves the configuration it loads each time it is run.
@@ -915,7 +953,7 @@ c: dict_keys(['vb_default', 'vb2', 'vb3'])
 ### Defining Aliases
 
 Aliases are used to run a program in a specific way. The hab cli creates shell
-commands for each alias. Aliases are defined on distros, and per-platform.
+commands for each alias. Aliases are defined on [distro](#distro)'s per-platform.
 
 ```json
 {
@@ -1014,7 +1052,7 @@ alias to launch usdview that only adds the path to your standalone plugin to
 
 #### Alias Mods
 
-Alias mods provide a way for a [distro](#defining-distros) or [config](#config)
+Alias mods provide a way for a [distro](#distro) and [config](#config)
 to modify another distro's aliases. This is useful for plugins that need to modify
 more than one host application independently.
 
@@ -1097,7 +1135,7 @@ aliases:  maya mayapy maya20 mayapy20 pip houdini houdini18.5 houdinicore
 
 ### Defining Environments
 
-The `environment` key in distro and config definitions is used to configure modifications
+The `environment` key in [distro](#distro) and [config](#config) definitions is used to configure modifications
 to the resolved environment. This is stored in `HabBase.environment_config`.
 
 ```json
@@ -1170,7 +1208,7 @@ using os specific configurations.
 
 ### Defining Distros
 
-The `distos` key in distro and config definitions are used to define the distro version
+The `distos` key in [distro](#distro) and [config](#config) definitions are used to define the distro version
 requirements. When a config is processed the distro requirements are evaluated recursively
 to include the requirements of the latest DistroVersion matching the specifier.
 This uses the python [packaging module](https://packaging.pypa.io/en/stable/requirements.html)
@@ -1196,6 +1234,36 @@ The resolved versions matching the requested distros are shown in the `versions`
 It also supports [markers](https://packaging.pypa.io/en/stable/markers.html). Hab
 should support all of the [officially supported markers](https://peps.python.org/pep-0508/),
 but the most common marker likely to be used with hab is `platform_system`.
+
+### Optional Distros
+
+The `optional_distros` key in [config](#config) definitions are used to specify additional
+distros some users may want to use. It allows you to easily communicate to users
+on a per URI basis what additional distros they may want to use.
+
+```json5
+    "optional_distros": {
+        "maya2024": ["Adds new aliases to launch Maya"],
+        "the_dcc==1.0": ["Optionally force the_dcc to use this version."],
+        "the_dcc_plugin_a": ["Load an optional plugin by default", true],
+        "the_dcc_plugin_b": ["Only have a few licenses for this plugin, so opt into loading it"]
+    }
+```
+
+The dict key is the distro value that will be used. This can include version specifier
+information like you see in `the_dcc==1.0`. See [forced requirements](#forced-requirements).
+
+The value is a list where the first item is a text description shown to the user
+to help them decide if they want to use this requirement. Optionally the second
+item is a bool that controls if interface plugins should enable this optional
+distro by default.
+
+Optional distros are loaded using the [forced requirements](#forced-requirements) system. When using
+the hab cli, the enabled by default option is not used, users will need to use
+the `-r`/`--requirement` option.
+
+Users can see the optional distros in the dump output with verbosity level of 1
+or higher. `hab dump - -v`
 
 ### Platform specific code
 

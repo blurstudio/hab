@@ -8,7 +8,8 @@
     ],
     "aliases": {
         "windows": [
-            ["dcc", "{relative_root}\\the_dcc.exe"]
+            ["dcc", "{relative_root}\\the_dcc.exe"],
+            ["dcc1.0", "{relative_root}\\the_dcc.exe"]
         ]
     }
 }

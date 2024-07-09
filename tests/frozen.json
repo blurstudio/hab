@@ -5,10 +5,24 @@
   "name": "distros",
   "aliases": {
     "windows": {
-      "dcc": "TEST_DIR_NAME\\the_dcc.exe"
+      "dcc": {
+        "cmd": "TEST_DIR_NAME\\the_dcc.exe",
+        "distro": ["the_dcc", "1.2"]
+      },
+      "dcc1.2": {
+        "cmd": "TEST_DIR_NAME\\the_dcc.exe",
+        "distro": ["the_dcc", "1.2"]
+      }
     },
     "linux": {
-      "dcc": "TEST_DIR_NAME//the_dcc"
+      "dcc": {
+        "cmd": "TEST_DIR_NAME//the_dcc",
+        "distro": ["the_dcc", "1.2"]
+      },
+      "dcc1.2": {
+        "cmd": "TEST_DIR_NAME//the_dcc",
+        "distro": ["the_dcc", "1.2"]
+      }
     }
   },
   "versions": [

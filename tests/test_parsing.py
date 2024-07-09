@@ -293,6 +293,7 @@ def test_metaclass():
             "filename",
             "min_verbosity",
             "name",
+            "optional_distros",
             "variables",
             "version",
         ]
@@ -308,6 +309,7 @@ def test_metaclass():
             "min_verbosity",
             "inherits",
             "name",
+            "optional_distros",
             "uri",
             "variables",
         ]
@@ -326,7 +328,11 @@ class TestDump:
         # Build the test data so we can generate the output to check
         # Note: using `repr([u"` so this test passes in python 2 and 3
         pre = ["name:  child", "uri:  not_set/child"]
-        post = ["inherits:  True", "min_verbosity:  NotSet"]
+        post = [
+            "inherits:  True",
+            "min_verbosity:  NotSet",
+            "optional_distros:  NotSet",
+        ]
         env = [
             "environment:  FMT_FOR_OS:  a{;}b;c:{PATH!e}{;}d",
             "              TEST:  case",
@@ -423,7 +429,12 @@ class TestDump:
         for verbosity in range(3):
             result = cfg.dump(verbosity=verbosity, color=False)
             assert "aliases" not in result
-            assert "distros:" not in result
+            assert " distros:" not in result
+            if not verbosity:
+                # This is shown for v1 or higher
+                assert "optional_distros:" not in result
+            else:
+                assert "optional_distros:" in result
 
 
 def test_environment(resolver):

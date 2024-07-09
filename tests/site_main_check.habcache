@@ -366,6 +366,51 @@
                 },
                 "inherits": false
             },
+            "{config-root}/configs/optional/optional.json": {
+                "name": "optional",
+                "context": [],
+                "inherits": false,
+                "distros": [
+                    "the_dcc"
+                ],
+                "optional_distros": {
+                    "maya2024": [
+                        "Adds new aliases"
+                    ],
+                    "the_dcc==1.0": [
+                        "Specific dcc version. Only choose one at a time."
+                    ],
+                    "the_dcc==1.2": [
+                        "Specific dcc version. Only choose one at a time."
+                    ],
+                    "the_dcc_plugin_a": [
+                        "Load an optional plugin by default",
+                        true
+                    ],
+                    "the_dcc_plugin_a==0.9": [
+                        "Force a specific version of this optinal plugin"
+                    ],
+                    "the_dcc_plugin_b": [
+                        "Only have a few licenses for this plugin, so opt into loading it"
+                    ]
+                }
+            },
+            "{config-root}/configs/optional/optional_child.json": {
+                "name": "child",
+                "context": [
+                    "optional"
+                ],
+                "inherits": false,
+                "distros": [
+                    "the_dcc"
+                ],
+                "optional_distros": {
+                    "the_dcc_plugin_e": [
+                        "Different optional dependencies for a child URI.",
+                        true
+                    ]
+                }
+            },
             "{config-root}/configs/place-holder/place-holder_child.json": {
                 "name": "child",
                 "context": [
@@ -1372,6 +1417,10 @@
                         [
                             "dcc",
                             "{relative_root}\\the_dcc.exe"
+                        ],
+                        [
+                            "dcc1.0",
+                            "{relative_root}\\the_dcc.exe"
                         ]
                     ]
                 },
@@ -1387,6 +1436,10 @@
                     "windows": [
                         [
                             "dcc",
+                            "{relative_root}\\the_dcc.exe"
+                        ],
+                        [
+                            "dcc1.1",
                             "{relative_root}\\the_dcc.exe"
                         ]
                     ]
@@ -1406,11 +1459,19 @@
                         [
                             "dcc",
                             "{relative_root}//the_dcc"
+                        ],
+                        [
+                            "dcc1.2",
+                            "{relative_root}//the_dcc"
                         ]
                     ],
                     "windows": [
                         [
                             "dcc",
+                            "{relative_root}\\the_dcc.exe"
+                        ],
+                        [
+                            "dcc1.2",
                             "{relative_root}\\the_dcc.exe"
                         ]
                     ]
