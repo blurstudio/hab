@@ -832,6 +832,11 @@ This config would have the URI `project_a/Thug/Animation`.
 
 Configs support [min_verbosity](#min_verbosity) [with inheritance](tests/configs/verbosity).
 
+When doing bulk editing of multiple configs, the `hab dump --type all-uris` command
+provides you with a easily diff-able json dump of the [freeze](#restoring-resolved-configuration)
+for all non-placeholder URI's defined. If a URI errors out when resolving, the
+error text is stored instead of the freeze.
+
 #### Config Inheritance
 
 When resolving a URI it will find the closest exact match, so if `project_a/Thug` is

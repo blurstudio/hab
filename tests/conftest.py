@@ -175,6 +175,33 @@ class Helpers(object):
             os.environ.clear()
             os.environ.update(old_environ)
 
+    @staticmethod
+    def compare_files(generated, check):
+        """Assert two files are the same with easy to read errors.
+
+        First compares the number of lines for differences, then checks each line
+        for differences raising an AssertionError on the first difference.
+
+        Args:
+            generated (pathlib.Path): The file generated for testing. This will
+                have a newline added to the end to match the pre-commit enforced
+                "fix end of files" check.
+            check (pathlib.Path): Compare generated to this check file. It is
+                normally committed inside the hab/tests folder.
+        """
+        check = check.open().readlines()
+        cache = generated.open().readlines()
+        # Add trailing white space to match template file's trailing white space
+        cache[-1] += "\n"
+        assert len(cache) == len(
+            check
+        ), f"Generated cache does not have the same number of lines: {check}"
+
+        for i in range(len(cache)):
+            assert (
+                cache[i] == check[i]
+            ), f"Difference on line: {i} between the generated cache and {generated}."
+
 
 @pytest.fixture
 def helpers():

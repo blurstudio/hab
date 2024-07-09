@@ -570,7 +570,7 @@ def env(settings, uri, launch):
     "--type",
     "report_type",
     type=click.Choice(
-        ["nice", "site", "s", "uris", "u", "versions", "v", "forest", "f"]
+        ["nice", "site", "s", "uris", "u", "versions", "v", "forest", "f", "all-uris"]
     ),
     default="nice",
     help="Type of report.",
@@ -635,6 +635,12 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
                 truncate=truncate,
             ):
                 echo_line(line)
+    elif report_type == "all-uris":
+        # Combines all non-placeholder URI's into a single json document and display.
+        # This can be used to compare changes to configs when editing them in bulk.
+        ret = resolver.freeze_configs()
+        ret = utils.dumps_json(ret, indent=2)
+        click.echo(ret)
     elif report_type == "site":
         click.echo(resolver.site.dump(verbosity=verbosity))
     else:

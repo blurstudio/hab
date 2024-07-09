@@ -230,3 +230,32 @@ def test_encode_freeze(config_root, resolver):
     # If version is passed, site is ignored
     version1 = utils.encode_freeze(freeze, version=2, site=site)
     assert version1 == checks["version2"]
+
+
+def test_resolver_freeze_configs(tmpdir, config_root, uncached_resolver, helpers):
+    """Test `Resolver.freeze_configs`.
+
+    This method generates the frozen config for all non-placeholder URI's hab
+    finds. This makes it fairly easy to diff bulk config changes as json.
+
+    It checks the output against `tests/resolver_freeze_configs.json`. For testing
+    simplicity, this file has had its aliases and environment sections removed.
+    """
+    result = uncached_resolver.freeze_configs()
+    # Simplify the test by removing dynamic data containing paths. Other tests
+    # verify that a specific URI can be frozen successfully. This test verifies
+    # that freeze_configs generates a consistent output for all URI's.
+    for data in result.values():
+        if isinstance(data, str):
+            continue
+        if "aliases" in data:
+            del data["aliases"]
+        if "environment" in data:
+            del data["environment"]
+
+    check_file = config_root / "resolver_freeze_configs.json"
+    result_file = tmpdir / "result.json"
+    with result_file.open("w") as fle:
+        txt = utils.dumps_json(result, indent=4)
+        fle.write(txt)
+    helpers.compare_files(result_file, check_file)
