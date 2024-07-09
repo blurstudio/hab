@@ -133,6 +133,8 @@ class TestDumpForest:
         "  not_set/no_distros",
         "  not_set/no_env",
         "  not_set/os",
+        "optional",
+        "  optional/child",
         "place-holder",
         "  place-holder/child",
         "  place-holder/inherits",

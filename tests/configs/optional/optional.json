@@ -1,0 +1,16 @@
+{
+    "name": "optional",
+    "context": [],
+    "inherits": false,
+    "distros": [
+        "the_dcc"
+    ],
+    "optional_distros": {
+        "maya2024": ["Adds new aliases"],
+        "the_dcc==1.0": ["Specific dcc version. Only choose one at a time."],
+        "the_dcc==1.2": ["Specific dcc version. Only choose one at a time."],
+        "the_dcc_plugin_a": ["Load an optional plugin by default", true],
+        "the_dcc_plugin_a==0.9": ["Force a specific version of this optinal plugin"],
+        "the_dcc_plugin_b": ["Only have a few licenses for this plugin, so opt into loading it"]
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "name": "child",
+    "context": ["optional"],
+    "inherits": false,
+    "distros": [
+        "the_dcc"
+    ],
+    "optional_distros": {
+        "the_dcc_plugin_e": ["Different optional dependencies for a child URI.", true]
+    }
+}

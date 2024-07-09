@@ -67,10 +67,20 @@ def test_freeze(monkeypatch, config_root, platform, pathsep):
     # Resolve the URI for frozen testing
     cfg = resolver.resolve("not_set/distros")
 
-    # Ensure consistent testing across platforms. cfg has the current os's
-    # file paths instead of what is stored in frozen.json
-    cfg.frozen_data["aliases"]["linux"]["dcc"] = "TEST_DIR_NAME//the_dcc"
-    cfg.frozen_data["aliases"]["windows"]["dcc"] = "TEST_DIR_NAME\\the_dcc.exe"
+    for alias in ("dcc", "dcc1.2"):
+        # Ensure consistent testing across platforms. cfg has the current os's
+        # file paths instead of what is stored in frozen.json
+        cfg.frozen_data["aliases"]["linux"][alias]["cmd"] = "TEST_DIR_NAME//the_dcc"
+        cfg.frozen_data["aliases"]["windows"][alias][
+            "cmd"
+        ] = "TEST_DIR_NAME\\the_dcc.exe"
+
+        # For ease of testing we also need to convert the distro tuple to a list
+        # that way it matches the json data stored in frozen.json
+        as_list = list(cfg.frozen_data["aliases"]["linux"][alias]["distro"])
+        cfg.frozen_data["aliases"]["linux"][alias]["distro"] = as_list
+        as_list = list(cfg.frozen_data["aliases"]["windows"][alias]["distro"])
+        cfg.frozen_data["aliases"]["windows"][alias]["distro"] = as_list
 
     # Ensure the HAB_URI environment variable is defined on the FlatConfig object
     # When checking the return from `cfg.freeze()` below HAB_URI is removed to
