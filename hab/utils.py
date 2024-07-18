@@ -297,7 +297,11 @@ def load_json_file(filename):
             data = json.load(fle)
         # Include the filename in the traceback to make debugging easier
         except _JsonException as e:
-            # pyjson5 is installed
+            # pyjson5 is installed add filename to the traceback
+            if e.result is None:
+                # Depending on the exception result may be None, convert it
+                # into a empty dict so we can add the filename
+                e.args = e.args[:1] + ({},) + e.args[2:]
             e.result["filename"] = str(filename)
             raise e.with_traceback(sys.exc_info()[2]) from None
         except ValueError as e:
