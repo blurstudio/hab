@@ -20,6 +20,64 @@ from hab.errors import (
 from hab.parsers import Config, DistroVersion, FlatConfig
 
 
+class TestLoadJsonFile:
+    """Tests various conditions when using `hab.utils.load_json_file` to ensure
+    expected output.
+    """
+
+    def test_missing(self, tmpdir):
+        """If the file doesn't exist, the exception includes the missing filename."""
+        path = Path(tmpdir) / "missing.json"
+        with pytest.raises(
+            FileNotFoundError, match="No such file or directory:"
+        ) as excinfo:
+            utils.load_json_file(path)
+        assert Path(excinfo.value.filename) == path
+
+    def test_binary(self, tmpdir):
+        """If attempting to read a binary file, filename is included in exception.
+
+        This is a problem we run into rarely where a text file gets
+        replaced/generated with a binary file containing noting but a lot of null bytes.
+        """
+        path = Path(tmpdir) / "binary.json"
+        # Create a binary test file containing multiple binary null values.
+        with path.open("wb") as fle:
+            fle.write(b"\x00" * 32)
+
+        # Detect if using pyjson5 or not
+        native_json = False
+        try:
+            import pyjson5
+        except ImportError:
+            native_json = True
+        if native_json:
+            exc_type = json.decoder.JSONDecodeError
+        else:
+            exc_type = pyjson5.pyjson5.Json5IllegalCharacter
+
+        with pytest.raises(exc_type) as excinfo:
+            utils.load_json_file(path)
+
+        if native_json:
+            # If built-in json was used, check that filename was appended to the message
+            assert f'Filename("{path}")' in str(excinfo.value)
+        else:
+            # If pyjson5 was used, check that the filename was added to the result dict
+            assert f"{{'filename': {str(path)!r}}}" in str(excinfo.value)
+
+    def test_config_load(self, uncached_resolver):
+        cfg = Config({}, uncached_resolver)
+
+        # Loading a directory raises a FileNotFoundError
+        with pytest.raises(FileNotFoundError):
+            cfg.load(".")
+
+        # Loading a non-existent file path raises a FileNotFoundError
+        with pytest.raises(FileNotFoundError):
+            cfg.load("invalid_path.json")
+
+
 def test_distro_parse(config_root, resolver):
     """Check that a distro json can be parsed correctly"""
     forest = {}
@@ -631,14 +689,6 @@ def test_misc_coverage(resolver):
     # String values are cast to the correct type
     cfg.version = "1.0"
     assert cfg.version == Version("1.0")
-
-    # Loading a directory raises a FileNotFoundError
-    with pytest.raises(FileNotFoundError):
-        cfg.load(".")
-
-    # Loading a non-existent file path raises a FileNotFoundError
-    with pytest.raises(FileNotFoundError):
-        cfg.load("invalid_path.json")
 
 
 @pytest.mark.parametrize(
