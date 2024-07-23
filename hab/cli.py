@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 import click
+from click.shell_completion import CompletionItem
 from colorama import Fore
 
 from . import Resolver, Site, __version__, utils
@@ -16,6 +17,21 @@ logger = logging.getLogger(__name__)
 
 # No one wants to actually type `--help`
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+def complete_alias(ctx, param, incomplete):
+    """Dynamic tab completion for shell_complete generating available aliases"""
+    resolver = ctx.obj.resolver
+    if not ctx.obj.uri:
+        # The URI hasn't been resolved, so don't have any aliases to return.
+        return []
+    # Resolve the config from the URI stored in `UriArgument.type_cast_value`.
+    cfg = resolver.resolve(ctx.obj.uri)
+    return [
+        CompletionItem(alias)
+        for alias in cfg.aliases
+        if alias.strip().startswith(incomplete)
+    ]
 
 
 class UriArgument(click.Argument):
@@ -54,6 +70,8 @@ class UriArgument(click.Argument):
 
     def __init__(self, *args, prompt=True, **kwargs):
         self.prompt = prompt
+        # Override shell_complete with our implementation by default
+        kwargs.setdefault("shell_complete", self.complete_uri)
         super().__init__(*args, **kwargs)
 
     def __uri_prompt(self, uri=None):
@@ -74,6 +92,15 @@ class UriArgument(click.Argument):
                 "No URI exists.\nPlease Enter a URI", type=str, err=True
             )
         return response
+
+    def complete_uri(self, ctx, param, incomplete):
+        """Dynamic tab completion for shell_complete generating available URI's"""
+        resolver = ctx.obj.resolver
+        return [
+            CompletionItem(uri.strip())
+            for uri in resolver.dump_forest(resolver.configs)
+            if uri.strip().startswith(incomplete)
+        ]
 
     def type_cast_value(self, ctx, value):
         """Convert and validate the uri value. This override handles saving the
@@ -149,6 +176,9 @@ class UriArgument(click.Argument):
         # user actually provided a uri, not for other valid inputs on this class.
         if ctx.obj.enable_user_prefs_save:
             ctx.obj.resolver.user_prefs().uri = value
+
+        # Store the URI so it can be used by other shell_complete functions.
+        ctx.obj.uri = value
 
         return value
 
@@ -541,6 +571,9 @@ def set_uri(settings, uri):
     "--launch",
     default=None,
     help="Run this alias after activating. This leaves the new shell active.",
+    # TODO: This requires resolving the uri argument before this option. Click
+    # doesn't support that by default. Figure out how to get this working.
+    # shell_complete=complete_alias,
 )
 @click.pass_obj
 def env(settings, uri, launch):
@@ -682,6 +715,9 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
     "--launch",
     default=None,
     help="Run this alias after activating. This leaves the new shell activated.",
+    # TODO: This requires resolving the uri argument before this option. Click
+    # doesn't support that by default. Figure out how to get this working.
+    # shell_complete=complete_alias,
 )
 @click.pass_obj
 def activate(settings, uri, launch):
@@ -717,7 +753,7 @@ def activate(settings, uri, launch):
     cls=UriHelpClass,
 )
 @click.argument("uri", cls=UriArgument)
-@click.argument("alias")
+@click.argument("alias", shell_complete=complete_alias)
 # Pass all remaining arguments to the requested alias
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 @click.pass_obj
