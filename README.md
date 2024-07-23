@@ -74,6 +74,21 @@ Finally they are exiting the current URI so they can enable another URI. The use
 doesn't need to worry about which version of the Maya or Houdini applications they
 should launch, that is configured for them by the URI they pass to `hab env`.
 
+#### Tab Completion
+
+You can enable tab completion including known URI's and aliases when using bash.
+This requires using bash 4.4 or newer. To do this you need to source the
+`.hab-complete.bash` file. This is installed next to the `hab` script (This makes
+its path consistent even with editable installs). Use `which .hab-complete.bash`
+to locate the file. If that doesn't work it should be next to the file returned
+by `which hab`.
+
+Examples of what to add to .bashrc
+- Windows: `. /c/Program\ Files/Python39/Scripts/.hab-complete.bash`
+- Linux: `. /usr/local/bin/.hab-complete.bash`
+
+See https://click.palletsprojects.com/en/8.1.x/shell-completion/ for more details.
+
 ### Looking up aliases
 
 In the previous section the use knew that they could run maya and houdini. You can
