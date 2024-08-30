@@ -66,7 +66,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
 
     def __repr__(self):
         cls = type(self)
-        return "{}.{}('{}')".format(cls.__module__, cls.__name__, self.fullpath)
+        return f"{cls.__module__}.{cls.__name__}('{self.fullpath}')"
 
     def _cache(self):
         return {}
@@ -83,7 +83,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             default (bool, optional): Enables processing the default nodes as
                 part of this methods recursion. Used for internal tracking.
         """
-        logger.debug("Loading node: {} inherits: {}".format(node.name, node.inherits))
+        logger.debug(f"Loading node: {node.name} inherits: {node.inherits}")
         if props is None:
             props = sorted(
                 self._properties, key=lambda i: self._properties[i].sort_key()
@@ -166,11 +166,11 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                     msg = None
                     if operation == "set":
                         key = environment_config[operation][key]
-                        msg = 'You can not use PATH for the set operation: "{}"'
+                        msg = f'You can not use PATH for the set operation: "{key}"'
                     elif operation == "unset":
                         msg = "You can not unset PATH"
                     if msg:
-                        raise ValueError(msg.format(key))
+                        raise ValueError(msg)
 
     def check_min_verbosity(self, config):
         """Return if the given config should be visible based on the resolver's
@@ -208,9 +208,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             # Add the root of this tree to the forest
             if self.name in self.forest:
                 if not isinstance(self.forest[self.name], self._placeholder):
-                    msg = 'Can not add "{}", the context "{}" it is already set'.format(
-                        self.filename,
-                        self.fullpath,
+                    msg = (
+                        f'Can not add "{self.filename}", the context '
+                        f'"{self.fullpath}" it is already set'
                     )
                     if self.forest[self.name].root_paths.intersection(self.root_paths):
                         # If one of the root_paths was already added to target, then
@@ -231,31 +231,29 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 # Preserve the children of the placeholder object if it exists
                 self.children = self.forest[self.name].children
             self.forest[self.name] = self
-            logger.debug("Add to forest: {}".format(self))
+            logger.debug(f"Add to forest: {self}")
         else:
             resolver = anytree.Resolver("name")
             # Get the tree root
             root_name = self.context[0]
             if root_name in self.forest:
                 root = self.forest[root_name]
-                logger.debug("Using root: {}".format(root.fullpath))
+                logger.debug(f"Using root: {root.fullpath}")
             else:
                 root = self._placeholder(self.forest, self.resolver)
                 root.name = root_name
                 self.forest[root_name] = root
-                logger.debug("Created placeholder root: {}".format(root.fullpath))
+                logger.debug(f"Created placeholder root: {root.fullpath}")
 
             # Process the intermediate parents
             for child_name in self.context[1:]:
                 try:
                     root = resolver.get(root, child_name)
-                    logger.debug("Found intermediary: {}".format(root.fullpath))
+                    logger.debug(f"Found intermediary: {root.fullpath}")
                 except anytree.resolver.ResolverError:
                     root = self._placeholder(self.forest, self.resolver, parent=root)
                     root.name = child_name
-                    logger.debug(
-                        "Created placeholder intermediary: {}".format(root.fullpath)
-                    )
+                    logger.debug(f"Created placeholder intermediary: {root.fullpath}")
 
             # Add this node to the tree
             try:
@@ -263,7 +261,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             except anytree.resolver.ResolverError:
                 # There is no placeholder, just add self as a child
                 self.parent = root
-                logger.debug("Adding to parent: {}".format(root.fullpath))
+                logger.debug(f"Adding to parent: {root.fullpath}")
             else:
                 if isinstance(target, self._placeholder) and target.name == self.name:
                     # replace the placeholder with self
@@ -271,11 +269,11 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                     self.children = target.children
                     # Remove the placeholder from the tree
                     target.parent = None
-                    logger.debug("Removing placeholder: {}".format(target.fullpath))
+                    logger.debug(f"Removing placeholder: {target.fullpath}")
                 else:
-                    msg = 'Can not add "{}", the context "{}" it is already set'.format(
-                        self.filename,
-                        self.fullpath,
+                    msg = (
+                        f'Can not add "{self.filename}", the context '
+                        f'"{self.fullpath}" it is already set'
                     )
                     if target.root_paths.intersection(self.root_paths):
                         # If one of the root_paths was already added to target, then
@@ -670,12 +668,12 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             if isinstance(value, list):
                 value = subprocess.list2cmdline(value)
             else:
-                return '"{}"'.format(value)
+                return f'"{value}"'
         if ext in (".bat", ".cmd"):
             if isinstance(value, list):
                 value = subprocess.list2cmdline(value)
             else:
-                return '"{}"'.format(value)
+                return f'"{value}"'
         return value
 
     @classmethod
@@ -822,9 +820,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             # At this point we have lost the original double quote the user used.
             if isinstance(args, list):
                 if ext == ".ps1":
-                    args = " {}".format(subprocess.list2cmdline(args))
+                    args = f" {subprocess.list2cmdline(args)}"
                 else:
-                    args = " {}".format(self.shell_escape(ext, args))
+                    args = f" {self.shell_escape(ext, args)}"
             else:
                 args = ""
 

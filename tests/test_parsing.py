@@ -475,9 +475,7 @@ def test_environment(resolver):
     check = [c.format(relative_root=relative_root) for c in check]
 
     assert cfg.environment["RELATIVE_VARIABLE"] == check
-    assert cfg.environment["SET_RELATIVE"] == [
-        "{relative_root}".format(relative_root=relative_root)
-    ]
+    assert cfg.environment["SET_RELATIVE"] == [f"{relative_root}"]
     assert cfg.environment["SET_VARIABLE"] == ["set_value"]
     assert cfg.environment["UNSET_VARIABLE"] is None
     assert cfg.environment["UNSET_VARIABLE_1"] is None

@@ -96,7 +96,7 @@ class Solver(object):
         else:
             # Support the possibility that no configuration defines requirements
             reqs = []
-        logger.debug("Requirements: {}".format(reqs))
+        logger.debug(f"Requirements: {reqs}")
 
         for req in reqs:
             name = req.name
@@ -123,7 +123,7 @@ class Solver(object):
                 req = self.forced[name]
                 # This option should only be used for development and testing
                 # always show a warning if its used.
-                logger.warning("Forced Requirement: {}".format(req))
+                logger.warning(f"Forced Requirement: {req}")
                 reported.add(name)
 
             # Update the requirement to match all current requirements
@@ -131,10 +131,10 @@ class Solver(object):
             if name in self.invalid:
                 # TODO: build the correct not specifier
                 invalid = self.invalid[name]
-                logger.debug("Adding invalid specifier: {}".format(invalid))
+                logger.debug(f"Adding invalid specifier: {invalid}")
                 req = req.specifier & invalid.specifier
 
-            logger.debug("Checking requirement: {}".format(req))
+            logger.debug(f"Checking requirement: {req}")
 
             # Attempt to find a version, raises a exception if no version was found
             try:
@@ -144,18 +144,16 @@ class Solver(object):
                     f"Unable to find a distro for requirement: {req}"
                 ) from None
             version = dist.latest_version(req)
-            logger.debug("Found Version: {}".format(version.name))
+            logger.debug(f"Found Version: {version.name}")
 
             if version.distros and version not in processed:
                 # Check if updated requirements have forced us to re-evaluate
                 # our requirements.
                 for v in processed:
                     if v.distro_name == version.distro_name:
-                        invalid = Requirement("{}!={}".format(v.distro_name, v.version))
+                        invalid = Requirement(f"{v.distro_name}!={v.version}")
                         self.append_requirement(self.invalid, invalid)
-                        raise ValueError(
-                            "Removing invalid version {}".format(version.name)
-                        )
+                        raise ValueError(f"Removing invalid version {version.name}")
 
                 processed.add(version)
                 self._resolve(version.distros, resolved, processed, reported)
@@ -179,12 +177,10 @@ class Solver(object):
         """
 
         self.redirects_required = 0
-        logger.info("Resolving requirements: {}".format(self.requirements))
+        logger.info(f"Resolving requirements: {self.requirements}")
         while True:
             logger.info(
-                "Attempt {} at resolving requirements".format(
-                    self.redirects_required + 1
-                )
+                f"Attempt {self.redirects_required + 1} at resolving requirements"
             )
             try:
                 return self._resolve(self.requirements)
@@ -193,7 +189,7 @@ class Solver(object):
                 self.redirects_required += 1
                 if self.redirects_required >= self.max_redirects:
                     raise MaxRedirectError(
-                        "Redirect limit of {} reached".format(self.max_redirects)
+                        f"Redirect limit of {self.max_redirects} reached"
                     ) from None
 
     @classmethod
