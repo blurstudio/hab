@@ -193,9 +193,11 @@ class Helpers(object):
         cache = generated.open().readlines()
         # Add trailing white space to match template file's trailing white space
         cache[-1] += "\n"
-        assert len(cache) == len(
-            check
-        ), f"Generated cache does not have the same number of lines: {check}"
+        cache_len = len(cache)
+        check_len = len(check)
+        assert (
+            cache_len == check_len
+        ), f"Generated cache does not have the same number of lines as check: {generated}"
 
         for i in range(len(cache)):
             assert (
