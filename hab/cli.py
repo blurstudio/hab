@@ -237,9 +237,9 @@ class SharedSettings(object):
     def log_context(cls, uri):
         """Writes a logger.info call for the given uri string or dictionary."""
         if isinstance(uri, dict):
-            logger.info("Context: {}".format(uri["uri"]))
+            logger.info(f"Context: {uri['uri']}")
         else:
-            logger.info("Context: {}".format(uri))
+            logger.info(f"Context: {uri}")
 
     @property
     def resolver(self):

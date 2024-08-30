@@ -62,8 +62,8 @@ class Resolver(object):
         # the original value if they need to temporarily modify it.
         self.__forced_requirements__ = copy.deepcopy(self.forced_requirements)
 
-        logger.debug("config_paths: {}".format(self.config_paths))
-        logger.debug("distro_paths: {}".format(self.distro_paths))
+        logger.debug(f"config_paths: {self.config_paths}")
+        logger.debug(f"distro_paths: {self.distro_paths}")
 
         self._configs = None
         self._distros = None

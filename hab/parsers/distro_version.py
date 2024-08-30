@@ -60,9 +60,7 @@ class DistroVersion(HabBase):
                 if self.dirname.name in self.resolver.ignored:
                     # This object is not added to the forest until super is called
                     raise _IgnoredVersionError(
-                        'Skipping "{}" its dirname is in the ignored list.'.format(
-                            filename
-                        )
+                        f'Skipping "{filename}" its dirname is in the ignored list.'
                     ) from None
 
             try:
@@ -116,7 +114,7 @@ class DistroVersion(HabBase):
 
         # The name should be the version == specifier.
         self.distro_name = data.get("name")
-        self.name = "{}=={}".format(self.distro_name, self.version)
+        self.name = f"{self.distro_name}=={self.version}"
 
         self.aliases = self.standardize_aliases(data.get("aliases", NotSet))
         # Store any alias_mods, they will be processed later when flattening

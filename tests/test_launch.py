@@ -92,7 +92,7 @@ def test_launch_str(resolver):
     # Check that Popen kwargs can be passed through launch, including env.
     args = [
         "-c",
-        'import os;assert os.environ["{}"] != "{}"'.format(var_name, var_value),
+        f'import os;assert os.environ["{var_name}"] != "{var_value}"',
     ]
     proc = cfg.launch("as_str", args=args, blocking=True, env=env)
 
