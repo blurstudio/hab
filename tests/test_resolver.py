@@ -362,226 +362,225 @@ def test_reduced(resolver, helpers):
     assert cfg.uri == "not_set/child"
 
 
-def test_resolve_requirements_simple(resolver):
-    requirements = {
-        "the_dcc": Requirement("the_dcc"),
-    }
+class TestResolveRequirements:
+    def test_simple(self, resolver):
+        requirements = {
+            "the_dcc": Requirement("the_dcc"),
+        }
 
-    # A simple resolve with no recalculations
-    resolved = resolver.resolve_requirements(requirements)
+        # A simple resolve with no recalculations
+        resolved = resolver.resolve_requirements(requirements)
 
-    assert len(resolved) == 5
-    assert str(resolved["the_dcc"]) == "the_dcc"
-    # required by the_dcc==1.2 distro
-    assert str(resolved["the_dcc_plugin_a"]) == "the_dcc_plugin_a>=1.0"
-    assert str(resolved["the_dcc_plugin_b"]) == "the_dcc_plugin_b>=0.9"
-    assert str(resolved["the_dcc_plugin_e"]) == "the_dcc_plugin_e<2.0"
-    # required by the_dcc_plugin_a distro
-    assert str(resolved["the_dcc_plugin_d"]) == "the_dcc_plugin_d"
+        assert len(resolved) == 5
+        assert str(resolved["the_dcc"]) == "the_dcc"
+        # required by the_dcc==1.2 distro
+        assert str(resolved["the_dcc_plugin_a"]) == "the_dcc_plugin_a>=1.0"
+        assert str(resolved["the_dcc_plugin_b"]) == "the_dcc_plugin_b>=0.9"
+        assert str(resolved["the_dcc_plugin_e"]) == "the_dcc_plugin_e<2.0"
+        # required by the_dcc_plugin_a distro
+        assert str(resolved["the_dcc_plugin_d"]) == "the_dcc_plugin_d"
 
-    # Check the versions
-    assert resolver.find_distro(resolved["the_dcc"]).name == "the_dcc==1.2"
-    assert (
-        resolver.find_distro(resolved["the_dcc_plugin_a"]).name
-        == "the_dcc_plugin_a==1.1"
-    )
-    assert (
-        resolver.find_distro(resolved["the_dcc_plugin_b"]).name
-        == "the_dcc_plugin_b==1.1"
-    )
-    assert (
-        resolver.find_distro(resolved["the_dcc_plugin_d"]).name
-        == "the_dcc_plugin_d==1.1"
-    )
-    assert (
-        resolver.find_distro(resolved["the_dcc_plugin_e"]).name
-        == "the_dcc_plugin_e==1.1"
-    )
-
-    # Check that we can pass a string not a Requirement object to find_distro
-    assert resolver.find_distro("the_dcc==1.2").name == "the_dcc==1.2"
-
-
-def test_resolve_requirements_recalculate(resolver):
-    """The first pick "the_dcc==1.2" gets discarded by plugin_b. Make sure the correct
-    distros are picked.
-    """
-
-    # Resolve requires re-calculating
-    # Note: To have a stable test, the order of requirements matters. Use an OrderedDict
-    requirements = OrderedDict(
-        (
-            ("the_dcc", Requirement("the_dcc")),
-            ("the_dcc_plugin_b", Requirement("the_dcc_plugin_b==0.9")),
+        # Check the versions
+        assert resolver.find_distro(resolved["the_dcc"]).name == "the_dcc==1.2"
+        assert (
+            resolver.find_distro(resolved["the_dcc_plugin_a"]).name
+            == "the_dcc_plugin_a==1.1"
         )
-    )
+        assert (
+            resolver.find_distro(resolved["the_dcc_plugin_b"]).name
+            == "the_dcc_plugin_b==1.1"
+        )
+        assert (
+            resolver.find_distro(resolved["the_dcc_plugin_d"]).name
+            == "the_dcc_plugin_d==1.1"
+        )
+        assert (
+            resolver.find_distro(resolved["the_dcc_plugin_e"]).name
+            == "the_dcc_plugin_e==1.1"
+        )
 
-    # Use the underlying Solver so we have access to debug resolve_requirements obscures
-    solver = Solver(requirements, resolver)
-    resolved = solver.resolve()
+        # Check that we can pass a string not a Requirement object to find_distro
+        assert resolver.find_distro("the_dcc==1.2").name == "the_dcc==1.2"
 
-    # Check that we had to recalculate the resolve at least one time.
-    assert solver.redirects_required == 1
-    # Check that the_dcc 1.2 had to be ignored, triggering the recalculate
-    assert len(solver.invalid) == 1
-    assert str(solver.invalid["the_dcc"]) == "the_dcc!=1.2"
+    def test_recalculate(self, resolver):
+        """The first pick "the_dcc==1.2" gets discarded by plugin_b. Make sure the correct
+        distros are picked.
+        """
 
-    # Check that the resolve is correct
-    assert len(resolved) == 5
-    assert str(resolved["the_dcc"]) == "the_dcc<1.2"
-    # required by the_dcc==1.1 distro
-    assert str(resolved["the_dcc_plugin_a"]) == "the_dcc_plugin_a>=1.0"
-    assert str(resolved["the_dcc_plugin_b"]) == "the_dcc_plugin_b==0.9"
-    assert str(resolved["the_dcc_plugin_e"]) == "the_dcc_plugin_e<2.0"
-    # required by the_dcc_plugin_a distro
-    assert str(resolved["the_dcc_plugin_d"]) == "the_dcc_plugin_d"
+        # Resolve requires re-calculating
+        # Note: To have a stable test, the order of requirements matters. Use an OrderedDict
+        requirements = OrderedDict(
+            (
+                ("the_dcc", Requirement("the_dcc")),
+                ("the_dcc_plugin_b", Requirement("the_dcc_plugin_b==0.9")),
+            )
+        )
 
-    # Check the versions
-    assert resolver.find_distro(resolved["the_dcc"]).name == "the_dcc==1.1"
-    assert (
-        resolver.find_distro(resolved["the_dcc_plugin_a"]).name
-        == "the_dcc_plugin_a==1.1"
-    )
-    assert (
-        resolver.find_distro(resolved["the_dcc_plugin_b"]).name
-        == "the_dcc_plugin_b==0.9"
-    )
-    assert (
-        resolver.find_distro(resolved["the_dcc_plugin_d"]).name
-        == "the_dcc_plugin_d==1.1"
-    )
-    assert (
-        resolver.find_distro(resolved["the_dcc_plugin_e"]).name
-        == "the_dcc_plugin_e==1.1"
-    )
+        # Use the underlying Solver so we have access to debug resolve_requirements obscures
+        solver = Solver(requirements, resolver)
+        resolved = solver.resolve()
 
+        # Check that we had to recalculate the resolve at least one time.
+        assert solver.redirects_required == 1
+        # Check that the_dcc 1.2 had to be ignored, triggering the recalculate
+        assert len(solver.invalid) == 1
+        assert str(solver.invalid["the_dcc"]) == "the_dcc!=1.2"
 
-@pytest.mark.parametrize(
-    "platform,marker",
-    (
-        ("windows", "Windows"),
-        ("linux", "Linux"),
-        ("osx", "Darwin"),
-    ),
-)
-def test_resolve_requirements_markers(resolver, platform, marker):
-    """Test that platform_system for current host is included or excluded correctly.
+        # Check that the resolve is correct
+        assert len(resolved) == 5
+        assert str(resolved["the_dcc"]) == "the_dcc<1.2"
+        # required by the_dcc==1.1 distro
+        assert str(resolved["the_dcc_plugin_a"]) == "the_dcc_plugin_a>=1.0"
+        assert str(resolved["the_dcc_plugin_b"]) == "the_dcc_plugin_b==0.9"
+        assert str(resolved["the_dcc_plugin_e"]) == "the_dcc_plugin_e<2.0"
+        # required by the_dcc_plugin_a distro
+        assert str(resolved["the_dcc_plugin_d"]) == "the_dcc_plugin_d"
 
-    The packaging marker library isn't setup to allow for testing on other
-    platforms, so these tests need to pass on all platforms, if running the test
-    on this platform, the dependency is included, otherwise it should be ignored.
-    """
-    check = [
-        "the_dcc",
-        "the_dcc_plugin_a",
-        "the_dcc_plugin_b",
-        "the_dcc_plugin_d",
-        "the_dcc_plugin_e",
-    ]
-    # This requirement is only included if running on the target platform
-    if utils.Platform.name() == platform:
-        check.append("the_dcc_plugin_c")
+        # Check the versions
+        assert resolver.find_distro(resolved["the_dcc"]).name == "the_dcc==1.1"
+        assert (
+            resolver.find_distro(resolved["the_dcc_plugin_a"]).name
+            == "the_dcc_plugin_a==1.1"
+        )
+        assert (
+            resolver.find_distro(resolved["the_dcc_plugin_b"]).name
+            == "the_dcc_plugin_b==0.9"
+        )
+        assert (
+            resolver.find_distro(resolved["the_dcc_plugin_d"]).name
+            == "the_dcc_plugin_d==1.1"
+        )
+        assert (
+            resolver.find_distro(resolved["the_dcc_plugin_e"]).name
+            == "the_dcc_plugin_e==1.1"
+        )
 
-    # Build requirements utilizing the platform marker.
-    requirements = {
-        "the_dcc": Requirement("the_dcc"),
-        # the_dcc_plugin_c is only included if the current platform matches that.
-        "the_dcc_plugin_c": Requirement(
-            f"the_dcc_plugin_c;platform_system=='{marker}'"
-        ),
-    }
-
-    ret = resolver.resolve_requirements(requirements)
-    assert set(ret.keys()) == set(check)
-
-
-@pytest.mark.parametrize(
-    "forced,check,check_versions",
-    (
-        # No forced items
+    @pytest.mark.parametrize(
+        "platform,marker",
         (
-            None,
-            ["the_dcc_plugin_a", "the_dcc_plugin_d", "the_dcc_plugin_e<1.0,<2.0"],
-            [],
+            ("windows", "Windows"),
+            ("linux", "Linux"),
+            ("osx", "Darwin"),
         ),
-        # Force
+    )
+    def test_markers(self, resolver, platform, marker):
+        """Test that platform_system for current host is included or excluded correctly.
+
+        The packaging marker library isn't setup to allow for testing on other
+        platforms, so these tests need to pass on all platforms, if running the test
+        on this platform, the dependency is included, otherwise it should be ignored.
+        """
+        check = [
+            "the_dcc",
+            "the_dcc_plugin_a",
+            "the_dcc_plugin_b",
+            "the_dcc_plugin_d",
+            "the_dcc_plugin_e",
+        ]
+        # This requirement is only included if running on the target platform
+        if utils.Platform.name() == platform:
+            check.append("the_dcc_plugin_c")
+
+        # Build requirements utilizing the platform marker.
+        requirements = {
+            "the_dcc": Requirement("the_dcc"),
+            # the_dcc_plugin_c is only included if the current platform matches that.
+            "the_dcc_plugin_c": Requirement(
+                f"the_dcc_plugin_c;platform_system=='{marker}'"
+            ),
+        }
+
+        ret = resolver.resolve_requirements(requirements)
+        assert set(ret.keys()) == set(check)
+
+    @pytest.mark.parametrize(
+        "forced,check,check_versions",
         (
-            {
-                # Adds a completely new requirement not specified in the config
-                "the_dcc_plugin_c": Requirement("the_dcc_plugin_c"),
-                # Forces the requirement to a invalid version for the config
-                "the_dcc_plugin_e": Requirement("the_dcc_plugin_e==1.1"),
-            },
-            [
-                "the_dcc_plugin_a",
-                "the_dcc_plugin_c",
-                "the_dcc_plugin_d",
-                "the_dcc_plugin_e==1.1",
-            ],
-            ["the_dcc_plugin_c==1.1", "the_dcc_plugin_e==1.1"],
+            # No forced items
+            (
+                None,
+                ["the_dcc_plugin_a", "the_dcc_plugin_d", "the_dcc_plugin_e<1.0,<2.0"],
+                [],
+            ),
+            # Force
+            (
+                {
+                    # Adds a completely new requirement not specified in the config
+                    "the_dcc_plugin_c": Requirement("the_dcc_plugin_c"),
+                    # Forces the requirement to a invalid version for the config
+                    "the_dcc_plugin_e": Requirement("the_dcc_plugin_e==1.1"),
+                },
+                [
+                    "the_dcc_plugin_a",
+                    "the_dcc_plugin_c",
+                    "the_dcc_plugin_d",
+                    "the_dcc_plugin_e==1.1",
+                ],
+                ["the_dcc_plugin_c==1.1", "the_dcc_plugin_e==1.1"],
+            ),
         ),
-    ),
-)
-def test_forced_requirements(resolver, helpers, forced, check, check_versions):
-    requirements = {
-        # plugin_a adds an extra dependency outside of the requirements or forced
-        "the_dcc_plugin_a": Requirement("the_dcc_plugin_a"),
-        "the_dcc_plugin_e": Requirement("the_dcc_plugin_e<1.0"),
-    }
-
-    # Check that forced_requirement's are included in the resolved requirements
-    resolver_forced = Resolver(
-        site=resolver.site,
-        forced_requirements=forced,
     )
-    resolved = resolver_forced.resolve_requirements(requirements)
-    helpers.assert_requirements_equal(resolved, check)
-    if forced is None:
-        assert resolver_forced.__forced_requirements__ == {}
-    else:
-        assert resolver_forced.__forced_requirements__.keys() == forced.keys()
+    def test_forced_requirements(
+        self, resolver, helpers, forced, check, check_versions
+    ):
+        requirements = {
+            # plugin_a adds an extra dependency outside of the requirements or forced
+            "the_dcc_plugin_a": Requirement("the_dcc_plugin_a"),
+            "the_dcc_plugin_e": Requirement("the_dcc_plugin_e<1.0"),
+        }
 
-        # Ensure this is a deepcopy of forced and ensure the values are equal
-        assert resolver_forced.__forced_requirements__ is not forced
-        for k, v in resolver_forced.__forced_requirements__.items():
-            if sys.version_info.minor == 6:
-                # NOTE: packaging>22.0 doesn't support equal checks for Requirement
-                # objects. Python 3.6 only has a 21 release, so we have to compare str
-                # TODO: Once we drop py3.6 support drop this if statement
-                assert str(forced[k]) == str(v)
-            else:
-                assert forced[k] == v
-            assert forced[k] is not v
+        # Check that forced_requirement's are included in the resolved requirements
+        resolver_forced = Resolver(
+            site=resolver.site,
+            forced_requirements=forced,
+        )
+        resolved = resolver_forced.resolve_requirements(requirements)
+        helpers.assert_requirements_equal(resolved, check)
+        if forced is None:
+            assert resolver_forced.__forced_requirements__ == {}
+        else:
+            assert resolver_forced.__forced_requirements__.keys() == forced.keys()
 
-    # Check that forced_requirements work if the config defines zero distros
-    cfg = resolver_forced.resolve("not_set/no_distros")
-    versions = cfg.versions
-    assert len(versions) == len(check_versions)
-    for i, v in enumerate(versions):
-        assert v.name == check_versions[i]
+            # Ensure this is a deepcopy of forced and ensure the values are equal
+            assert resolver_forced.__forced_requirements__ is not forced
+            for k, v in resolver_forced.__forced_requirements__.items():
+                if sys.version_info.minor == 6:
+                    # NOTE: packaging>22.0 doesn't support equal checks for Requirement
+                    # objects. Python 3.6 only has a 21 release, so we have to compare str
+                    # TODO: Once we drop py3.6 support drop this if statement
+                    assert str(forced[k]) == str(v)
+                else:
+                    assert forced[k] == v
+                assert forced[k] is not v
 
+        # Check that forced_requirements work if the config defines zero distros
+        cfg = resolver_forced.resolve("not_set/no_distros")
+        versions = cfg.versions
+        assert len(versions) == len(check_versions)
+        for i, v in enumerate(versions):
+            assert v.name == check_versions[i]
 
-def test_forced_requirements_uri(resolver, helpers):
-    resolver_forced = Resolver(
-        site=resolver.site,
-        forced_requirements={"houdini19.5": Requirement("houdini19.5")},
-    )
-    # We are checking cfg.versions, so these need to be resolved to `==` requirements
-    check = ["aliased==2.0", "houdini19.5==19.5.493"]
+    def test_forced_requirements_uri(self, resolver, helpers):
+        resolver_forced = Resolver(
+            site=resolver.site,
+            forced_requirements={"houdini19.5": Requirement("houdini19.5")},
+        )
+        # We are checking cfg.versions, so these need to be resolved to `==` requirements
+        check = ["aliased==2.0", "houdini19.5==19.5.493"]
 
-    def cfg_versions_to_dict(cfg):
-        return {v.distro_name: Requirement(v.name) for v in cfg.versions}
+        def cfg_versions_to_dict(cfg):
+            return {v.distro_name: Requirement(v.name) for v in cfg.versions}
 
-    # Forced requirement includes direct distro assignments from the config
-    cfg = resolver_forced.resolve("app/aliased")
-    versions = cfg_versions_to_dict(cfg)
-    helpers.assert_requirements_equal(versions, check)
+        # Forced requirement includes direct distro assignments from the config
+        cfg = resolver_forced.resolve("app/aliased")
+        versions = cfg_versions_to_dict(cfg)
+        helpers.assert_requirements_equal(versions, check)
 
-    # Check that forced requirements are correctly applied even if a config
-    # inherits it's distros from a parent config.
-    cfg = resolver_forced.resolve("app/aliased/config")
-    versions = cfg_versions_to_dict(cfg)
-    helpers.assert_requirements_equal(versions, check)
+        # Check that forced requirements are correctly applied even if a config
+        # inherits it's distros from a parent config.
+        cfg = resolver_forced.resolve("app/aliased/config")
+        versions = cfg_versions_to_dict(cfg)
+        helpers.assert_requirements_equal(versions, check)
 
 
 @pytest.mark.parametrize(
