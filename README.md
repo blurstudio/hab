@@ -880,7 +880,8 @@ with these extra features:
 * `{ANYTHING!e}`: `!e` is a special conversion flag for Environment variables. This will
 be replaced with the correct shell environment variable. For bash it becomes `$ANYTHING`,
 in power shell `$env:ANYTHING`, and in command prompt `%ANYTHING%`. `ANYTHING` is the name
-of the environment variable.
+of the environment variable. In some cases hab will expand these into the current
+environment variable if set, if the env var is not set the shell env variable will be used.
 
 #### Hab specific variables
 
