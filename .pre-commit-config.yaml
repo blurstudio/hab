@@ -1,7 +1,7 @@
 ---
 ci:
   autoupdate_schedule: quarterly
-  skip: [black, flake8]
+  skip: [black, flake8, setup-cfg-fmt]
 
 repos:
 
