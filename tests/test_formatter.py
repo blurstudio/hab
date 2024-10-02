@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from hab import utils
@@ -8,28 +6,39 @@ from hab.parsers import Config
 
 
 @pytest.mark.parametrize(
-    "language,shell,pathsep",
+    "language,expanded,not_expanded",
     (
-        ("sh", "-$PATH-", "-:-"),
+        ("sh", "_V_a-var_:_$INVALID_", "_V_$VALID_:_$INVALID_"),
         # Bash formatting is different on windows for env vars
-        ("shwin", "-$PATH-", "-:-"),
-        ("ps", "-$env:PATH-", "-;-"),
-        ("batch", "-%PATH%-", "-;-"),
-        (None, "-{PATH!e}-", "-{;}-"),
+        ("shwin", "_V_a-var_:_$INVALID_", "_V_$VALID_:_$INVALID_"),
+        ("ps", "_V_a-var_;_$env:INVALID_", "_V_$env:VALID_;_$env:INVALID_"),
+        ("batch", "_V_a-var_;_%INVALID%_", "_V_%VALID%_;_%INVALID%_"),
+        (None, "_V_a-var_{;}_{INVALID!e}_", "_V_{VALID!e}_{;}_{INVALID!e}_"),
     ),
 )
-def test_e_format(language, shell, pathsep):
-    """Check that "{VAR_NAME!e}" is properly formatted."""
-    path = os.environ["PATH"]
+def test_env_format(language, expanded, not_expanded, monkeypatch):
+    """Check that the custom Formatter class works as expected.
+
+    This check tests:
+        - You can still use pass kwargs like a normal Formatter.
+        - ``!e`` is converted for set env vars if ``expand==True``.
+          ``VALID`` becomes ``a-var``.
+        - ``!e`` uses the shell env specifier for set env vars if ``expand==False``.
+          (``VALID`` becomes ``$VALID`` for bash.)
+        - ``!e`` uses the shell env specifier for unset env variables.
+          (``INVALID`` becomes ``$INVALID`` for bash.)
+        - ``{;}`` gets converted to the shell's ``:`` or ``;``.
+    """
+    monkeypatch.setenv("VALID", "a-var")
+    monkeypatch.delenv("INVALID", raising=False)
+
+    fmt = "_{regular_var}_{VALID!e}_{;}_{INVALID!e}_"
 
     # Check that "!e" is converted to the correct shell specific specifier.
-    assert Formatter(language).format("-{PATH!e}-") == shell
+    assert Formatter(language).format(fmt, regular_var="V") == not_expanded
 
     # Check that "!e" uses the env var value if `expand=True` not the shell specifier.
-    assert Formatter(language, expand=True).format("-{PATH!e}-") == f"-{path}-"
-
-    # Check that the pathsep variable `{;}` is converted to the correct value
-    assert Formatter(language).format("-{;}-") == pathsep
+    assert Formatter(language, expand=True).format(fmt, regular_var="V") == expanded
 
 
 def test_language_from_ext(monkeypatch):
