@@ -388,7 +388,7 @@
                         true
                     ],
                     "the_dcc_plugin_a==0.9": [
-                        "Force a specific version of this optinal plugin"
+                        "Force a specific version of this optional plugin"
                     ],
                     "the_dcc_plugin_b": [
                         "Only have a few licenses for this plugin, so opt into loading it"
