@@ -4,10 +4,10 @@
             "app"
         ],
         "name": "aliased",
+        "uri": "app/aliased",
         "versions": [
             "aliased==2.0"
-        ],
-        "uri": "app/aliased"
+        ]
     },
     "app/aliased/config": {
         "context": [
@@ -15,10 +15,10 @@
             "aliased"
         ],
         "name": "config",
+        "uri": "app/aliased/config",
         "versions": [
             "aliased==2.0"
-        ],
-        "uri": "app/aliased/config"
+        ]
     },
     "app/aliased/mod": {
         "context": [
@@ -26,11 +26,11 @@
             "aliased"
         ],
         "name": "mod",
+        "uri": "app/aliased/mod",
         "versions": [
             "aliased==2.0",
             "aliased_mod==1.0"
-        ],
-        "uri": "app/aliased/mod"
+        ]
     },
     "app/aliased/mod/config": {
         "context": [
@@ -39,11 +39,11 @@
             "mod"
         ],
         "name": "config",
+        "uri": "app/aliased/mod/config",
         "versions": [
             "aliased==2.0",
             "aliased_mod==1.0"
-        ],
-        "uri": "app/aliased/mod/config"
+        ]
     },
     "app/houdini/a": {
         "context": [
@@ -51,11 +51,11 @@
             "houdini"
         ],
         "name": "a",
+        "uri": "app/houdini/a",
         "versions": [
             "houdini18.5==18.5.351",
             "houdini19.5==19.5.493"
-        ],
-        "uri": "app/houdini/a"
+        ]
     },
     "app/houdini/b": {
         "context": [
@@ -63,22 +63,22 @@
             "houdini"
         ],
         "name": "b",
+        "uri": "app/houdini/b",
         "versions": [
             "houdini19.5==19.5.493",
             "houdini18.5==18.5.351"
-        ],
-        "uri": "app/houdini/b"
+        ]
     },
     "app/maya": {
         "context": [
             "app"
         ],
-        "name": "maya",
         "min_verbosity": {
             "global": 2,
             "hab": 2,
             "hab-gui": 1
         },
+        "name": "maya",
         "uri": "app/maya"
     },
     "app/maya/2020": {
@@ -86,36 +86,37 @@
             "app",
             "maya"
         ],
-        "name": "2020",
-        "versions": [
-            "maya2020==2020.1"
-        ],
         "min_verbosity": {
             "global": 2,
             "hab": 2,
             "hab-gui": 1
         },
-        "uri": "app/maya/2020"
+        "name": "2020",
+        "uri": "app/maya/2020",
+        "versions": [
+            "maya2020==2020.1"
+        ]
     },
     "app/maya/2024": {
         "context": [
             "app",
             "maya"
         ],
-        "name": "2024",
-        "versions": [
-            "maya2024==2024.0"
-        ],
         "min_verbosity": {
             "global": 2,
             "hab": 2,
             "hab-gui": 1
         },
-        "uri": "app/maya/2024"
+        "name": "2024",
+        "uri": "app/maya/2024",
+        "versions": [
+            "maya2024==2024.0"
+        ]
     },
     "default": {
         "context": [],
         "name": "default",
+        "uri": "default",
         "versions": [
             "the_dcc_plugin_a==1.1",
             "the_dcc_plugin_e==1.1",
@@ -124,14 +125,14 @@
             "the_dcc_plugin_c==1.1",
             "maya2020==2020.1",
             "houdini18.5==18.5.351"
-        ],
-        "uri": "default"
+        ]
     },
     "default/Sc1": {
         "context": [
             "default"
         ],
         "name": "Sc1",
+        "uri": "default/Sc1",
         "versions": [
             "the_dcc_plugin_a==1.1",
             "the_dcc_plugin_e==1.1",
@@ -140,14 +141,14 @@
             "the_dcc_plugin_c==1.1",
             "maya2020==2020.1",
             "houdini18.5==18.5.351"
-        ],
-        "uri": "default/Sc1"
+        ]
     },
     "default/Sc11": {
         "context": [
             "default"
         ],
         "name": "Sc11",
+        "uri": "default/Sc11",
         "versions": [
             "the_dcc_plugin_a==1.1",
             "the_dcc_plugin_e==1.1",
@@ -156,42 +157,41 @@
             "the_dcc_plugin_c==1.1",
             "maya2020==2020.1",
             "houdini18.5==18.5.351"
-        ],
-        "uri": "default/Sc11"
+        ]
     },
     "not_set": {
         "context": [],
         "name": "not_set",
+        "uri": "not_set",
         "versions": [
             "aliased==2.0",
             "maya2020==2020.1"
-        ],
-        "uri": "not_set"
+        ]
     },
     "not_set/child": {
         "context": [
             "not_set"
         ],
         "name": "child",
+        "uri": "not_set/child",
         "versions": [
             "aliased==2.0",
             "maya2020==2020.1"
-        ],
-        "uri": "not_set/child"
+        ]
     },
     "not_set/distros": {
         "context": [
             "not_set"
         ],
         "name": "distros",
+        "uri": "not_set/distros",
         "versions": [
             "the_dcc==1.2",
             "the_dcc_plugin_a==1.1",
             "the_dcc_plugin_e==1.1",
             "the_dcc_plugin_d==1.1",
             "the_dcc_plugin_b==1.1"
-        ],
-        "uri": "not_set/distros"
+        ]
     },
     "not_set/empty_lists": {
         "context": [
@@ -205,11 +205,11 @@
             "not_set"
         ],
         "name": "env1",
+        "uri": "not_set/env1",
         "versions": [
             "aliased==2.0",
             "maya2020==2020.1"
-        ],
-        "uri": "not_set/env1"
+        ]
     },
     "not_set/env_path_hab_uri": "Error resolving not_set/env_path_hab_uri: '\"HAB_URI\" is a reserved environment variable'",
     "not_set/env_path_set": "Error resolving not_set/env_path_set: You can not use PATH for the set operation: \"path_variable\"",
@@ -226,14 +226,14 @@
             "not_set"
         ],
         "name": "no_env",
+        "uri": "not_set/no_env",
         "versions": [
             "the_dcc==1.2",
             "the_dcc_plugin_a==1.1",
             "the_dcc_plugin_e==1.1",
             "the_dcc_plugin_d==1.1",
             "the_dcc_plugin_b==1.1"
-        ],
-        "uri": "not_set/no_env"
+        ]
     },
     "not_set/os": {
         "context": [
@@ -245,13 +245,6 @@
     "optional": {
         "context": [],
         "name": "optional",
-        "versions": [
-            "the_dcc==1.2",
-            "the_dcc_plugin_a==1.1",
-            "the_dcc_plugin_e==1.1",
-            "the_dcc_plugin_d==1.1",
-            "the_dcc_plugin_b==1.1"
-        ],
         "optional_distros": {
             "maya2024": [
                 "Adds new aliases"
@@ -273,47 +266,55 @@
                 "Only have a few licenses for this plugin, so opt into loading it"
             ]
         },
-        "uri": "optional"
+        "uri": "optional",
+        "versions": [
+            "the_dcc==1.2",
+            "the_dcc_plugin_a==1.1",
+            "the_dcc_plugin_e==1.1",
+            "the_dcc_plugin_d==1.1",
+            "the_dcc_plugin_b==1.1"
+        ]
     },
     "optional/child": {
         "context": [
             "optional"
         ],
         "name": "child",
-        "versions": [
-            "the_dcc==1.2",
-            "the_dcc_plugin_a==1.1",
-            "the_dcc_plugin_e==1.1",
-            "the_dcc_plugin_d==1.1",
-            "the_dcc_plugin_b==1.1"
-        ],
         "optional_distros": {
             "the_dcc_plugin_e": [
                 "Different optional dependencies for a child URI.",
                 true
             ]
         },
-        "uri": "optional/child"
-    },
-    "place-holder/child": {
-        "context": [
-            "place-holder"
-        ],
-        "name": "child",
+        "uri": "optional/child",
         "versions": [
             "the_dcc==1.2",
             "the_dcc_plugin_a==1.1",
             "the_dcc_plugin_e==1.1",
             "the_dcc_plugin_d==1.1",
             "the_dcc_plugin_b==1.1"
+        ]
+    },
+    "place-holder/child": {
+        "context": [
+            "place-holder"
         ],
-        "uri": "place-holder/child"
+        "name": "child",
+        "uri": "place-holder/child",
+        "versions": [
+            "the_dcc==1.2",
+            "the_dcc_plugin_a==1.1",
+            "the_dcc_plugin_e==1.1",
+            "the_dcc_plugin_d==1.1",
+            "the_dcc_plugin_b==1.1"
+        ]
     },
     "place-holder/inherits": {
         "context": [
             "place-holder"
         ],
         "name": "inherits",
+        "uri": "place-holder/inherits",
         "versions": [
             "the_dcc_plugin_a==1.1",
             "the_dcc_plugin_e==1.1",
@@ -322,27 +323,26 @@
             "the_dcc_plugin_c==1.1",
             "maya2020==2020.1",
             "houdini18.5==18.5.351"
-        ],
-        "uri": "place-holder/inherits"
+        ]
     },
     "project_a": {
         "context": [],
         "name": "project_a",
+        "uri": "project_a",
         "versions": [
             "maya2020==2020.1",
             "houdini18.5==18.5.351"
-        ],
-        "uri": "project_a"
+        ]
     },
     "project_a/Sc001": {
         "context": [
             "project_a"
         ],
         "name": "Sc001",
+        "uri": "project_a/Sc001",
         "versions": [
             "maya2020==2020.0"
-        ],
-        "uri": "project_a/Sc001"
+        ]
     },
     "project_a/Sc001/Animation": {
         "context": [
@@ -350,10 +350,10 @@
             "Sc001"
         ],
         "name": "Animation",
+        "uri": "project_a/Sc001/Animation",
         "versions": [
             "maya2020==2020.1"
-        ],
-        "uri": "project_a/Sc001/Animation"
+        ]
     },
     "project_a/Sc001/Rigging": {
         "context": [
@@ -361,44 +361,44 @@
             "Sc001"
         ],
         "name": "Rigging",
+        "uri": "project_a/Sc001/Rigging",
         "versions": [
             "maya2020==2020.1"
-        ],
-        "uri": "project_a/Sc001/Rigging"
+        ]
     },
     "verbosity": {
         "context": [],
-        "name": "verbosity",
         "min_verbosity": {
             "global": 2,
             "hab-gui": 1
         },
+        "name": "verbosity",
         "uri": "verbosity"
     },
     "verbosity/hidden": {
         "context": [
             "verbosity"
         ],
-        "name": "hidden",
         "min_verbosity": {
             "global": 3,
             "hab-gui": 2
         },
+        "name": "hidden",
         "uri": "verbosity/hidden"
     },
     "verbosity/inherit": {
         "context": [
             "verbosity"
         ],
-        "name": "inherit",
-        "versions": [
-            "aliased_verbosity==1.0"
-        ],
         "min_verbosity": {
             "global": 2,
             "hab-gui": 1
         },
-        "uri": "verbosity/inherit"
+        "name": "inherit",
+        "uri": "verbosity/inherit",
+        "versions": [
+            "aliased_verbosity==1.0"
+        ]
     },
     "verbosity/inherit-no": {
         "context": [
@@ -411,10 +411,10 @@
         "context": [
             "verbosity"
         ],
-        "name": "inherit-override",
         "min_verbosity": {
             "global": 1
         },
+        "name": "inherit-override",
         "uri": "verbosity/inherit-override"
     }
 }
