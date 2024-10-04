@@ -1,0 +1,16 @@
+{
+    "name": "inherited",
+    "context": ["omittable"],
+    "description": "This config doesn't define omittable_distros and will inherit from default.",
+    "inherits": true,
+    "distros": {
+        "maya2020": [
+            "the_dcc_plugin_a",
+            "the_dcc_plugin_b"
+        ],
+        "missing_dcc": [
+            "the_dcc_plugin_d",
+            "non-existent-distro"
+        ]
+    }
+}
