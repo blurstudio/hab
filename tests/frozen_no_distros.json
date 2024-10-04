@@ -3,21 +3,21 @@
         "context": [
             "not_set"
         ],
-        "name": "no_distros",
         "environment": {
-            "windows": {
+            "linux": {
                 "Test": [
                     "Case"
                 ]
             },
-            "linux": {
+            "windows": {
                 "Test": [
                     "Case"
                 ]
             }
         },
+        "name": "no_distros",
         "uri": "not_set/no_distros"
     },
-    "version1": "v1:eyJjb250ZXh0IjogWyJub3Rfc2V0Il0sICJuYW1lIjogIm5vX2Rpc3Ryb3MiLCAiZW52aXJvbm1lbnQiOiB7IndpbmRvd3MiOiB7IlRlc3QiOiBbIkNhc2UiXX0sICJsaW51eCI6IHsiVGVzdCI6IFsiQ2FzZSJdfX0sICJ1cmkiOiAibm90X3NldC9ub19kaXN0cm9zIn0=",
-    "version2": "v2:eJxtjTEKgDAMRa8imQV3V6/gJqWIZgjYBJpUBfHutnVxcPu8n/x3wSJseBr0zQQs5hUNXNsAzwEzzMyvpBZFIVPknaJwQC4fFxzEqxxa84j6zgyzIrg7n2/E6fwtS5sivYZq7T6m+wH8rTJK"
+    "version1": "v1:eyJjb250ZXh0IjogWyJub3Rfc2V0Il0sICJlbnZpcm9ubWVudCI6IHsibGludXgiOiB7IlRlc3QiOiBbIkNhc2UiXX0sICJ3aW5kb3dzIjogeyJUZXN0IjogWyJDYXNlIl19fSwgIm5hbWUiOiAibm9fZGlzdHJvcyIsICJ1cmkiOiAibm90X3NldC9ub19kaXN0cm9zIn0=",
+    "version2": "v2:eJxtjTEKgDAMRa8imQV3V6/gJqWIZgjYBJpUBfHutnVxcPu89+BfsAgbngZ9MwGLeUUD1zaAvFMUDsjFXbARp7OuEfXNh1kR3J3jg3iVQ3918TwHzCwf+JXUoihkmiK9sL52H3k/9FsySg=="
 }

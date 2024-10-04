@@ -216,6 +216,8 @@ def dumps_json(data, **kwargs):
     consistent dumps output as python's json module has more features than
     pyjson5. For example pyjson5 doesn't support indent."""
     kwargs.setdefault("cls", HabJsonEncoder)
+    # Sort dictionaries by key for consistent freeze and diff.
+    kwargs.setdefault("sort_keys", True)
     return _json.dumps(data, **kwargs)
 
 
