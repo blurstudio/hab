@@ -18,14 +18,18 @@ class Solver(object):
         forced (dict, optional): Forces this distro requirement replacing any resolved
             requirements. Using this may lead to configuring your environment
             incorrectly, use with caution.
+        omittable (list, optional): A list of distro names that are not required.
+            If a suitable distro can not be found, normally an `InvalidRequirementError`
+            is raised. If that distro name is in this list a warning is logged instead.
 
     Attributes:
         invalid (dict, optional): If a recursive requirement makes a already resolved
             version invalid, that version is added to this list as an exclusive exclude.
     """
 
-    def __init__(self, requirements, resolver, forced=None):
+    def __init__(self, requirements, resolver, forced=None, omittable=None):
         self.forced = forced if forced else {}
+        self.omittable = omittable if omittable else []
         self.invalid = {}
         self.max_redirects = 2
         self.requirements = requirements
@@ -125,6 +129,10 @@ class Solver(object):
                 # always show a warning if its used.
                 logger.warning(f"Forced Requirement: {req}")
                 reported.add(name)
+
+            if name in self.omittable and name not in self.resolver.distros:
+                logger.warning(f"Skipping missing omitted requirement: {req}")
+                continue
 
             # Update the requirement to match all current requirements
             req = self.append_requirement(resolved, req)

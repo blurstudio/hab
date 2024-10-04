@@ -129,7 +129,18 @@ class Config(HabBase):
         data = super().load(filename)
         self._alias_mods = data.get("alias_mods", NotSet)
         self.inherits = data.get("inherits", NotSet)
+        if self.omittable_distros is NotSet:
+            self.omittable_distros = data.get("omittable_distros", NotSet)
         return data
+
+    @hab_property(verbosity=3, process_order=50)
+    def omittable_distros(self):
+        """A collection of distro names that are ignored if required by distros."""
+        return self.frozen_data.get("omittable_distros", NotSet)
+
+    @omittable_distros.setter
+    def omittable_distros(self, value):
+        self.frozen_data["omittable_distros"] = value
 
     @hab_property(verbosity=1, group=0)
     def uri(self):

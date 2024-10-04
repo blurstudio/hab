@@ -1286,6 +1286,32 @@ the `-r`/`--requirement` option.
 Users can see the optional distros in the dump output with verbosity level of 1
 or higher. `hab dump - -v`
 
+### Omittable Distros
+
+The `omittable_distros` key in [config](#config) definitions are used to specify distros
+that are not required to use this hab configuration. This can be used to make it
+so not all hosts need to have a dcc installed. For example a producer likely will
+never need to open houdini but does need access to external tools. You would need
+to install Houdini(or create a empty .hab.json distro) so hab doesn't raise an
+`InvalidRequirementError` when it can't find Houdini.
+
+```json5
+    "distros": [
+        "houdini20.0==20.0.688",
+        "SideFXLabs20.0==20.0.506",
+        "python_tools"
+    ],
+    "omittable_distros": [
+        "houdini20.0",
+        "SideFXLabs20.0"
+    ]
+```
+This will make it so `houdini20.0` and `SideFXLabs20.0` will be loaded if found,
+but if not they will be ignored. `python_tools` will always need to be installed.
+
+Note: `omittable_distros` is a list of distro names. It does not accept specifier
+arguments like `==20.0.688`.
+
 ### Platform specific code
 
 Hab works on windows, linux and osx(needs tested). To make it easier to handle

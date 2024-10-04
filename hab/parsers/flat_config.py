@@ -223,7 +223,9 @@ class FlatConfig(Config):
                 self._alias_mods = {}
             self.frozen_data["versions"] = versions
 
-            reqs = self.resolver.resolve_requirements(distros)
+            reqs = self.resolver.resolve_requirements(
+                distros, omittable=self.omittable_distros
+            )
             for req in reqs.values():
                 version = self.resolver.find_distro(req)
                 versions.append(version)

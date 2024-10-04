@@ -356,18 +356,23 @@ class Resolver(object):
             if forced_requirements is not None:
                 self.forced_requirements = current
 
-    def resolve_requirements(self, requirements):
+    def resolve_requirements(self, requirements, omittable=None):
         """Recursively solve the provided requirements into a final list of requirements.
 
         Args:
             requirements (list): The requirements to resolve.
+            omittable (list, optional): A list of distro names that are not required.
+                If a suitable distro can not be found, normally an `InvalidRequirementError`
+                is raised. If that distro name is in this list a warning is logged instead.
 
         Raises:
             MaxRedirectError: Redirect limit reached, unable to resolve the requested
                 requirements.
         """
 
-        solver = Solver(requirements, self, forced=self.forced_requirements)
+        solver = Solver(
+            requirements, self, forced=self.forced_requirements, omittable=omittable
+        )
         return solver.resolve()
 
     def uri_validate(self, uri):
