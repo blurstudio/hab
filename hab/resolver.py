@@ -25,9 +25,10 @@ class Resolver(object):
         prereleases (bool, optional): When resolving distro versions, should
             pre-releases be included in the latest version. If not specified uses the
             value specified in site for the ``"prereleases"`` value.
-        forced_requirements (list, optional): A list of additional version requirements
-            to respect even if they are not specified in a config. This is provided for
-            ease of hab package development and should not be used in production.
+        forced_requirements (list, optional): A list of additional distro version
+            requirements to respect even if they are not specified in a config.
+            This is how `optional_distros` are enabled.
+            Has :py:meth:`hab.solvers.Solver.simplify_requirements` called on it.
     """
 
     _instances = {}
@@ -328,11 +329,32 @@ class Resolver(object):
                 logger.debug(str(error))
         return forest
 
-    def resolve(self, uri):
-        """Find the closest configuration and reduce it into its final form."""
+    def resolve(self, uri, forced_requirements=None):
+        """Find the closest configuration and reduce it into its final form.
+
+        Args:
+            uri (str): The URI to resolve.
+            forced_requirements (list, optional): A list of additional distro version
+                requirements to respect even if they are not specified in a config.
+                Has :py:meth:`hab.solvers.Solver.simplify_requirements` called on it.
+        """
         uri = self.uri_validate(uri)
         context = self.closest_config(uri)
-        return context.reduced(self, uri=uri)
+        try:
+            # Apply the custom forced_requirements if provided
+            if forced_requirements is not None:
+                current = self.forced_requirements
+
+                self.forced_requirements = Solver.simplify_requirements(
+                    forced_requirements
+                )
+                logger.warning(f"Forced Requirements overridden: {forced_requirements}")
+
+            return context.reduced(self, uri=uri)
+        finally:
+            # Ensure the forced_requirements are restored no matter what.
+            if forced_requirements is not None:
+                self.forced_requirements = current
 
     def resolve_requirements(self, requirements):
         """Recursively solve the provided requirements into a final list of requirements.
