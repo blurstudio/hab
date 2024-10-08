@@ -363,6 +363,9 @@ def test_reduced(resolver, helpers):
 
 
 class TestResolveRequirements:
+    def cfg_versions_to_dict(self, cfg):
+        return {v.distro_name: Requirement(v.name) for v in cfg.versions}
+
     def test_simple(self, resolver):
         requirements = {
             "the_dcc": Requirement("the_dcc"),
@@ -568,18 +571,97 @@ class TestResolveRequirements:
         # We are checking cfg.versions, so these need to be resolved to `==` requirements
         check = ["aliased==2.0", "houdini19.5==19.5.493"]
 
-        def cfg_versions_to_dict(cfg):
-            return {v.distro_name: Requirement(v.name) for v in cfg.versions}
-
         # Forced requirement includes direct distro assignments from the config
         cfg = resolver_forced.resolve("app/aliased")
-        versions = cfg_versions_to_dict(cfg)
+        versions = self.cfg_versions_to_dict(cfg)
         helpers.assert_requirements_equal(versions, check)
 
         # Check that forced requirements are correctly applied even if a config
         # inherits it's distros from a parent config.
         cfg = resolver_forced.resolve("app/aliased/config")
-        versions = cfg_versions_to_dict(cfg)
+        versions = self.cfg_versions_to_dict(cfg)
+        helpers.assert_requirements_equal(versions, check)
+
+    def test_override_forced(self, uncached_resolver, helpers):
+        """Test forced_requirements passed to `resolve` with global
+        forced_requirements temporarily replaces any already set on the Resolver.
+        """
+        hou_requirement = "houdini19.5==19.5.493"
+        uncached_resolver = Resolver(
+            site=uncached_resolver.site, forced_requirements=[hou_requirement]
+        )
+        global_requirements = [hou_requirement]
+
+        # This resolver has the expected forced requirements
+        helpers.assert_requirements_equal(
+            uncached_resolver.forced_requirements, global_requirements
+        )
+
+        # Passing an override forced_requirement is respected
+        cfg = uncached_resolver.resolve("app/aliased", forced_requirements=["maya2024"])
+        # and the original forced requirements are restored
+        helpers.assert_requirements_equal(
+            uncached_resolver.forced_requirements, global_requirements
+        )
+
+        # Check that the overridden requirements were actually respected
+        # The houdini requirement was removed and maya inserted
+        check = ["aliased==2.0", "maya2024==2024.0"]
+        versions = self.cfg_versions_to_dict(cfg)
+        helpers.assert_requirements_equal(versions, check)
+
+    def test_override_forced_empty(self, uncached_resolver, helpers):
+        """Test forced_requirements passed to `resolve` with global
+        forced_requirements temporarily replaces any already set on the Resolver.
+        """
+        hou_requirement = "houdini19.5==19.5.493"
+        uncached_resolver = Resolver(
+            site=uncached_resolver.site, forced_requirements=[hou_requirement]
+        )
+        global_requirements = [hou_requirement]
+        # This resolver has the expected forced requirements
+        helpers.assert_requirements_equal(
+            uncached_resolver.forced_requirements, global_requirements
+        )
+
+        # Passing an forced_requirement override removes the global requirement
+        cfg = uncached_resolver.resolve("app/aliased", forced_requirements=[])
+        # and the original forced requirements are restored
+        helpers.assert_requirements_equal(
+            uncached_resolver.forced_requirements, global_requirements
+        )
+
+        # Check that the overridden requirements were actually respected
+        # The houdini requirement was removed and maya inserted
+        check = ["aliased==2.0"]
+        versions = self.cfg_versions_to_dict(cfg)
+        helpers.assert_requirements_equal(versions, check)
+
+    def test_override_forced_unset(self, uncached_resolver, helpers):
+        """Test forced_requirements override passed to `resolve` without any
+        global forced_requirements set on the Resolver."""
+
+        # This resolver has no existing forced_requirements
+        assert uncached_resolver.forced_requirements == {}
+
+        # Ensure our config doesn't include houdini19.5 by default
+        cfg = uncached_resolver.resolve("app/aliased")
+        # The previous call didn't modify `forced_requirements`
+        assert uncached_resolver.forced_requirements == {}
+        check = ["aliased==2.0"]
+        versions = self.cfg_versions_to_dict(cfg)
+        helpers.assert_requirements_equal(versions, check)
+
+        # Passing an override forced_requirement is respected
+        cfg = uncached_resolver.resolve(
+            "app/aliased", forced_requirements=["houdini19.5==19.5.493"]
+        )
+        # and the original forced requirements are restored
+        assert uncached_resolver.forced_requirements == {}
+
+        # Check that the overridden requirements were actually respected
+        check = ["aliased==2.0", "houdini19.5==19.5.493"]
+        versions = self.cfg_versions_to_dict(cfg)
         helpers.assert_requirements_equal(versions, check)
 
 
