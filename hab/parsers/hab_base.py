@@ -71,7 +71,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
     def _cache(self):
         return {}
 
-    def _collect_values(self, node, props=None, default=False):
+    def _collect_values(self, node, props=None):
         """Recursively process this config node and its parents until all
         missing_values have been resolved or we run out of parents.
 
@@ -80,8 +80,6 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 they are not NotSet.
             props (list, optional): The props to process, if None is
                 passed then uses `hab_property` values respecting sort_key.
-            default (bool, optional): Enables processing the default nodes as
-                part of this methods recursion. Used for internal tracking.
         """
         logger.debug(f"Loading node: {node.name} inherits: {node.inherits}")
         if props is None:
@@ -89,38 +87,73 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 self._properties, key=lambda i: self._properties[i].sort_key()
             )
 
-        self._missing_values = False
         # Use sort_key to ensure the props are processed in the correct order
+        default_cache = {}
         for attrname in props:
-            if getattr(self, attrname) != NotSet:
-                continue
-            if attrname == "alias_mods":
-                if hasattr(node, "alias_mods") and node.alias_mods:
-                    self._alias_mods = {}
-                    # Format the alias environment at this point so any path
-                    # based variables like {relative_root} are resolved against
-                    # the node's directory not the alias being modified
-                    mods = node.format_environment_value(node.alias_mods)
-                    for name, mod in mods.items():
-                        self._alias_mods.setdefault(name, []).append(mod)
-                continue
-            value = getattr(node, attrname)
-            if value is NotSet:
-                self._missing_values = True
-            else:
-                setattr(self, attrname, value)
+            self._resolve_inherited_value(node, attrname, default_cache)
 
-        if node.inherits and self._missing_values:
+    def _resolve_inherited_value(self, node, attrname, default_cache, default=False):
+        """Recursively process this config node and its parents until the requested
+        attribute has been resolved or we run out of parents.
+
+        Args:
+            node (HabBase): This node's values are copied to self as long as
+                they are not NotSet.
+            attrname (str): The name of the attribute to resolve and set on node.
+            default_cache (dict): Used to cache any required resolving of default
+                configs to prevent other attrnames from having to re-resolve.
+            default (bool, optional): Enables processing the default nodes as
+                part of this methods recursion. Used for internal tracking.
+
+        Returns:
+            bool: If the property value was resolved.
+        """
+
+        def resolve_parent_node():
+            if not node.inherits:
+                return False
             parent = node.parent
-            if parent:
-                return self._collect_values(parent, props=props, default=default)
-            elif not default and "default" in self.forest:
-                # Start processing the default setup
-                default = True
-                default_node = self.resolver.closest_config(node.fullpath, default=True)
-                self._collect_values(default_node, props=props, default=default)
+            if not parent and not default and "default" in self.forest:
+                # No more parents to process, try processing the default tree.
+                fullpath = node.fullpath
+                if fullpath in default_cache:
+                    parent = default_cache[fullpath]
+                else:
+                    parent = self.resolver.closest_config(node.fullpath, default=True)
+                    # Don't waste time calling closest_config again for other attrname's
+                    default_cache[fullpath] = parent
+                if parent:
+                    return self._resolve_inherited_value(
+                        parent, attrname, default_cache, default=True
+                    )
+            if not parent:
+                return False
+            return self._resolve_inherited_value(parent, attrname, default_cache)
 
-        return self._missing_values
+        if getattr(self, attrname) != NotSet:
+            return True
+        if attrname == "alias_mods":
+            if hasattr(node, "alias_mods") and node.alias_mods:
+                self._alias_mods = {}
+                # Format the alias environment at this point so any path
+                # based variables like {relative_root} are resolved against
+                # the node's directory not the alias being modified
+                mods = node.format_environment_value(node.alias_mods)
+                for name, mod in mods.items():
+                    self._alias_mods.setdefault(name, []).append(mod)
+            return True
+        if not hasattr(node, attrname) and isinstance(node, self._placeholder):
+            # Skip properties that don't exist on the placeholder class
+            # recursively check parent
+            return resolve_parent_node()
+        value = getattr(node, attrname)
+        if value is NotSet:
+            # recursively check parent
+            return resolve_parent_node()
+
+        # Store the resolved value and finish
+        setattr(self, attrname, value)
+        return True
 
     @classmethod
     def _dump_versions(cls, value, verbosity=0, color=None):
