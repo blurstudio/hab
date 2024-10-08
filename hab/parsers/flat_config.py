@@ -151,8 +151,8 @@ class FlatConfig(Config):
         """
         return super().alias_mods
 
-    # Note: 'alias_mods' and 'distros' needs to be processed before 'environment'
-    @hab_property(verbosity=2, process_order=80)
+    # Note: 'alias_mods', 'distros', versions needs to be processed before 'environment'
+    @hab_property(verbosity=2, process_order=110)
     def environment(self):
         """A resolved set of environment variables for this platform that should
         be applied to configure an environment. Any values set to None indicate

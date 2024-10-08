@@ -622,7 +622,12 @@ def test_placeholder_handling(resolver):
     assert "maya2020" in ret.distros.keys()
     assert "the_dcc_plugin_a" in ret.distros.keys()
     # HAB_URI is always added to the environment variables
-    assert ret.environment == {"HAB_URI": ["place-holder/undefined"]}
+    # Also env vars defined by the distro are included
+    assert len(ret.environment) == 3
+    assert len(ret.environment["DCC_CONFIG_PATH"]) == 4
+    assert len(ret.environment["DCC_MODULE_PATH"]) == 5
+    # HAB_URI is always added to the environment variables
+    assert ret.environment["HAB_URI"] == ["place-holder/undefined"]
 
     # Check that if inherits is False, inheritance doesn't happen with Placeholders.
     ret = resolver.resolve("place-holder/child")
@@ -635,8 +640,8 @@ def test_placeholder_handling(resolver):
     assert "maya2020" not in ret.distros
     assert "the_dcc_plugin_a" not in ret.distros
     assert len(ret.environment) == 3
-    assert "DCC_CONFIG_PATH" in ret.environment
-    assert "DCC_MODULE_PATH" in ret.environment
+    assert len(ret.environment["DCC_CONFIG_PATH"]) == 4
+    assert len(ret.environment["DCC_MODULE_PATH"]) == 4
     # HAB_URI is always added to the environment variables
     assert "HAB_URI" in ret.environment
 
@@ -652,8 +657,9 @@ def test_placeholder_handling(resolver):
     assert "maya2020" in ret.distros.keys()
     assert "the_dcc_plugin_a" in ret.distros.keys()
     # Inherits defines environment, so its environment settings are not inherited.
-    assert len(ret.environment) == 2
-    assert "DCC_MODULE_PATH" not in ret.environment
+    assert len(ret.environment) == 4
+    assert len(ret.environment["DCC_CONFIG_PATH"]) == 4
+    assert len(ret.environment["DCC_MODULE_PATH"]) == 5
     # HAB_URI is always added to the environment variables
     assert "HAB_URI" in ret.environment
     assert "TEST" in ret.environment
