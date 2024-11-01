@@ -203,7 +203,9 @@ class Resolver(object):
             attr (str, optional): The name of the attribute to display for each node.
                 If None is passed, the anytree object is returned un-modified.
             fmt (str, optional): str.format string to control the display of
-                each node in the forest. Accepts (pre, attr) keys.
+                each node in the forest. Accepts (pre, attr) keys. If a callable
+                is passed then it will be called passing (parser, attr=attr, pre=pre)
+                and should return the text for that hab.parsers instance.
             style (anytree.render.AbstractStyle, optional): Controls how anytree
                 renders the branch information. If not set, defaults to a custom
                 style that intents all children(recursively) to the same depth.
@@ -235,13 +237,13 @@ class Resolver(object):
             for row in anytree.RenderTree(
                 forest[tree_name], style=style, childiter=sort_forest
             ):
-                cfg = row.node
+                parser = row.node
                 # Process inheritance for this config to ensure the correct value
-                cfg._collect_values(cfg, ["min_verbosity"])
+                parser._collect_values(parser, ["min_verbosity"])
 
                 # Check if this row should be shown based on verbosity settings.
-                min_verbosity = {"min_verbosity": cfg.min_verbosity}
-                if not cfg.check_min_verbosity(min_verbosity):
+                min_verbosity = {"min_verbosity": parser.min_verbosity}
+                if not parser.check_min_verbosity(min_verbosity):
                     # TODO: If a parent is hidden but not a child, fix rendering
                     # so the child's indent is reduced correctly.
                     continue
@@ -254,7 +256,10 @@ class Resolver(object):
                     pre = row.pre
                     if limit_pre:
                         pre = row.pre[: len(indent)]
-                    yield fmt.format(pre=pre, attr=getattr(cfg, attr))
+                    if isinstance(fmt, str):
+                        yield fmt.format(pre=pre, attr=getattr(parser, attr))
+                    else:
+                        yield fmt(parser, attr=attr, pre=pre)
 
     def find_distro(self, requirement):
         """Returns the DistroVersion matching the requirement or None"""
