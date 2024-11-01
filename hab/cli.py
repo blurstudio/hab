@@ -645,29 +645,30 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
     resolver = settings.resolver
 
     if report_type in ("uris", "versions", "forest"):
-        # Allow the user to disable truncation of versions with verbosity flag
-        truncate = None if verbosity else 3
+        from .parsers.format_parser import FormatParser
 
-        def echo_line(line):
-            if line.strip() == line:
-                click.echo(f"{Fore.GREEN}{line}{Fore.RESET}")
-            else:
-                click.echo(line)
+        formatter = FormatParser(verbosity, color=True)
+        # Allow the user to disable truncation of versions with verbosity flag
+        truncate = None if verbosity > 1 else 3
 
         if report_type in ("uris", "forest"):
             click.echo(f'{Fore.YELLOW}{" URIs ".center(50, "-")}{Fore.RESET}')
             # Filter out any URI's hidden by the requested verbosity level
             with utils.verbosity_filter(resolver, verbosity):
-                for line in resolver.dump_forest(resolver.configs):
-                    echo_line(line)
+                for line in resolver.dump_forest(
+                    resolver.configs, fmt=formatter.format
+                ):
+                    click.echo(line)
         if report_type in ("versions", "forest"):
             click.echo(f'{Fore.YELLOW}{" Versions ".center(50, "-")}{Fore.RESET}')
+
             for line in resolver.dump_forest(
                 resolver.distros,
                 attr="name",
+                fmt=formatter.format,
                 truncate=truncate,
             ):
-                echo_line(line)
+                click.echo(line)
     elif report_type == "all-uris":
         # Combines all non-placeholder URI's into a single json document and display.
         # This can be used to compare changes to configs when editing them in bulk.
