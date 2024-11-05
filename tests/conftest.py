@@ -50,7 +50,7 @@ def generate_habcached_site_file(config_root, dest):
     }
 
     with site_file.open("w") as fle:
-        json.dump(data, fle, indent=4)
+        json.dump(data, fle, indent=4, sort_keys=True)
 
     return site_file
 

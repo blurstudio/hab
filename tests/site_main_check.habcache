@@ -1,34 +1,27 @@
 {
-    "version": 1,
     "config_paths": {
         "{config-root}/configs/*": {
             "{config-root}/configs/app/app_aliased.json": {
-                "name": "aliased",
                 "context": [
                     "app"
                 ],
-                "inherits": false,
                 "distros": [
                     "aliased"
-                ]
+                ],
+                "inherits": false,
+                "name": "aliased"
             },
             "{config-root}/configs/app/app_aliased_config.json": {
-                "name": "config",
-                "context": [
-                    "app",
-                    "aliased"
-                ],
-                "inherits": true,
                 "alias_mods": {
                     "as_dict": {
                         "environment": {
-                            "os_specific": true,
                             "linux": {
                                 "prepend": {
                                     "ALIASED_LOCAL": "{relative_root}/config",
                                     "ALIASED_MOD_LOCAL_A": "Local Config A"
                                 }
                             },
+                            "os_specific": true,
                             "windows": {
                                 "prepend": {
                                     "ALIASED_LOCAL": "{relative_root}/config",
@@ -37,15 +30,19 @@
                             }
                         }
                     }
-                }
-            },
-            "{config-root}/configs/app/app_aliased_mod.json": {
-                "name": "mod",
+                },
                 "context": [
                     "app",
                     "aliased"
                 ],
                 "inherits": true,
+                "name": "config"
+            },
+            "{config-root}/configs/app/app_aliased_mod.json": {
+                "context": [
+                    "app",
+                    "aliased"
+                ],
                 "distros": [
                     "aliased",
                     "aliased_mod"
@@ -54,26 +51,21 @@
                     "set": {
                         "CONFIG_DEFINED": "config_variable"
                     }
-                }
+                },
+                "inherits": true,
+                "name": "mod"
             },
             "{config-root}/configs/app/app_aliased_mod_config.json": {
-                "name": "config",
-                "context": [
-                    "app",
-                    "aliased",
-                    "mod"
-                ],
-                "inherits": true,
                 "alias_mods": {
                     "as_dict": {
                         "environment": {
-                            "os_specific": true,
                             "linux": {
                                 "prepend": {
                                     "ALIASED_LOCAL": "{relative_root}/config_mod",
                                     "ALIASED_MOD_LOCAL_A": "Local Config Mod A"
                                 }
                             },
+                            "os_specific": true,
                             "windows": {
                                 "prepend": {
                                     "ALIASED_LOCAL": "{relative_root}/config_mod",
@@ -82,36 +74,42 @@
                             }
                         }
                     }
-                }
+                },
+                "context": [
+                    "app",
+                    "aliased",
+                    "mod"
+                ],
+                "inherits": true,
+                "name": "config"
             },
             "{config-root}/configs/app/app_houdini_a.json": {
-                "name": "a",
                 "context": [
                     "app",
                     "houdini"
                 ],
                 "description": "Test that the duplicated alias houdini is resolved against 18.5.",
-                "inherits": false,
                 "distros": [
                     "houdini18.5",
                     "houdini19.5"
-                ]
+                ],
+                "inherits": false,
+                "name": "a"
             },
             "{config-root}/configs/app/app_houdini_b.json": {
-                "name": "b",
                 "context": [
                     "app",
                     "houdini"
                 ],
                 "description": "Test that the duplicated alias houdini is resolved against 19.5.",
-                "inherits": false,
                 "distros": [
                     "houdini19.5",
                     "houdini18.5"
-                ]
+                ],
+                "inherits": false,
+                "name": "b"
             },
             "{config-root}/configs/app/app_maya.json": {
-                "name": "maya",
                 "context": [
                     "app"
                 ],
@@ -120,125 +118,125 @@
                     "global": 2,
                     "hab": 2,
                     "hab-gui": 1
-                }
+                },
+                "name": "maya"
             },
             "{config-root}/configs/app/app_maya_2020.json": {
-                "name": "2020",
                 "context": [
                     "app",
                     "maya"
                 ],
-                "inherits": true,
                 "distros": [
                     "maya2020"
-                ]
+                ],
+                "inherits": true,
+                "name": "2020"
             },
             "{config-root}/configs/app/app_maya_2024.json": {
-                "name": "2024",
                 "context": [
                     "app",
                     "maya"
                 ],
-                "inherits": true,
                 "distros": [
                     "maya2024"
-                ]
+                ],
+                "inherits": true,
+                "name": "2024"
             },
             "{config-root}/configs/default/default.json": {
-                "name": "default",
                 "context": [],
-                "inherits": false,
                 "distros": {
+                    "houdini18.5": [
+                        "the_dcc_plugin_d"
+                    ],
                     "maya2020": [
                         "the_dcc_plugin_a",
                         "the_dcc_plugin_b",
                         "the_dcc_plugin_c"
-                    ],
-                    "houdini18.5": [
-                        "the_dcc_plugin_d"
                     ]
-                }
+                },
+                "inherits": false,
+                "name": "default"
             },
             "{config-root}/configs/default/default_Sc1.json": {
-                "name": "Sc1",
                 "context": [
                     "default"
                 ],
-                "inherits": false,
                 "distros": {
+                    "houdini18.5": [
+                        "the_dcc_plugin_d"
+                    ],
                     "maya2020": [
                         "the_dcc_plugin_a",
                         "the_dcc_plugin_b",
                         "the_dcc_plugin_c"
-                    ],
-                    "houdini18.5": [
-                        "the_dcc_plugin_d"
                     ]
-                }
+                },
+                "inherits": false,
+                "name": "Sc1"
             },
             "{config-root}/configs/default/default_Sc11.json": {
-                "name": "Sc11",
                 "context": [
                     "default"
                 ],
-                "inherits": false,
                 "distros": {
+                    "houdini18.5": [
+                        "the_dcc_plugin_d"
+                    ],
                     "maya2020": [
                         "the_dcc_plugin_a",
                         "the_dcc_plugin_b",
                         "the_dcc_plugin_c"
-                    ],
-                    "houdini18.5": [
-                        "the_dcc_plugin_d"
                     ]
-                }
+                },
+                "inherits": false,
+                "name": "Sc11"
             },
             "{config-root}/configs/not_set/child.json": {
-                "name": "child",
                 "context": [
                     "not_set"
                 ],
                 "environment": {
+                    "set": {
+                        "FMT_FOR_OS": "a{;}b;c:{PATH!e}{;}d",
+                        "TEST": "case"
+                    },
                     "unset": [
                         "UNSET_VARIABLE"
-                    ],
-                    "set": {
-                        "TEST": "case",
-                        "FMT_FOR_OS": "a{;}b;c:{PATH!e}{;}d"
-                    }
+                    ]
                 },
-                "inherits": true
+                "inherits": true,
+                "name": "child"
             },
             "{config-root}/configs/not_set/env.json": {
-                "name": "env1",
                 "context": [
                     "not_set"
                 ],
                 "environment": {
+                    "append": {
+                        "APPEND_VARIABLE": "append_value",
+                        "RELATIVE_VARIABLE": "{relative_root}/append"
+                    },
+                    "prepend": {
+                        "PREPEND_VARIABLE": "prepend_value",
+                        "RELATIVE_VARIABLE": "{relative_root}/prepend"
+                    },
+                    "set": {
+                        "MAYA_MODULE_PATH": "MMP_Set",
+                        "RELATIVE_VARIABLE": "{relative_root}/set",
+                        "SET_RELATIVE": "{relative_root}",
+                        "SET_VARIABLE": "set_value"
+                    },
                     "unset": [
                         "UNSET_VARIABLE",
                         "UNSET_VARIABLE_1",
                         "RELATIVE_VARIABLE"
-                    ],
-                    "set": {
-                        "SET_RELATIVE": "{relative_root}",
-                        "RELATIVE_VARIABLE": "{relative_root}/set",
-                        "SET_VARIABLE": "set_value",
-                        "MAYA_MODULE_PATH": "MMP_Set"
-                    },
-                    "append": {
-                        "RELATIVE_VARIABLE": "{relative_root}/append",
-                        "APPEND_VARIABLE": "append_value"
-                    },
-                    "prepend": {
-                        "RELATIVE_VARIABLE": "{relative_root}/prepend",
-                        "PREPEND_VARIABLE": "prepend_value"
-                    }
+                    ]
                 },
-                "inherits": true
+                "inherits": true,
+                "name": "env1"
             },
             "{config-root}/configs/not_set/env_path_hab_uri.json": {
-                "name": "env_path_hab_uri",
                 "context": [
                     "not_set"
                 ],
@@ -247,10 +245,10 @@
                         "HAB_URI": "invalid value"
                     }
                 },
-                "inherits": true
+                "inherits": true,
+                "name": "env_path_hab_uri"
             },
             "{config-root}/configs/not_set/env_path_set.json": {
-                "name": "env_path_set",
                 "context": [
                     "not_set"
                 ],
@@ -259,10 +257,10 @@
                         "PATH": "path_variable"
                     }
                 },
-                "inherits": true
+                "inherits": true,
+                "name": "env_path_set"
             },
             "{config-root}/configs/not_set/env_path_unset.json": {
-                "name": "env_path_unset",
                 "context": [
                     "not_set"
                 ],
@@ -271,23 +269,22 @@
                         "PATH"
                     ]
                 },
-                "inherits": true
+                "inherits": true,
+                "name": "env_path_unset"
             },
             "{config-root}/configs/not_set/not_set.json": {
-                "name": "not_set",
                 "context": [],
-                "inherits": false,
                 "distros": [
                     "aliased",
                     "maya2020"
-                ]
+                ],
+                "inherits": false,
+                "name": "not_set"
             },
             "{config-root}/configs/not_set/not_set_distros.json": {
-                "name": "distros",
                 "context": [
                     "not_set"
                 ],
-                "inherits": false,
                 "distros": {
                     "the_dcc": []
                 },
@@ -295,84 +292,86 @@
                     "append": {
                         "Test": "Case"
                     }
-                }
+                },
+                "inherits": false,
+                "name": "distros"
             },
             "{config-root}/configs/not_set/not_set_empty_lists.json": {
-                "name": "empty_lists",
+                "aliases": [],
                 "context": [
                     "not_set"
                 ],
+                "distros": [],
                 "inherits": false,
-                "aliases": [],
-                "distros": []
+                "name": "empty_lists"
             },
             "{config-root}/configs/not_set/not_set_no_distros.json": {
-                "name": "no_distros",
                 "context": [
                     "not_set"
                 ],
-                "inherits": false,
                 "environment": {
                     "append": {
                         "Test": "Case"
                     }
-                }
+                },
+                "inherits": false,
+                "name": "no_distros"
             },
             "{config-root}/configs/not_set/not_set_no_env.json": {
-                "name": "no_env",
                 "context": [
                     "not_set"
                 ],
-                "inherits": false,
                 "distros": {
                     "the_dcc": []
-                }
+                },
+                "inherits": false,
+                "name": "no_env"
             },
             "{config-root}/configs/not_set/os_env.json": {
-                "name": "os",
                 "context": [
                     "not_set"
                 ],
                 "environment": {
-                    "os_specific": true,
                     "linux": {
-                        "unset": [
-                            "UNSET_VARIABLE_LIN"
-                        ],
-                        "set": {
-                            "SET_VARIABLE_LIN": "set_value_lin"
-                        },
                         "append": {
                             "APPEND_VARIABLE_LIN": "append_value_lin"
                         },
                         "prepend": {
                             "PREPEND_VARIABLE_LIN": "prepend_value_lin"
-                        }
-                    },
-                    "windows": {
-                        "unset": [
-                            "UNSET_VARIABLE_WIN"
-                        ],
-                        "set": {
-                            "SET_VARIABLE_WIN": "set_value_win"
                         },
+                        "set": {
+                            "SET_VARIABLE_LIN": "set_value_lin"
+                        },
+                        "unset": [
+                            "UNSET_VARIABLE_LIN"
+                        ]
+                    },
+                    "os_specific": true,
+                    "windows": {
                         "append": {
                             "APPEND_VARIABLE_WIN": "append_value_win"
                         },
                         "prepend": {
                             "PREPEND_VARIABLE_WIN": "prepend_value_win"
-                        }
+                        },
+                        "set": {
+                            "SET_VARIABLE_WIN": "set_value_win"
+                        },
+                        "unset": [
+                            "UNSET_VARIABLE_WIN"
+                        ]
                     }
                 },
-                "inherits": false
+                "inherits": false,
+                "name": "os"
             },
             "{config-root}/configs/optional/optional.json": {
-                "name": "optional",
                 "context": [],
-                "inherits": false,
                 "distros": [
                     "the_dcc"
                 ],
+                "inherits": false,
+                "name": "optional",
                 "optional_distros": {
                     "maya2024": [
                         "Adds new aliases"
@@ -396,14 +395,14 @@
                 }
             },
             "{config-root}/configs/optional/optional_child.json": {
-                "name": "child",
                 "context": [
                     "optional"
                 ],
-                "inherits": false,
                 "distros": [
                     "the_dcc"
                 ],
+                "inherits": false,
+                "name": "child",
                 "optional_distros": {
                     "the_dcc_plugin_e": [
                         "Different optional dependencies for a child URI.",
@@ -412,97 +411,96 @@
                 }
             },
             "{config-root}/configs/place-holder/place-holder_child.json": {
-                "name": "child",
                 "context": [
                     "place-holder"
                 ],
-                "inherits": false,
                 "distros": [
                     "the_dcc"
-                ]
+                ],
+                "inherits": false,
+                "name": "child"
             },
             "{config-root}/configs/place-holder/place-holder_inherits.json": {
-                "name": "inherits",
                 "context": [
                     "place-holder"
                 ],
-                "inherits": true,
                 "environment": {
                     "set": {
                         "TEST": "case"
                     }
-                }
+                },
+                "inherits": true,
+                "name": "inherits"
             },
             "{config-root}/configs/project_a/project_a.json": {
-                "name": "project_a",
                 "context": [],
-                "inherits": false,
                 "distros": [
                     "maya2020",
                     "houdini18.5"
                 ],
                 "environment": {
-                    "os_specific": true,
                     "linux": {
                         "set": {
-                            "OCIO": "{mount_linux}/project_a/cfg/ocio/v0001/config.ocio",
                             "HOUDINI_OTLSCAN_PATH": [
                                 "{mount_linux}/project_a/cfg/hdas",
                                 "{mount_linux}/_shared/cfg/hdas",
                                 "&"
-                            ]
+                            ],
+                            "OCIO": "{mount_linux}/project_a/cfg/ocio/v0001/config.ocio"
                         }
                     },
+                    "os_specific": true,
                     "windows": {
                         "set": {
-                            "OCIO": "{mount_windows}/project_a/cfg/ocio/v0001/config.ocio",
                             "HOUDINI_OTLSCAN_PATH": [
                                 "{mount_windows}/project_a/cfg/hdas",
                                 "{mount_windows}/_shared/cfg/hdas",
                                 "&"
-                            ]
+                            ],
+                            "OCIO": "{mount_windows}/project_a/cfg/ocio/v0001/config.ocio"
                         }
                     }
                 },
+                "inherits": false,
+                "name": "project_a",
                 "variables": {
                     "mount_linux": "/blur/g",
                     "mount_windows": "G:"
                 }
             },
             "{config-root}/configs/project_a/project_a_Sc001.json": {
-                "name": "Sc001",
                 "context": [
                     "project_a"
                 ],
-                "inherits": true,
                 "distros": [
                     "maya2020==2020.0"
-                ]
+                ],
+                "inherits": true,
+                "name": "Sc001"
             },
             "{config-root}/configs/project_a/project_a_Sc001_animation.json": {
-                "name": "Animation",
                 "context": [
                     "project_a",
                     "Sc001"
                 ],
-                "inherits": true,
                 "distros": [
                     "maya2020"
-                ]
+                ],
+                "inherits": true,
+                "name": "Animation"
             },
             "{config-root}/configs/project_a/project_a_Sc001_rigging.json": {
-                "name": "Rigging",
                 "context": [
                     "project_a",
                     "Sc001"
                 ],
-                "inherits": true,
                 "distros": [
                     "maya2020"
-                ]
+                ],
+                "inherits": true,
+                "name": "Rigging"
             },
             "{config-root}/configs/verbosity/verbosity.json": {
-                "name": "verbosity",
                 "context": [],
                 "description": "Defines verbosity settings that can be inherited",
                 "environment": {
@@ -514,56 +512,56 @@
                 "min_verbosity": {
                     "global": 2,
                     "hab-gui": 1
-                }
+                },
+                "name": "verbosity"
             },
             "{config-root}/configs/verbosity/verbosity_hidden.json": {
-                "name": "hidden",
                 "context": [
                     "verbosity"
                 ],
                 "description": "Verbosity global setting above the normal max of 2. Should only be visible if verbosity is None.",
-                "inherits": true,
                 "environment": {
                     "set": {
                         "VERBOSITY": "verbosity/hidden"
                     }
                 },
+                "inherits": true,
                 "min_verbosity": {
                     "global": 3,
                     "hab-gui": 2
-                }
+                },
+                "name": "hidden"
             },
             "{config-root}/configs/verbosity/verbosity_inherit-no.json": {
-                "name": "inherit-no",
                 "context": [
                     "verbosity"
                 ],
                 "description": "Doesn't define verbosity and doesn't inherit it from parent.",
-                "inherits": false,
                 "environment": {
                     "set": {
                         "VERBOSITY": "verbosity/inherit-no"
                     }
-                }
+                },
+                "inherits": false,
+                "name": "inherit-no"
             },
             "{config-root}/configs/verbosity/verbosity_inherit-override.json": {
-                "name": "inherit-override",
                 "context": [
                     "verbosity"
                 ],
                 "description": "Inherits from parent but defines verbosity on itself.",
-                "inherits": true,
                 "environment": {
                     "set": {
                         "VERBOSITY": "verbosity/inherit-override"
                     }
                 },
+                "inherits": true,
                 "min_verbosity": {
                     "global": 1
-                }
+                },
+                "name": "inherit-override"
             },
             "{config-root}/configs/verbosity/verbosity_inherit.json": {
-                "name": "inherit",
                 "context": [
                     "verbosity"
                 ],
@@ -571,19 +569,19 @@
                 "distros": [
                     "aliased_verbosity"
                 ],
-                "inherits": true,
                 "environment": {
                     "set": {
                         "VERBOSITY": "verbosity/inherit"
                     }
-                }
+                },
+                "inherits": true,
+                "name": "inherit"
             }
         }
     },
     "distro_paths": {
         "{config-root}/distros/*": {
             "{config-root}/distros/aliased/2.0/.hab.json": {
-                "name": "aliased",
                 "aliases": {
                     "linux": [
                         [
@@ -736,21 +734,20 @@
                         "ALIASED_GLOBAL_E"
                     ]
                 },
+                "name": "aliased",
                 "version": "2.0"
             },
             "{config-root}/distros/aliased_mod/1.0/.hab.json": {
-                "name": "aliased_mod",
-                "description": "Modifies the aliases defined in the aliased distro.",
                 "alias_mods": {
                     "as_dict": {
                         "environment": {
-                            "os_specific": true,
                             "linux": {
                                 "prepend": {
                                     "ALIASED_LOCAL": "{relative_root}/modified",
                                     "ALIASED_MOD_LOCAL_A": "Local Mod A"
                                 }
                             },
+                            "os_specific": true,
                             "windows": {
                                 "prepend": {
                                     "ALIASED_LOCAL": "{relative_root}/modified",
@@ -761,12 +758,12 @@
                     },
                     "as_list": {
                         "environment": {
-                            "os_specific": true,
                             "linux": {
                                 "prepend": {
                                     "ALIASED_MOD_LOCAL_B": "Local Mod B"
                                 }
                             },
+                            "os_specific": true,
                             "windows": {
                                 "prepend": {
                                     "ALIASED_MOD_LOCAL_B": "Local Mod B"
@@ -776,33 +773,34 @@
                     },
                     "global": {
                         "environment": {
-                            "os_specific": true,
                             "linux": {
                                 "prepend": {
                                     "ALIASED_GLOBAL_A": "Local Mod A",
-                                    "ALIASED_MOD_LOCAL_B": "Local Mod B",
-                                    "ALIASED_GLOBAL_F": "Local Mod F"
+                                    "ALIASED_GLOBAL_F": "Local Mod F",
+                                    "ALIASED_MOD_LOCAL_B": "Local Mod B"
                                 }
                             },
+                            "os_specific": true,
                             "windows": {
                                 "prepend": {
                                     "ALIASED_GLOBAL_A": "Local Mod A",
-                                    "ALIASED_MOD_LOCAL_B": "Local Mod B",
-                                    "ALIASED_GLOBAL_F": "Local Mod F"
+                                    "ALIASED_GLOBAL_F": "Local Mod F",
+                                    "ALIASED_MOD_LOCAL_B": "Local Mod B"
                                 }
                             }
                         }
                     }
                 },
+                "description": "Modifies the aliases defined in the aliased distro.",
                 "environment": {
                     "set": {
                         "ALIASED_MOD_GLOBAL_A": "Global Mod A"
                     }
                 },
+                "name": "aliased_mod",
                 "version": "1.0"
             },
             "{config-root}/distros/aliased_verbosity/1.0/.hab.json": {
-                "name": "aliased_verbosity",
                 "aliases": {
                     "linux": [
                         [
@@ -917,28 +915,10 @@
                         ]
                     ]
                 },
+                "name": "aliased_verbosity",
                 "version": "1.0"
             },
             "{config-root}/distros/all_settings/0.1.0.dev1/.hab.json": {
-                "name": "all_settings",
-                "version": "0.1.0.dev1",
-                "environment": {
-                    "unset": [
-                        "OTHER"
-                    ],
-                    "set": {
-                        "TEST": "case"
-                    },
-                    "append": {
-                        "MAYA_MODULE_PATH": "."
-                    },
-                    "prepend": {
-                        "TEST_VARIABLE": "prepend_value"
-                    }
-                },
-                "distros": [
-                    "Maya2020"
-                ],
                 "aliases": {
                     "windows": [
                         [
@@ -950,11 +930,28 @@
                             "C:\\Program Files\\Autodesk\\Maya2020\\bin\\mayapy.exe"
                         ]
                     ]
-                }
+                },
+                "distros": [
+                    "Maya2020"
+                ],
+                "environment": {
+                    "append": {
+                        "MAYA_MODULE_PATH": "."
+                    },
+                    "prepend": {
+                        "TEST_VARIABLE": "prepend_value"
+                    },
+                    "set": {
+                        "TEST": "case"
+                    },
+                    "unset": [
+                        "OTHER"
+                    ]
+                },
+                "name": "all_settings",
+                "version": "0.1.0.dev1"
             },
             "{config-root}/distros/houdini18.5/18.5.351/.hab.json": {
-                "name": "houdini18.5",
-                "version": "18.5.351",
                 "aliases": {
                     "linux": [
                         [
@@ -1055,11 +1052,11 @@
                             }
                         ]
                     ]
-                }
+                },
+                "name": "houdini18.5",
+                "version": "18.5.351"
             },
             "{config-root}/distros/houdini19.5/19.5.493/.hab.json": {
-                "name": "houdini19.5",
-                "version": "19.5.493",
                 "aliases": {
                     "linux": [
                         [
@@ -1126,11 +1123,11 @@
                             "houdini19.5",
                             {
                                 "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdini.exe",
-                                "min_verbosity": {
-                                    "global": 1
-                                },
                                 "hab.launch_cls": {
                                     "subprocess": "subprocess:Popen"
+                                },
+                                "min_verbosity": {
+                                    "global": 1
                                 }
                             }
                         ],
@@ -1147,11 +1144,11 @@
                             "houdinicore19.5",
                             {
                                 "cmd": "C:\\Program Files\\Side Effects Software\\Houdini 19.5.493\\bin\\houdinicore.exe",
-                                "min_verbosity": {
-                                    "global": 1
-                                },
                                 "hab.launch_cls": {
                                     "subprocess": "subprocess:Popen"
+                                },
+                                "min_verbosity": {
+                                    "global": 1
                                 }
                             }
                         ],
@@ -1174,11 +1171,11 @@
                             }
                         ]
                     ]
-                }
+                },
+                "name": "houdini19.5",
+                "version": "19.5.493"
             },
             "{config-root}/distros/maya2020/2020.0/.hab.json": {
-                "name": "maya2020",
-                "environment": {},
                 "aliases": {
                     "windows": [
                         [
@@ -1191,13 +1188,60 @@
                         ]
                     ]
                 },
+                "environment": {},
+                "name": "maya2020",
                 "version": "2020.0"
             },
             "{config-root}/distros/maya2020/2020.1/.hab.json": {
-                "name": "maya2020",
-                "version": "2020.1",
-                "environment": {},
                 "aliases": {
+                    "linux": [
+                        [
+                            "maya",
+                            {
+                                "cmd": "/usr/local/bin/maya2020"
+                            }
+                        ],
+                        [
+                            "mayapy",
+                            {
+                                "cmd": "/usr/local/bin/mayapy2020",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "maya20",
+                            {
+                                "cmd": "/usr/local/bin/maya2020",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "mayapy20",
+                            {
+                                "cmd": "/usr/local/bin/mayapy2020",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "pip",
+                            {
+                                "cmd": [
+                                    "/usr/local/bin/mayapy2020",
+                                    "-m",
+                                    "pip"
+                                ],
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ]
+                    ],
                     "windows": [
                         [
                             "maya",
@@ -1247,112 +1291,14 @@
                                 }
                             }
                         ]
-                    ],
-                    "linux": [
-                        [
-                            "maya",
-                            {
-                                "cmd": "/usr/local/bin/maya2020"
-                            }
-                        ],
-                        [
-                            "mayapy",
-                            {
-                                "cmd": "/usr/local/bin/mayapy2020",
-                                "min_verbosity": {
-                                    "global": 2
-                                }
-                            }
-                        ],
-                        [
-                            "maya20",
-                            {
-                                "cmd": "/usr/local/bin/maya2020",
-                                "min_verbosity": {
-                                    "global": 1
-                                }
-                            }
-                        ],
-                        [
-                            "mayapy20",
-                            {
-                                "cmd": "/usr/local/bin/mayapy2020",
-                                "min_verbosity": {
-                                    "global": 2
-                                }
-                            }
-                        ],
-                        [
-                            "pip",
-                            {
-                                "cmd": [
-                                    "/usr/local/bin/mayapy2020",
-                                    "-m",
-                                    "pip"
-                                ],
-                                "min_verbosity": {
-                                    "global": 2
-                                }
-                            }
-                        ]
                     ]
-                }
+                },
+                "environment": {},
+                "name": "maya2020",
+                "version": "2020.1"
             },
             "{config-root}/distros/maya2024/2024.0/.hab.json": {
-                "name": "maya2024",
-                "variables": {
-                    "maya_root_linux": "/usr/autodesk/maya2024/bin",
-                    "maya_root_windows": "C:/Program Files/Autodesk/Maya2024/bin"
-                },
                 "aliases": {
-                    "windows": [
-                        [
-                            "maya",
-                            {
-                                "cmd": "{maya_root_windows}/maya.exe"
-                            }
-                        ],
-                        [
-                            "mayapy",
-                            {
-                                "cmd": "{maya_root_windows}/mayapy.exe",
-                                "min_verbosity": {
-                                    "global": 2
-                                }
-                            }
-                        ],
-                        [
-                            "maya24",
-                            {
-                                "cmd": "{maya_root_windows}/maya.exe",
-                                "min_verbosity": {
-                                    "global": 1
-                                }
-                            }
-                        ],
-                        [
-                            "mayapy24",
-                            {
-                                "cmd": "{maya_root_windows}/mayapy.exe",
-                                "min_verbosity": {
-                                    "global": 2
-                                }
-                            }
-                        ],
-                        [
-                            "pip",
-                            {
-                                "cmd": [
-                                    "{maya_root_windows}/mayapy.exe",
-                                    "-m",
-                                    "pip"
-                                ],
-                                "min_verbosity": {
-                                    "global": 2
-                                }
-                            }
-                        ]
-                    ],
                     "linux": [
                         [
                             "maya",
@@ -1400,58 +1346,66 @@
                                 }
                             }
                         ]
+                    ],
+                    "windows": [
+                        [
+                            "maya",
+                            {
+                                "cmd": "{maya_root_windows}/maya.exe"
+                            }
+                        ],
+                        [
+                            "mayapy",
+                            {
+                                "cmd": "{maya_root_windows}/mayapy.exe",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "maya24",
+                            {
+                                "cmd": "{maya_root_windows}/maya.exe",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ],
+                        [
+                            "mayapy24",
+                            {
+                                "cmd": "{maya_root_windows}/mayapy.exe",
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ],
+                        [
+                            "pip",
+                            {
+                                "cmd": [
+                                    "{maya_root_windows}/mayapy.exe",
+                                    "-m",
+                                    "pip"
+                                ],
+                                "min_verbosity": {
+                                    "global": 2
+                                }
+                            }
+                        ]
                     ]
+                },
+                "name": "maya2024",
+                "variables": {
+                    "maya_root_linux": "/usr/autodesk/maya2024/bin",
+                    "maya_root_windows": "C:/Program Files/Autodesk/Maya2024/bin"
                 },
                 "version": "2024.0"
             },
-            "{config-root}/distros/pre-release2/1.0/.hab.json": {
-                "name": "pre-release2",
-                "aliases": {
-                    "windows": [
-                        [
-                            "pre2",
-                            {
-                                "cmd": "python"
-                            }
-                        ]
-                    ],
-                    "linux": [
-                        [
-                            "pre2",
-                            {
-                                "cmd": "python"
-                            }
-                        ]
-                    ]
-                },
-                "version": "1.0"
-            },
-            "{config-root}/distros/pre-release2/1.1.dev2/.hab.json": {
-                "name": "pre-release2",
-                "aliases": {
-                    "windows": [
-                        [
-                            "pre2",
-                            {
-                                "cmd": "python"
-                            }
-                        ]
-                    ],
-                    "linux": [
-                        [
-                            "pre2",
-                            {
-                                "cmd": "python"
-                            }
-                        ]
-                    ]
-                },
-                "version": "1.1.dev2"
-            },
             "{config-root}/distros/pre-release/1.0.dev1/.hab.json": {
-                "name": "pre-release",
                 "aliases": {
-                    "windows": [
+                    "linux": [
                         [
                             "pre",
                             {
@@ -1459,7 +1413,7 @@
                             }
                         ]
                     ],
-                    "linux": [
+                    "windows": [
                         [
                             "pre",
                             {
@@ -1468,12 +1422,12 @@
                         ]
                     ]
                 },
+                "name": "pre-release",
                 "version": "1.0.dev1"
             },
             "{config-root}/distros/pre-release/1.0/.hab.json": {
-                "name": "pre-release",
                 "aliases": {
-                    "windows": [
+                    "linux": [
                         [
                             "pre",
                             {
@@ -1481,7 +1435,7 @@
                             }
                         ]
                     ],
-                    "linux": [
+                    "windows": [
                         [
                             "pre",
                             {
@@ -1490,12 +1444,12 @@
                         ]
                     ]
                 },
+                "name": "pre-release",
                 "version": "1.0"
             },
             "{config-root}/distros/pre-release/1.1.dev2/.hab.json": {
-                "name": "pre-release",
                 "aliases": {
-                    "windows": [
+                    "linux": [
                         [
                             "pre",
                             {
@@ -1503,7 +1457,7 @@
                             }
                         ]
                     ],
-                    "linux": [
+                    "windows": [
                         [
                             "pre",
                             {
@@ -1512,16 +1466,54 @@
                         ]
                     ]
                 },
+                "name": "pre-release",
+                "version": "1.1.dev2"
+            },
+            "{config-root}/distros/pre-release2/1.0/.hab.json": {
+                "aliases": {
+                    "linux": [
+                        [
+                            "pre2",
+                            {
+                                "cmd": "python"
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "pre2",
+                            {
+                                "cmd": "python"
+                            }
+                        ]
+                    ]
+                },
+                "name": "pre-release2",
+                "version": "1.0"
+            },
+            "{config-root}/distros/pre-release2/1.1.dev2/.hab.json": {
+                "aliases": {
+                    "linux": [
+                        [
+                            "pre2",
+                            {
+                                "cmd": "python"
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "pre2",
+                            {
+                                "cmd": "python"
+                            }
+                        ]
+                    ]
+                },
+                "name": "pre-release2",
                 "version": "1.1.dev2"
             },
             "{config-root}/distros/the_dcc/1.0/.hab.json": {
-                "name": "the_dcc",
-                "environment": {},
-                "distros": [
-                    "the_dcc_plugin_a>=1.0",
-                    "the_dcc_plugin_b>=0.9",
-                    "the_dcc_plugin_e"
-                ],
                 "aliases": {
                     "windows": [
                         [
@@ -1534,14 +1526,16 @@
                         ]
                     ]
                 },
+                "distros": [
+                    "the_dcc_plugin_a>=1.0",
+                    "the_dcc_plugin_b>=0.9",
+                    "the_dcc_plugin_e"
+                ],
+                "environment": {},
+                "name": "the_dcc",
                 "version": "1.0"
             },
             "{config-root}/distros/the_dcc/1.1/.hab.json": {
-                "name": "the_dcc",
-                "environment": {},
-                "distros": [
-                    "the_dcc_plugin_a>=1.0"
-                ],
                 "aliases": {
                     "windows": [
                         [
@@ -1554,16 +1548,14 @@
                         ]
                     ]
                 },
+                "distros": [
+                    "the_dcc_plugin_a>=1.0"
+                ],
+                "environment": {},
+                "name": "the_dcc",
                 "version": "1.1"
             },
             "{config-root}/distros/the_dcc/1.2/.hab.json": {
-                "name": "the_dcc",
-                "environment": {},
-                "distros": [
-                    "the_dcc_plugin_a>=1.0",
-                    "the_dcc_plugin_b>=0.9",
-                    "the_dcc_plugin_e"
-                ],
                 "aliases": {
                     "linux": [
                         [
@@ -1586,10 +1578,16 @@
                         ]
                     ]
                 },
+                "distros": [
+                    "the_dcc_plugin_a>=1.0",
+                    "the_dcc_plugin_b>=0.9",
+                    "the_dcc_plugin_e"
+                ],
+                "environment": {},
+                "name": "the_dcc",
                 "version": "1.2"
             },
             "{config-root}/distros/the_dcc_plugin_a/0.9/.hab.json": {
-                "name": "the_dcc_plugin_a",
                 "distros": [
                     "the_dcc_plugin_d",
                     "the_dcc_plugin_e<2.0",
@@ -1600,33 +1598,33 @@
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_a",
                 "version": "0.9"
             },
             "{config-root}/distros/the_dcc_plugin_a/1.0/.hab.json": {
-                "name": "the_dcc_plugin_a",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_a",
                 "version": "1.0"
             },
             "{config-root}/distros/the_dcc_plugin_a/1.1/.hab.json": {
-                "name": "the_dcc_plugin_a",
                 "distros": [
                     "the_dcc_plugin_e<2.0",
                     "the_dcc_plugin_d"
                 ],
                 "environment": {
                     "append": {
-                        "DCC_MODULE_PATH": "{relative_root}",
-                        "DCC_CONFIG_PATH": "{relative_root}"
+                        "DCC_CONFIG_PATH": "{relative_root}",
+                        "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_a",
                 "version": "1.1"
             },
             "{config-root}/distros/the_dcc_plugin_b/0.9/.hab.json": {
-                "name": "the_dcc_plugin_b",
                 "distros": [
                     "the_dcc<1.2"
                 ],
@@ -1635,19 +1633,19 @@
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_b",
                 "version": "0.9"
             },
             "{config-root}/distros/the_dcc_plugin_b/1.0/.hab.json": {
-                "name": "the_dcc_plugin_b",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_b",
                 "version": "1.0"
             },
             "{config-root}/distros/the_dcc_plugin_b/1.1/.hab.json": {
-                "name": "the_dcc_plugin_b",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
@@ -1656,55 +1654,55 @@
                         "DCC_CONFIG_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_b",
                 "version": "1.1"
             },
             "{config-root}/distros/the_dcc_plugin_c/0.9/.hab.json": {
-                "name": "the_dcc_plugin_c",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_c",
                 "version": "0.9"
             },
             "{config-root}/distros/the_dcc_plugin_c/1.0/.hab.json": {
-                "name": "the_dcc_plugin_c",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_c",
                 "version": "1.0"
             },
             "{config-root}/distros/the_dcc_plugin_c/1.1/.hab.json": {
-                "name": "the_dcc_plugin_c",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_c",
                 "version": "1.1"
             },
             "{config-root}/distros/the_dcc_plugin_d/0.9/.hab.json": {
-                "name": "the_dcc_plugin_d",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_d",
                 "version": "0.9"
             },
             "{config-root}/distros/the_dcc_plugin_d/1.0/.hab.json": {
-                "name": "the_dcc_plugin_d",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_d",
                 "version": "1.0"
             },
             "{config-root}/distros/the_dcc_plugin_d/1.1/.hab.json": {
-                "name": "the_dcc_plugin_d",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
@@ -1713,36 +1711,38 @@
                         "DCC_CONFIG_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_d",
                 "version": "1.1"
             },
             "{config-root}/distros/the_dcc_plugin_e/0.9/.hab.json": {
-                "name": "the_dcc_plugin_e",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_e",
                 "version": "0.9"
             },
             "{config-root}/distros/the_dcc_plugin_e/1.0/.hab.json": {
-                "name": "the_dcc_plugin_e",
                 "environment": {
                     "append": {
                         "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_e",
                 "version": "1.0"
             },
             "{config-root}/distros/the_dcc_plugin_e/1.1/.hab.json": {
-                "name": "the_dcc_plugin_e",
                 "environment": {
                     "append": {
-                        "DCC_MODULE_PATH": "{relative_root}",
-                        "DCC_CONFIG_PATH": "{relative_root}"
+                        "DCC_CONFIG_PATH": "{relative_root}",
+                        "DCC_MODULE_PATH": "{relative_root}"
                     }
                 },
+                "name": "the_dcc_plugin_e",
                 "version": "1.1"
             }
         }
-    }
+    },
+    "version": 1
 }
