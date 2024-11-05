@@ -1,0 +1,19 @@
+{
+    "name": "pre-release2",
+    "aliases": {
+        "windows": [
+            [
+                "pre2", {
+                    "cmd": "python"
+                }
+            ]
+        ],
+        "linux": [
+            [
+                "pre2", {
+                    "cmd": "python"
+                }
+            ]
+        ]
+    }
+}

@@ -8,6 +8,7 @@ import pytest
 from packaging.requirements import Requirement
 
 from hab import NotSet, Resolver, Site, utils
+from hab.errors import InvalidRequirementError
 from hab.solvers import Solver
 
 
@@ -245,6 +246,13 @@ class TestDumpForest:
             "  maya2020==2020.1",
             "maya2024",
             "  maya2024==2024.0",
+            "pre-release",
+            "  pre-release==1.0",
+            "  pre-release==1.0.dev1",
+            "  pre-release==1.1.dev2",
+            "pre-release2",
+            "  pre-release2==1.0",
+            "  pre-release2==1.1.dev2",
             "the_dcc",
             "  the_dcc==1.0",
             "  the_dcc==1.1",
@@ -293,6 +301,13 @@ class TestDumpForest:
             "  maya2020==2020.1",
             "maya2024",
             "  maya2024==2024.0",
+            "pre-release",
+            "  pre-release==1.0",
+            "  ...",
+            "  pre-release==1.1.dev2",
+            "pre-release2",
+            "  pre-release2==1.0",
+            "  pre-release2==1.1.dev2",
             "the_dcc",
             "  the_dcc==1.0",
             "  ...",
@@ -562,6 +577,61 @@ class TestResolveRequirements:
         assert len(versions) == len(check_versions)
         for i, v in enumerate(versions):
             assert v.name == check_versions[i]
+
+    @pytest.mark.parametrize(
+        "requirements,prereleases,check",
+        (
+            # Full release requirements respect `--pre` flag
+            (["pre-release"], False, ["pre-release==1.0"]),
+            (["pre-release"], True, ["pre-release==1.1.dev2"]),
+            (["pre-release==1.0"], True, ["pre-release==1.0"]),
+            (["pre-release==1.0"], False, ["pre-release==1.0"]),
+            (["pre-release<=2.0"], True, ["pre-release==1.1.dev2"]),
+            (["pre-release<=2.0"], False, ["pre-release==1.0"]),
+            (["pre-release>=1.0"], True, ["pre-release==1.1.dev2"]),
+            (["pre-release>=1.0"], False, ["pre-release==1.0"]),
+            # Forced pre-release requirements will find pre-release distros
+            # regardless of the `--pre` flag.
+            (["pre-release==1.0rc99"], True, False),
+            (["pre-release==1.0rc99"], False, False),
+            (["pre-release==1.0.dev1"], True, ["pre-release==1.0.dev1"]),
+            (["pre-release==1.0.dev1"], False, ["pre-release==1.0.dev1"]),
+            (["pre-release<=1.0rc99"], True, ["pre-release==1.0.dev1"]),
+            (["pre-release<=1.0rc99"], False, ["pre-release==1.0.dev1"]),
+            # Forced pre-release requirements don't affect other requirements
+            # regardless of the `--pre` flag.
+            (
+                ["pre-release<=1.0rc99", "pre-release2"],
+                False,
+                ["pre-release==1.0.dev1", "pre-release2==1.0"],
+            ),
+            (
+                ["pre-release<=1.0rc99", "pre-release2"],
+                True,
+                ["pre-release==1.0.dev1", "pre-release2==1.1.dev2"],
+            ),
+        ),
+    )
+    def test_pre_releases(self, habcached_resolver, requirements, prereleases, check):
+        """Check how prereleases and specifying a version with prereleases works.
+
+        If the global prereleases is False, ignore any pre-release versions
+        unless the version specifier itself specifies a pre-release. See
+        `hab.parsers.distro.Distro.matching_versions` for details.
+        """
+        habcached_resolver.prereleases = prereleases
+        uri = "not_set/no_distros"
+
+        if check is False:
+            with pytest.raises(InvalidRequirementError):
+                habcached_resolver.resolve(uri, forced_requirements=requirements)
+        else:
+            cfg = habcached_resolver.resolve(uri, forced_requirements=requirements)
+            versions = cfg.versions
+
+            assert len(versions) == len(check)
+            for i, v in enumerate(versions):
+                assert v.name == check[i]
 
     def test_forced_requirements_uri(self, resolver, helpers):
         resolver_forced = Resolver(
