@@ -443,6 +443,11 @@ class TestPlatformPathMap:
         out = site.platform_path_key(r"c:\host\root\extra", platform="windows")
         assert out.as_posix() == "{host-root}/extra"
 
+        # Test that normalize_path was called for unmodified paths and
+        # capitalized the drive letter
+        out = site.platform_path_key(r"z:\root\path", platform="windows")
+        assert out.as_posix() == r"Z:/root/path"
+
     def test_unset_variables(self, config_root):
         """Don't modify variables that are not specified in platform_path_map"""
         site = Site([config_root / "site_main.json"])

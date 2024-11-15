@@ -244,6 +244,8 @@ class Site(UserDict):
             path = PureWindowsPath(path)
         else:
             path = PurePosixPath(path)
+        # Ensure any path normalization is applied
+        path = utils.Platform.normalize_path(path)
 
         platform = utils.Platform.name()
         mappings = self.get("platform_path_maps", {})

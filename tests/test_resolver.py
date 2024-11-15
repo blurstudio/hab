@@ -1,4 +1,5 @@
 import os
+import pathlib
 import sys
 from collections import OrderedDict
 from pathlib import Path
@@ -45,6 +46,16 @@ def test_environment_variables(config_root, helpers, monkeypatch):
     resolver_env = Resolver(site=Site([config_root / "site_env.json"]))
     assert resolver_env.config_paths == config_paths_env
     assert resolver_env.distro_paths == distro_paths_env
+
+    # Test that normalize_path is called by expand_paths. WinPlatform will
+    # ensure that the drive letter is capitalized.
+    # Force the test to use a Windows pathlib class so this test works on linux
+    monkeypatch.setattr(utils, "Path", pathlib.PureWindowsPath)
+    win_paths = utils.WinPlatform.expand_paths([r"c:\distro", "d:\\", r"z:\path", ""])
+    assert win_paths[0].as_posix().startswith("C:")
+    assert win_paths[1].as_posix().startswith("D:")
+    assert win_paths[2].as_posix().startswith("Z:")
+    assert win_paths[3].as_posix() == "."
 
 
 def test_config(resolver):
@@ -815,6 +826,38 @@ class TestPlatform:
         assert utils.WinPlatform.pathsep(ext="") == ";"
         assert utils.WinPlatform.pathsep(ext=".sh") == ";"
         assert utils.WinPlatform.pathsep(ext=".sh", key="PATH") == ":"
+
+    @pytest.mark.parametrize(
+        "cls",
+        (
+            pathlib.Path,
+            pathlib.PurePath,
+            pathlib.PurePosixPath,
+            pathlib.PureWindowsPath,
+        ),
+    )
+    @pytest.mark.parametrize("platform", utils.BasePlatform.__subclasses__())
+    def test_normalize_path_preserves_cls(self, cls, platform):
+        path = cls()
+        result = utils.LinuxPlatform.normalize_path(path)
+        # The class of the result is preserved
+        assert isinstance(result, cls)
+        # For an empty path, the same path is always returned
+        assert result == path
+
+    @pytest.mark.parametrize(
+        "path,check",
+        (
+            # the drive letter is always upper-cased if specified
+            (r"c:\temp", "C:/temp"),
+            (r"C:\temp", "C:/temp"),
+            (r"z:\subfolder", "Z:/subfolder"),
+            (r"relative\path", "relative/path"),
+        ),
+    )
+    def test_normalize_path_windows(self, path, check):
+        result = utils.WinPlatform.normalize_path(pathlib.PureWindowsPath(path))
+        assert result.as_posix() == check
 
 
 def test_cygpath():

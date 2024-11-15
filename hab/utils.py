@@ -469,8 +469,8 @@ class BasePlatform(ABC):
         a list containing Path objects.
         """
         if isinstance(paths, str):
-            return [Path(p) for p in paths.split(cls.pathsep())]
-        return [Path(p) for p in paths]
+            return [cls.normalize_path(Path(p)) for p in paths.split(cls.pathsep())]
+        return [cls.normalize_path(Path(p)) for p in paths]
 
     @staticmethod
     def get_platform(name=None):
@@ -490,6 +490,11 @@ class BasePlatform(ABC):
     def name(cls):
         """The hab name for this platform."""
         return cls._name
+
+    @classmethod
+    def normalize_path(cls, path):
+        """Returns the provided `pathlib.Path` with any normalization required."""
+        return path
 
     @classmethod
     def path_split(cls, path, pathsep=None):
@@ -569,6 +574,18 @@ class WinPlatform(BasePlatform):
         else:
             paths = [str(p) for p in paths]
         return cls.pathsep(ext=ext, key=key).join(paths)
+
+    @classmethod
+    def normalize_path(cls, path):
+        """Returns the provided `pathlib.Path` with any normalization required.
+
+        This ensures that the drive letter is resolved consistently to uppercase.
+        """
+        if not path.is_absolute():
+            return path
+        parts = path.parts
+        cls = type(path)
+        return cls(parts[0].upper()).joinpath(*parts[1:])
 
     @classmethod
     def pathsep(cls, ext=None, key=None):
