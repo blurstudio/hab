@@ -1,9 +1,13 @@
 import json
 import os
+import shutil
+from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path, PurePath
+from zipfile import ZipFile
 
 import pytest
+from jinja2 import Environment, FileSystemLoader
 from packaging.requirements import Requirement
 
 from hab import Resolver, Site
@@ -111,6 +115,93 @@ def resolver(request):
     return request.getfixturevalue(test_map[request.param])
 
 
+Distro = namedtuple("Distro", ["name", "version", "inc_version", "distros"])
+
+
+class DistroInfo(namedtuple("DistroInfo", ["root", "versions"])):
+    default_versions = (
+        ("dist_a", "0.1", True, None),
+        ("dist_a", "0.2", False, ["dist_b"]),
+        ("dist_a", "1.0", False, None),
+        ("dist_b", "0.5", False, None),
+        ("dist_b", "0.6", False, None),
+    )
+
+    @classmethod
+    def dist_version(cls, distro, version):
+        return f"{distro}_v{version}"
+
+    @classmethod
+    def hab_json(cls, distro, version=None, distros=None):
+        data = {"name": distro}
+        if version:
+            data["version"] = version
+        if distros:
+            data["distros"] = distros
+        return json.dumps(data, indent=4)
+
+    @classmethod
+    def generate(cls, root, versions=None, zip_created=None):
+        if versions is None:
+            versions = cls.default_versions
+
+        versions = {(x[0], x[1]): Distro(*x) for x in versions}
+
+        for version in versions.values():
+            name = cls.dist_version(version.name, version.version)
+            filename = root / f"{name}.zip"
+            ver = version.version if version.inc_version else None
+            with ZipFile(filename, "w") as zf:
+                zf.writestr(
+                    ".hab.json",
+                    cls.hab_json(version.name, version=ver, distros=version.distros),
+                )
+                zf.writestr("file_a.txt", "File A inside the distro.")
+                zf.writestr("folder/file_b.txt", "File B inside the distro.")
+                if zip_created:
+                    zip_created(zf)
+
+        # Create a correctly named .zip file that doesn't have a .hab.json file
+        # to test for .zip files that are not distros.
+        with ZipFile(root / "not_valid_v0.1.zip", "w") as zf:
+            zf.writestr("README.txt", "This file is not a hab distro zip.")
+
+        return cls(root, versions)
+
+
+@pytest.fixture(scope="session")
+def zip_distro(tmp_path_factory):
+    """Returns a DistroInfo instance for a zip folder structure.
+
+    This is useful if the zip files are locally accessible or if your hab download
+    server supports `HTTP range requests`_. For example if you are using Amazon S3.
+
+    .. _HTTP range requests:
+       https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests
+    """
+    root = tmp_path_factory.mktemp("_zip_distro")
+    return DistroInfo.generate(root)
+
+
+@pytest.fixture(scope="session")
+def zip_distro_sidecar(tmp_path_factory):
+    """Returns a DistroInfo instance for a zip folder structure with sidecar
+    `.hab.json` files.
+
+    This is useful when your hab download server does not support HTTP range requests.
+    """
+    root = tmp_path_factory.mktemp("_zip_distro_sidecar")
+
+    def zip_created(zf):
+        """Extract the .hab.json from the zip to a sidecar file."""
+        filename = Path(zf.filename).stem
+        sidecar = root / f"{filename}.hab.json"
+        path = zf.extract(".hab.json", root)
+        shutil.move(path, sidecar)
+
+    return DistroInfo.generate(root, zip_created=zip_created)
+
+
 class Helpers(object):
     """A collection of reusable functions that tests can use."""
 
@@ -203,6 +294,19 @@ class Helpers(object):
             assert (
                 cache[i] == check[i]
             ), f"Difference on line: {i} between the generated cache and {generated}."
+
+    @staticmethod
+    def render_template(template, dest, **kwargs):
+        environment = Environment(
+            loader=FileSystemLoader(str(Path(__file__).parent / "templates")),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+        template = environment.get_template(template)
+
+        text = template.render(**kwargs).rstrip() + "\n"
+        with dest.open("w") as fle:
+            fle.write(text)
 
 
 @pytest.fixture
