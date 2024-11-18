@@ -1,5 +1,6 @@
 import logging
 import os
+import tempfile
 from collections import UserDict
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
@@ -63,6 +64,12 @@ class Site(UserDict):
     @property
     def data(self):
         return self.frozen_data.get(self.platform)
+
+    @property
+    def download_cache(self):
+        """Path to the root of where download files are stored.
+        If more than one path is specified, then only the first item is used."""
+        return self["download_cache"]
 
     def dump(self, verbosity=0, color=None, width=80):
         """Return a string of the properties and their values.
@@ -212,6 +219,19 @@ class Site(UserDict):
 
         # Entry_point to allow modification as a final step of loading site files
         self.run_entry_points_for_group("hab.site.finalize", site=self)
+
+        # Configure the download cache directory
+        if "download_cache" in self:
+            # Only use the first path, discarding the remaining items
+            if len(self["download_cache"]):
+                paths = utils.Platform.expand_paths(self["download_cache"][0])
+                self["download_cache"] = paths[0]
+            else:
+                # If the first path is defined but empty, use the default
+                del self["download_cache"]
+        if "download_cache" not in self:
+            # Default to inside the temp directory
+            self["download_cache"] = Path(tempfile.gettempdir()) / "hab_downloads"
 
     def load_file(self, filename):
         """Load an individual file path and merge its contents onto self.

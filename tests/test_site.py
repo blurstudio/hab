@@ -1,4 +1,5 @@
 import sys
+import tempfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
@@ -756,3 +757,21 @@ class TestEntryPoints:
             match="hab_test_entry_points.CacheVX class was used",
         ):
             Site([config_root / "site" / "eps" / "site_habcache_cls.json"])
+
+
+def test_download_cache(config_root, uncached_resolver):
+    """Test how download_cache site property is processed."""
+    # Defaults to `$TEMP/hab_downloads` if not specified
+    site = uncached_resolver.site
+    assert site.download_cache == Path(tempfile.gettempdir()) / "hab_downloads"
+
+    # If specified, only the first path is used. This is using a non-valid
+    # relative path for testing, in practice this should be a absolute path.
+    paths = [config_root / "site" / "site_distro_finder.json"]
+    site = Site(paths)
+    assert site.download_cache == Path("hab testable") / "download" / "path"
+
+    # If specified, but is an empty list, then the default is used.
+    paths = [config_root / "site" / "site_distro_finder_empty.json"]
+    site = Site(paths)
+    assert site.download_cache == Path(tempfile.gettempdir()) / "hab_downloads"

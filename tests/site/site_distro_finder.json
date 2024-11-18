@@ -1,0 +1,10 @@
+{
+    "set":
+    {
+        "download_cache":
+        [
+            "hab testable/download/path",
+            "all/other/paths/are/ignored"
+        ]
+    }
+}
