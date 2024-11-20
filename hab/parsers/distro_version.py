@@ -16,6 +16,7 @@ class DistroVersion(HabBase):
 
     def __init__(self, *args, **kwargs):
         self._alias_mods = NotSet
+        self._finder = (None, None)
         super().__init__(*args, **kwargs)
 
     def _cache(self):
@@ -96,6 +97,15 @@ class DistroVersion(HabBase):
         """
         return self._alias_mods
 
+    @hab_property(verbosity=3)
+    def finder(self):
+        """The DistroFinder instance used to create this instance."""
+        return self._finder
+
+    @finder.setter
+    def finder(self, value):
+        self._finder = value
+
     def _load(self, filename, cached=True):
         """Sets self.filename and parses the json file returning the data."""
         ret = super()._load(filename, cached=cached)
@@ -108,9 +118,10 @@ class DistroVersion(HabBase):
             ret["version"] = str(self.version)
         return ret
 
-    def load(self, filename):
+    def load(self, filename, data=None):
         # Fill in the DistroVersion specific settings before calling super
-        data = self._load(filename)
+        if data is None:
+            data = self._load(filename)
 
         # The name should be the version == specifier.
         self.distro_name = data.get("name")

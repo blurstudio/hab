@@ -5,6 +5,7 @@ from collections import UserDict
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from colorama import Fore, Style
+from importlib_metadata import EntryPoint
 
 from . import utils
 from .cache import Cache
@@ -88,8 +89,13 @@ class Site(UserDict):
             color = self.get("colorize", True)
 
         def cached_fmt(path, cached):
+            if hasattr(path, "dump"):
+                # Provide a information about the finder class used instead of
+                # a simple path.
+                path = path.dump(verbosity=verbosity, color=color, width=width)
             if not cached:
                 return path
+
             if color:
                 return f"{path} {Fore.YELLOW}(cached){Style.RESET_ALL}"
             else:
@@ -154,10 +160,6 @@ class Site(UserDict):
                 then don't include an EntryPoint object for it in the return. This
                 allows a second site file to disable a entry_point already set.
         """
-        # Delay this import to when required. It's faster than pkg_resources but
-        # no need to pay the import price for it if you are not using it.
-        from importlib_metadata import EntryPoint
-
         ret = []
         # Use the site defined entry_points if an override dict wasn't provided
         if entry_points is None:
@@ -210,9 +212,32 @@ class Site(UserDict):
                 self.paths.insert(0, path)
                 self.load_file(path)
 
-        # Convert config_paths and distro_paths to lists of Path objects
+        # Convert config_paths to lists of Path objects
         self["config_paths"] = utils.Platform.expand_paths(self["config_paths"])
-        self["distro_paths"] = utils.Platform.expand_paths(self["distro_paths"])
+
+        # Convert distro_paths to DistroFinder instances
+        distro_paths = []
+
+        default_distro_finder = self.get("entry_points", {}).get(
+            "hab.distro.finder.default", "hab.distro_finders.distro_finder:DistroFinder"
+        )
+        for distro_finder in self["distro_paths"]:
+            if isinstance(distro_finder, str):
+                # Handle simple folder paths by converting to the DistroFinder class
+                distro_finder = [default_distro_finder, distro_finder]
+
+            ep = EntryPoint("", distro_finder[0], "hab.distro.finder")
+            ep_cls = ep.load()
+            args = distro_finder[1:]
+            kwargs = {}
+            if args and isinstance(args[-1], dict):
+                kwargs = args.pop()
+            inst = ep_cls(*args, **kwargs)
+            # Ensure these items can access the site and its cache
+            inst.site = self
+            distro_paths.append(inst)
+
+        self["distro_paths"] = distro_paths
 
         # Ensure any platform_path_maps are converted to pathlib objects.
         self.standardize_platform_path_maps()
@@ -357,12 +382,5 @@ class Site(UserDict):
         cache = self.cache.config_paths()
         for dirname, path, _ in self.cache.iter_cache_paths(
             "config_paths", config_paths, cache, "*.json"
-        ):
-            yield dirname, path
-
-    def distro_paths(self, distro_paths):
-        cache = self.cache.distro_paths()
-        for dirname, path, _ in self.cache.iter_cache_paths(
-            "distro_paths", distro_paths, cache, "*/.hab.json"
         ):
             yield dirname, path

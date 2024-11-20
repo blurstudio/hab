@@ -111,6 +111,7 @@ class Cache:
         the provided site file. Use this method any time changes are made that
         hab needs to be aware of. Caching is enabled by the existence of this file.
         """
+        from .distro_finders.distro_finder import DistroFinder
         from .site import Site
 
         # Indicate the version specification this habcache file conforms to.
@@ -125,6 +126,9 @@ class Cache:
             glob_str, cls = stats
             # Process each glob dir defined for this site
             for dirname in temp_site.get(key, []):
+                # Caching is only supported for direct file paths
+                if isinstance(dirname, DistroFinder):
+                    dirname = dirname.root
                 cfg_paths = output.setdefault(key, {}).setdefault(
                     platform_path_key(dirname).as_posix(), {}
                 )
@@ -152,9 +156,23 @@ class Cache:
         """Yields path information stored in the cache falling back to glob if
         not cached.
 
+        Args:
+            name (str): The name of the cache being iterated. Often "config_paths"
+                or "distro_paths".
+            paths (list): A list of `pathlib.Path` paths to process. If this includes
+                glob paths they will be processed.
+            cache (dict): The cached data used if possible for each path. If a
+                path isn't in the cache, then will glob the path.
+            glob_str (str, optional): Added to each path if passed and a glob
+                is required. Ignored if the path is cached.
+            include_path (bool, optional): Controls how many items are yielded.
+                If True then each cached or globed path is yielded. Otherwise only
+                each path(dirname) is yielded and path is always None.
+
         Yields:
-            dirname: Each path stored in paths.
-            path
+            dirname: Each path passed by paths.
+            path: The path to a given resource for this dirname.
+            cached: If the path was stored in a cache or required using glob.
         """
         for dirname in paths:
             dn_posix = dirname.as_posix()
@@ -166,7 +184,7 @@ class Cache:
                 logger.debug(f"Using glob for {name} dir: {dirname}")
                 # Fallback to globing the file system
                 if glob_str:
-                    paths = sorted(glob.glob(str(dirname / glob_str)))
+                    paths = utils.glob_path(dirname / glob_str)
                 else:
                     paths = []
             if not include_path:

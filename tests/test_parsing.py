@@ -10,6 +10,7 @@ import setuptools_scm
 from packaging.version import Version
 
 from hab import NotSet, utils
+from hab.distro_finders.distro_finder import DistroFinder
 from hab.errors import (
     DuplicateJsonError,
     HabError,
@@ -291,6 +292,7 @@ def test_metaclass():
             "environment",
             "environment_config",
             "filename",
+            "finder",
             "min_verbosity",
             "name",
             "optional_distros",
@@ -761,10 +763,13 @@ def test_duplicated_distros(config_root, resolver):
     definitions are in the same config_path so a DuplicateJsonError is raised.
     """
     original = resolver.distro_paths
+    site = resolver.site
 
     # Check that the first config in distro_paths was used
     distro_paths = list(original)
-    distro_paths.insert(0, config_root / "duplicates" / "distros_1" / "*")
+    distro_paths.insert(
+        0, DistroFinder(config_root / "duplicates" / "distros_1" / "*", site=site)
+    )
     resolver.distro_paths = distro_paths
 
     dcc = resolver.find_distro("the_dcc==1.2")
@@ -774,7 +779,9 @@ def test_duplicated_distros(config_root, resolver):
     # Check that an exception is raised if there are duplicate definitions from
     # the same distro_paths directory.
     distro_paths = list(original)
-    distro_paths.insert(0, config_root / "duplicates" / "distros_2" / "*")
+    distro_paths.insert(
+        0, DistroFinder(config_root / "duplicates" / "distros_2" / "*", site=site)
+    )
     resolver.distro_paths = distro_paths
 
     with pytest.raises(DuplicateJsonError):
@@ -1172,7 +1179,7 @@ class TestCustomVariables:
 
         # Add the test distro to hab's distro search. We don't need to call
         # `clear_caches` because distros haven't been resolved yet.
-        uncached_resolver.distro_paths.append(Path(tmpdir))
+        uncached_resolver.distro_paths.append(DistroFinder(Path(tmpdir)))
 
         # When distros are resolved, an exception should be raised
         with pytest.raises(

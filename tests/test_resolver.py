@@ -9,6 +9,7 @@ import pytest
 from packaging.requirements import Requirement
 
 from hab import NotSet, Resolver, Site, utils
+from hab.distro_finders.distro_finder import DistroFinder
 from hab.errors import InvalidRequirementError
 from hab.solvers import Solver
 
@@ -17,12 +18,14 @@ def test_environment_variables(config_root, helpers, monkeypatch):
     """Check that Resolver's init respects the environment variables it uses."""
     config_paths_env = utils.Platform.expand_paths(["a/config/path", "b/config/path"])
     distro_paths_env = utils.Platform.expand_paths(["a/distro/path", "b/distro/path"])
+    distro_paths_env = [DistroFinder(p) for p in distro_paths_env]
     config_paths_direct = utils.Platform.expand_paths(
         ["z/config/path", "zz/config/path"]
     )
     distro_paths_direct = utils.Platform.expand_paths(
         ["z/distro/path", "zz/distro/path"]
     )
+    distro_paths_direct = [DistroFinder(p) for p in distro_paths_direct]
 
     # Set the config environment variables
     monkeypatch.setenv(

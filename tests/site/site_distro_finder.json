@@ -1,6 +1,20 @@
 {
     "set":
     {
+        "distro_paths":
+        [
+            [
+                "hab.distro_finders.distro_finder:DistroFinder",
+                "hab testable/download/path"
+            ],
+            [
+                "hab.distro_finders.distro_finder:DistroFinder",
+                "hab testing/downloads",
+                {
+                    "site": "for testing only, do not specify site"
+                }
+            ]
+        ],
         "download_cache":
         [
             "hab testable/download/path",

@@ -7,6 +7,7 @@ from colorama import Fore, Style
 
 from hab import Resolver, Site, utils
 from hab.cache import Cache
+from hab.distro_finders.distro_finder import DistroFinder
 
 
 def test_environment_variables(config_root, monkeypatch):
@@ -207,7 +208,7 @@ class TestResolvePaths:
         )
         assert len(site.get("distro_paths")) == 2
         helpers.check_path_list(
-            site.get("distro_paths"),
+            [p.root for p in site.get("distro_paths")],
             (
                 config_root / "distros" / "*",
                 config_root / "duplicates" / "distros_1" / "*",
@@ -229,7 +230,7 @@ class TestResolvePaths:
         )
         assert len(site.get("distro_paths")) == 2
         helpers.check_path_list(
-            site.get("distro_paths"),
+            [p.root for p in site.get("distro_paths")],
             (
                 config_root / "duplicates" / "distros_1" / "*",
                 config_root / "distros" / "*",
@@ -290,8 +291,8 @@ def test_dump_cached(config_root, habcached_site_file):
         f"            {other_site}",
         f"{{green}}config_paths:  {{reset}}config\\path\\{platform}",
         f"               {config_root}\\configs\\*{{cached}}",
-        f"{{green}}distro_paths:  {{reset}}distro\\path\\{platform}",
-        f"               {config_root}\\distros\\*{{cached}}",
+        f"{{green}}distro_paths:  {{reset}}distro\\path\\{platform}{{cls_name}}",
+        f"               {config_root}\\distros\\*{{cls_name}}{{cached}}",
     )
     check_template = "\n".join(check_template)
     colors = {
@@ -305,13 +306,22 @@ def test_dump_cached(config_root, habcached_site_file):
     # No verbosity, should not show cached status
     assert site.get("colorize") is None
     result = site.dump(width=60)
-    check = check_template.format(cached="", **colors)
+    check = check_template.format(cached="", cls_name="", **colors)
     assert check in result
 
     # verbosity enabled, should show cached status
     result = site.dump(verbosity=1, width=60)
     check = check_template.format(
-        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}", **colors
+        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}", cls_name="", **colors
+    )
+    assert check in result
+
+    # verbosity level 2, should also show DistroFinder classes
+    result = site.dump(verbosity=2, width=60)
+    check = check_template.format(
+        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}",
+        cls_name=f" {Fore.CYAN}[DistroFinder]{Style.RESET_ALL}",
+        **colors,
     )
     assert check in result
 
@@ -321,12 +331,19 @@ def test_dump_cached(config_root, habcached_site_file):
 
     # No verbosity, should not show cached status
     result = site.dump(width=60)
-    check = check_template.format(cached="", green="", reset="")
+    check = check_template.format(cached="", green="", reset="", cls_name="")
     assert check in result
 
     # verbosity enabled, should show cached status
     result = site.dump(verbosity=1, width=60)
-    check = check_template.format(cached=" (cached)", green="", reset="")
+    check = check_template.format(cached=" (cached)", green="", reset="", cls_name="")
+    assert check in result
+
+    # verbosity level 2, should also show DistroFinder classes
+    result = site.dump(verbosity=2, width=60)
+    check = check_template.format(
+        cached=" (cached)", green="", reset="", cls_name=" [DistroFinder]"
+    )
     assert check in result
 
 
@@ -341,7 +358,7 @@ class TestOsSpecific:
         site = Site(paths)
 
         assert site.get("config_paths") == [Path("config/path/linux")]
-        assert site.get("distro_paths") == [Path("distro/path/linux")]
+        assert site.get("distro_paths") == [DistroFinder(Path("distro/path/linux"))]
         assert site.get("platforms") == ["windows", "linux"]
 
     def test_osx(self, monkeypatch, config_root):
@@ -354,7 +371,7 @@ class TestOsSpecific:
         site = Site(paths)
 
         assert site.get("config_paths") == [Path("config/path/osx")]
-        assert site.get("distro_paths") == [Path("distro/path/osx")]
+        assert site.get("distro_paths") == [DistroFinder(Path("distro/path/osx"))]
         assert site.get("platforms") == ["osx", "linux"]
 
     def test_win(self, monkeypatch, config_root):
@@ -367,7 +384,7 @@ class TestOsSpecific:
         site = Site(paths)
 
         assert site.get("config_paths") == [Path("config\\path\\windows")]
-        assert site.get("distro_paths") == [Path("distro\\path\\windows")]
+        assert site.get("distro_paths") == [DistroFinder(Path("distro\\path\\windows"))]
         assert site.get("platforms") == ["windows", "osx"]
 
 

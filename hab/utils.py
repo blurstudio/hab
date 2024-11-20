@@ -261,6 +261,19 @@ def encode_freeze(data, version=None, site=None):
     return f'v{version}:{data.decode("utf-8")}'
 
 
+def glob_path(path):
+    """Process any wildcards in the provided `pathlib.Path` like instance.
+
+    This runs the glob from the root of path.
+
+    Based on https://stackoverflow.com/a/51108375
+    """
+    # Strip the path into its parts removing the root of absolute paths.
+    parts = path.parts[1:]
+    # From the root run a glob search on all parts of the glob string
+    return Path(path.parts[0]).glob(str(Path(*parts)))
+
+
 class HabJsonEncoder(_json.JSONEncoder):
     """JsonEncoder class that handles non-supported objects like hab.NotSet."""
 
@@ -311,6 +324,38 @@ def load_json_file(filename):
             msg = f'{e} Filename("{filename}")'
             raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2]) from None
     return data
+
+
+def loads_json(json_string, source):
+    """Open and parse a json file. If a parsing error happens the file path is
+    added to the exception to allow for easier debugging.
+
+    Args:
+        filename (pathlib.Path): A existing file path.
+
+    Returns:
+        The data stored in the json file.
+
+    Raises:
+        FileNotFoundError: If filename is not pointing to a file that actually exists.
+        pyjson5.Json5Exception: If using pyjson5, the error raised due to invalid json.
+        ValueError: If not using pyjson5, the error raised due to invalid json.
+    """
+    try:
+        return json.loads(json_string)
+    # Include the filename in the traceback to make debugging easier
+    except _JsonException as e:
+        # pyjson5 is installed add filename to the traceback
+        if e.result is None:
+            # Depending on the exception result may be None, convert it
+            # into a empty dict so we can add the filename
+            e.args = e.args[:1] + ({},) + e.args[2:]
+        e.result["source"] = str(source)
+        raise e.with_traceback(sys.exc_info()[2]) from None
+    except ValueError as e:
+        # Using python's native json parser
+        msg = f'{e} Source("{source}")'
+        raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2]) from None
 
 
 def natural_sort(ls, key=None):

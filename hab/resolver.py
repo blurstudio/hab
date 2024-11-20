@@ -8,7 +8,7 @@ from packaging.requirements import Requirement
 
 from . import utils
 from .errors import _IgnoredVersionError
-from .parsers import Config, DistroVersion, HabBase
+from .parsers import Config, HabBase
 from .site import Site
 from .solvers import Solver
 from .user_prefs import UserPrefs
@@ -82,6 +82,7 @@ class Resolver(object):
         self._configs = None
         self._distros = None
         self.site.cache.clear()
+        [distro_finder.clear_cache() for distro_finder in self.distro_paths]
 
     def closest_config(self, path, default=False):
         """Returns the most specific leaf or the tree root matching path. Ignoring any
@@ -182,7 +183,7 @@ class Resolver(object):
     def distros(self):
         """A list of all of the requested distros to resolve."""
         if self._distros is None:
-            self._distros = self.parse_distros(self.distro_paths)
+            self._distros = self.parse_distros()
         return self._distros
 
     @classmethod
@@ -324,14 +325,15 @@ class Resolver(object):
             Config(forest, self, path, root_paths=set((dirname,)))
         return forest
 
-    def parse_distros(self, distro_paths, forest=None):
+    def parse_distros(self, forest=None):
         if forest is None:
             forest = {}
-        for dirname, path in self.site.distro_paths(distro_paths):
-            try:
-                DistroVersion(forest, self, path, root_paths=set((dirname,)))
-            except _IgnoredVersionError as error:
-                logger.debug(str(error))
+        for distro_finder in self.distro_paths:
+            for _, path, _ in distro_finder.distro_path_info():
+                try:
+                    distro_finder.distro(forest, self, path)
+                except _IgnoredVersionError as error:
+                    logger.debug(str(error))
         return forest
 
     def resolve(self, uri, forced_requirements=None):
