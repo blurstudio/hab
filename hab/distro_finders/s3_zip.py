@@ -1,42 +1,68 @@
 import logging
 from hashlib import sha256
 
-import remotezip
-from cloudpathlib import CloudPath, S3Client
+from cloudpathlib import S3Client
 from requests_aws4auth import AWS4Auth
 
-from .df_zip import DistroFinderZip
+from .cloud_zip import DistroFinderCloudZip
 
 logger = logging.getLogger(__name__)
 
 
-class DistroFinderS3Zip(DistroFinderZip):
-    def __init__(
-        self, root, site=None, client=None, profile_name=None, **object_filters
-    ):
-        # Root should not be cast to a pathlib.Path object on this class.
-        super().__init__("", site=site)
-        # self.object_filters = object_filters
-        # bucket_name = root.split("/")[0]
-        # self.bucket_name = bucket_name
+class DistroFinderS3Zip(DistroFinderCloudZip):
+    """Works with zipped distros stored remotely in Amazon S3 buckets.
 
-        self.client = client
-        if self.client is None:
-            if profile_name:
-                self.client = S3Client(profile_name=profile_name)
+    Working with zipped distros extracting the `.hab.json` information from
+    inside the .zip file. This is useful when you have direct access to the .zip
+    file.
+
+    For `path`, this class uses a .zip `member path`. A member path is the absolute
+    path to the .zip joined with the member path of files contained inside the .zip
+    file. So if the archive file path is `c:/temp/dist_a_v0.1.zip` and the member is
+    `.hab.json`, then the member_path would be `c:/temp/dist_a_v0.1.zip/.hab.json`.
+
+    Note:
+        This class should only be used to install distros in the hab download system.
+
+    This expects one file to exist with a specific naming convention:
+        - `{distro}_v{version}.zip` contains the entire contents of the distro.
+          This should also contain the top level file `.hab.json`. When the distro
+          is installed and using hab normally this file will be used. The `.hab.json`
+          file's contents are extracted from the zip file and used to initialize the
+          `DistroVersion` returned by `self.distro` without being written to disk.
+    """
+
+    def __init__(self, root, site=None, client=None, profile_name=None, **params):
+        self.params = params
+        self.profile_name = profile_name
+        # Only define client if it was passed, otherwise it is created lazily.
+        if client:
+            self.client = client
+        super().__init__(root, site=site)
+
+    @property
+    def client(self):
+        try:
+            return self._client
+        except AttributeError:
+            if self.profile_name:
+                self._client = S3Client(profile_name=self.profile_name)
             else:
-                self.client = S3Client()
+                self._client = S3Client()
+        return self._client
 
-        self.root = CloudPath(root, client=self.client)
+    @client.setter
+    def client(self, client):
+        self._client = client
 
-    def _credentials(self):
+    def credentials(self):
         """Returns the credentials needed for requests to connect to aws s3 bucket.
 
         Generates these credentials using the client object.
         """
 
         try:
-            return self.__credentials
+            return self._credentials
         except AttributeError:
             pass
         # The `x-amz-content-sha256` header is required for all AWS Signature
@@ -53,32 +79,5 @@ class DistroFinderS3Zip(DistroFinderZip):
             service="s3",
         )
 
-        self.__credentials = (auth, headers)
-        return self.__credentials
-
-    def archive(self, zip_path):
-        """Returns a `zipfile.Zipfile` like instance for zip_path.
-
-        Path should be a aws s3 object url pointing to a .zip file.
-        """
-        logger.debug(f"Connecting to s3 for url: {zip_path}")
-        auth, headers = self._credentials()
-        ret = remotezip.RemoteZip(zip_path.as_url(), auth=auth, headers=headers)
-        ret.filename = zip_path
-        return ret
-
-    def clear_cache(self, persistent=False):
-        """Clear cached data in memory. If `persistent` is True then also remove
-        cache data from disk if it exists.
-        """
-        if persistent:
-            self.remove_download_cache()
-        super().clear_cache(persistent=persistent)
-
-    def content(self, path):
-        return path.removesuffix(f"/{self.hab_filename}")
-
-    def install(self, path, dest):
-        raise NotImplementedError("Using ZipFile.extract on this is a bad idea")
-        # Download zip if not in cache
-        # call super on cached zip file
+        self._credentials = (auth, headers)
+        return self._credentials
