@@ -1,4 +1,5 @@
 import logging
+import time
 
 from .. import utils
 from .zip_sidecar import DistroFinderZipSidecar
@@ -27,11 +28,12 @@ class DistroFinderZip(DistroFinderZipSidecar):
           `DistroVersion` returned by `self.distro` without being written to disk.
     """
 
-    def __init__(self, root, site=None):
+    def __init__(self, root, site=None, safe=True):
         super().__init__(root, site=site)
         self.glob_str = "*.zip"
         self.hab_filename = ".hab.json"
         self._cache = {}
+        self.safe = safe
 
     def clear_cache(self, persistent=False):
         """Clear cached data in memory. If `persistent` is True then also remove
@@ -50,6 +52,10 @@ class DistroFinderZip(DistroFinderZipSidecar):
             path (pathlib.Path): The member path to the `.hab.json` file defining
                 the distro.
         """
+        # If this is already a .zip file return it
+        if path.suffix == ".zip":
+            return path
+        # Otherwise the parent is expected to be the .zip file
         return path.parent
 
     def distro_path_info(self):
@@ -66,36 +72,42 @@ class DistroFinderZip(DistroFinderZipSidecar):
                 file so this data is not cached across processes.
         """
         for path in self.root.glob(self.glob_str):
-            archive = self.archive(path)
-            for _, path in self.get_text_files_from_zip(
-                archive, members=[self.hab_filename]
-            ):
-                yield None, path, False
-
-    def get_text_files_from_zip(self, archive, members):
-        """Opens the zip archive and yields any member paths that exist in the archive.
-
-        To reduce re-opening the zip archive later this also caches the contents
-        of each of these files for later processing in load_path using `archive.read`
-        to extract the data as `bytes`.
-
-        Args:
-            archive: A `zipfile.ZipFile` like archive to read the file data from.
-            members (list): A list of archive members as `str` to yield and cache.
-
-        Yields:
-            member (str): The provided member being yielded.
-            member_path (pathlib.Path): The member path to the member of the .zip file.
-        """
-        with archive:
-            for member in members:
-                if member not in archive.namelist():
+            member_path = path / self.hab_filename
+            if self.safe:
+                # Opening archives on cloud based systems is slow, this allows us
+                # to disable checking that the archive actually has a `.hab.json` file.
+                data = self.get_file_data(member_path)
+                # This should only return None if the archive doesn't contain member
+                if data is None:
                     continue
 
+            yield None, member_path, False
+
+    def get_file_data(self, path):
+        """Return the data stored inside a member of a .zip file as bytes.
+
+        This is cached and will only open the .zip file to read the contents the
+        first time path is used for this instance.
+
+        Args:
+            path: The member path to a given resource.
+        """
+        if path in self._cache:
+            return self._cache[path]
+
+        content = self.content(path)
+        member = str(path.relative_to(content))
+        s = time.time()
+        with self.archive(content) as archive:
+            if member in archive.namelist():
                 data = archive.read(member)
-                member_path = self.cast_path(archive.filename) / member
-                self._cache[member_path] = data
-                yield member, member_path
+            else:
+                data = None
+            self._cache[path] = data
+
+        e = time.time()
+        logger.debug(f"Reading file data from {path} took {e - s} seconds.")
+        return self._cache[path]
 
     def load_path(self, path):
         """Returns a raw dictionary use to create a `DistroVersion` with version set.
@@ -118,7 +130,7 @@ class DistroFinderZip(DistroFinderZipSidecar):
                 raised if the requested `path` is not defined in the distro.
         """
         logger.debug(f'Loading json: "{path}"')
-        data = self._cache[path]
+        data = self.get_file_data(path)
         data = data.decode("utf-8")
         data = utils.loads_json(data, source=path)
         # Pull the version from the sidecar filename if its not explicitly set

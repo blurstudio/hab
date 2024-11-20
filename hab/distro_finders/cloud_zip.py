@@ -9,6 +9,18 @@ from .df_zip import DistroFinderZip
 logger = logging.getLogger(__name__)
 
 
+class HabRemoteZip(remotezip.RemoteZip):
+    """`remotezip.RemoteZip` that doesn't call `close()` when exiting a with context.
+
+    Opening a new RemoteZip instance is slow and changes depending on the size
+    of the .zip file. Cloud based workflow doesn't need to close the file pointer
+    like you need to when working on a local file.
+    """
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+
 class DistroFinderCloudZip(DistroFinderZip):
     """Works with zipped distros stored remotely in Amazon S3 buckets.
 
@@ -32,12 +44,12 @@ class DistroFinderCloudZip(DistroFinderZip):
           `DistroVersion` returned by `self.distro` without being written to disk.
     """
 
-    def __init__(self, root, site=None, client=None):
-        # # Sub-classes may need to set kwargs before calling super, only set it
-        # # if the sub-class hasn't already set it.
-        # if not hasattr(self, "kwargs"):
-        #     self.kwargs = kwargs
-        super().__init__(root, site=site)
+    def __init__(self, root, site=None, safe=False, client=None):
+        # Only define client if it was passed, otherwise create it lazily.
+        if client:
+            self.client = client
+        super().__init__(root, site=site, safe=safe)
+        self._archives = {}
 
     def cast_path(self, path):
         """Return path cast to the `pathlib.Path` like class preferred by this class."""
@@ -63,14 +75,21 @@ class DistroFinderCloudZip(DistroFinderZip):
 
         Path should be a aws s3 object url pointing to a .zip file.
         """
+        # Creating a RemoteZip instance is very slow compared to local file access.
+        # Reuse existing objects if already created.
+        if zip_path in self._archives:
+            logger.debug(f"Reusing cloud .zip resource: {zip_path}")
+            return self._archives[zip_path]
+
         s = time.time()
         logger.debug(f"Connecting to cloud .zip resource: {zip_path}")
         auth, headers = self.credentials()
-        ret = remotezip.RemoteZip(zip_path.as_url(), auth=auth, headers=headers)
-        ret.filename = zip_path
+        archive = HabRemoteZip(zip_path.as_url(), auth=auth, headers=headers)
+        archive.filename = zip_path
         e = time.time()
         logger.debug(f"Connected to cloud .zip resource: {zip_path}, took: {e - s}")
-        return ret
+        self._archives[zip_path] = archive
+        return archive
 
     def clear_cache(self, persistent=False):
         """Clear cached data in memory. If `persistent` is True then also remove
@@ -80,8 +99,10 @@ class DistroFinderCloudZip(DistroFinderZip):
             self.remove_download_cache()
         super().clear_cache(persistent=persistent)
 
-    def content(self, path):
-        return path.removesuffix(f"/{self.hab_filename}")
+        # Ensure all cached archives are closed before clearing the cache.
+        for archive in self._archives.values():
+            archive.close()
+        self._archives = {}
 
     def install(self, path, dest):
         raise NotImplementedError("Using ZipFile.extract on this is a bad idea")

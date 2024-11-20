@@ -32,13 +32,9 @@ class DistroFinderS3Zip(DistroFinderCloudZip):
           `DistroVersion` returned by `self.distro` without being written to disk.
     """
 
-    def __init__(self, root, site=None, client=None, profile_name=None, **params):
-        self.params = params
+    def __init__(self, root, site=None, safe=False, client=None, profile_name=None):
         self.profile_name = profile_name
-        # Only define client if it was passed, otherwise it is created lazily.
-        if client:
-            self.client = client
-        super().__init__(root, site=site)
+        super().__init__(root, site=site, safe=safe, client=client)
 
     @property
     def client(self):

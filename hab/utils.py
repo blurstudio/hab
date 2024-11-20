@@ -29,6 +29,20 @@ except ImportError:
         """Placeholder exception when pyjson5 is not used. Should never be raised"""
 
 
+# cloudpathlib is an optional library, if installed then this will enable
+# `dump_object` to print its full path instead of just the filename.
+try:
+    from cloudpathlib import CloudPath as _CloudPath
+except ImportError:
+
+    class _CloudPath:
+        """Placeholder class because `cloudpathlib` is not importable.
+        Used for isinstance checking.
+        """
+
+        pass
+
+
 colorama.init()
 
 re_windows_single_path = re.compile(r"^([a-zA-Z]:[\\\/][^:;]+)$")
@@ -182,7 +196,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
             )
             lbl = pad
         return "\n".join(rows)
-    elif isinstance(obj, PurePath):
+    elif isinstance(obj, (PurePath, _CloudPath)):
         return f"{label}{obj}"
     elif hasattr(obj, "name"):
         # Likely HabBase objects
