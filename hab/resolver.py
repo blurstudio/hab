@@ -1,5 +1,6 @@
 # __all__ = ["Resolver"]
 
+import concurrent.futures
 import copy
 import logging
 
@@ -321,17 +322,43 @@ class Resolver(object):
     def parse_configs(self, config_paths, forest=None):
         if forest is None:
             forest = {}
-        for dirname, path in self.site.config_paths(config_paths):
-            Config(forest, self, path, root_paths=set((dirname,)))
+        # Use threading to speed up I/O bound processing
+        _futures = []
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.site.get("max_workers")
+        ) as executor:
+            # Add all config paths to the thread pool to execute
+            for dirname, path in self.site.config_paths(config_paths):
+                _futures.append(
+                    executor.submit(
+                        Config, forest, self, path, root_paths=set((dirname,))
+                    )
+                )
+
+            # Wait for the configs to finish processing
+            for future in concurrent.futures.as_completed(_futures):
+                future.result()
         return forest
 
     def parse_distros(self, forest=None):
         if forest is None:
             forest = {}
-        for distro_finder in self.distro_paths:
-            for _, path, _ in distro_finder.distro_path_info():
+        # Use threading to speed up I/O bound processing
+        _futures = []
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.site.get("max_workers")
+        ) as executor:
+            # Add all distro paths to the thread pool to execute
+            for distro_finder in self.distro_paths:
+                for _, path, _ in distro_finder.distro_path_info():
+                    _futures.append(
+                        executor.submit(distro_finder.distro, forest, self, path)
+                    )
+
+            # Wait for the distros to finish processing
+            for future in concurrent.futures.as_completed(_futures):
                 try:
-                    distro_finder.distro(forest, self, path)
+                    future.result()
                 except _IgnoredVersionError as error:
                     logger.debug(str(error))
         return forest
