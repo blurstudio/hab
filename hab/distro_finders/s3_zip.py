@@ -4,6 +4,7 @@ from hashlib import sha256
 from cloudpathlib import S3Client
 from requests_aws4auth import AWS4Auth
 
+from .. import utils
 from .cloud_zip import DistroFinderCloudZip
 
 logger = logging.getLogger(__name__)
@@ -41,10 +42,14 @@ class DistroFinderS3Zip(DistroFinderCloudZip):
         try:
             return self._client
         except AttributeError:
+            kwargs = {}
             if self.profile_name:
-                self._client = S3Client(profile_name=self.profile_name)
+                kwargs["profile_name"] = self.profile_name
+            if self.site:
+                kwargs["local_cache_dir"] = self.site.download_cache
             else:
-                self._client = S3Client()
+                kwargs["local_cache_dir"] = utils.Platform.default_download_cache()
+            self._client = S3Client(**kwargs)
         return self._client
 
     @client.setter

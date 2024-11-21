@@ -38,8 +38,18 @@ class DistroFinderZipSidecar(DistroFinder):
         super().__init__(root, site)
         self.glob_str = "*.hab.json"
 
-    def archive(self, zip_path):
-        """Returns a `zipfile.Zipfile` like instance for zip_path."""
+    def archive(self, zip_path, partial=True):
+        """Returns a `zipfile.Zipfile` like instance for zip_path.
+
+        Args:
+            zip_path (os.PathLike): The path to the zip file to open.
+            partial (bool, optional): If True then you only need access to a small
+                part of the archive. This is used by sub-classes to optimize access
+                to remote zip archives. If True then `HabRemoteZip` will be used
+                to only download specific files from the remote archive without
+                caching them to disk. If False then remote archives will be fully
+                downloaded to disk(using caching) before returning the open archive.
+        """
         return zipfile.ZipFile(zip_path)
 
     def content(self, path):

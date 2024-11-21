@@ -1,5 +1,7 @@
 import logging
 import time
+import zipfile
+from abc import ABCMeta, abstractmethod
 
 import remotezip
 from cloudpathlib import CloudPath
@@ -21,7 +23,7 @@ class HabRemoteZip(remotezip.RemoteZip):
         pass
 
 
-class DistroFinderCloudZip(DistroFinderZip):
+class DistroFinderCloudZip(DistroFinderZip, metaclass=ABCMeta):
     """Works with zipped distros stored remotely in Amazon S3 buckets.
 
     Working with zipped distros extracting the `.hab.json` information from
@@ -51,43 +53,65 @@ class DistroFinderCloudZip(DistroFinderZip):
         super().__init__(root, site=site, safe=safe)
         self._archives = {}
 
+    def as_posix(self):
+        """Returns the root path as a posix style string."""
+        if isinstance(self.root, CloudPath):
+            # CloudPath doesn't need as_posix
+            return str(self.root)
+        return super().as_posix()
+
     def cast_path(self, path):
         """Return path cast to the `pathlib.Path` like class preferred by this class."""
         return CloudPath(path, client=self.client)
 
     @property
+    @abstractmethod
     def client(self):
-        raise NotImplementedError("`client` must be implemented by a sub-class")
+        """A `cloudpathlib.client.Client` used to create `CloudPath` instances."""
 
     @client.setter
+    @abstractmethod
     def client(self, client):
-        raise NotImplementedError("`client` must be implemented by a sub-class")
+        pass
 
+    @abstractmethod
     def credentials(self):
         """Returns the credentials needed for requests to connect to the cloud resource.
 
         Generates these credentials using the client object.
         """
-        raise NotImplementedError("`credentials` must be implemented by a sub-class")
 
-    def archive(self, zip_path):
+    def archive(self, zip_path, partial=True):
         """Returns a `zipfile.Zipfile` like instance for zip_path.
 
-        Path should be a aws s3 object url pointing to a .zip file.
+        Args:
+            zip_path (cloudpathlib.CloudPath): The path to the zip file to open.
+            partial (bool, optional): If True then you only need access to a small
+                part of the archive. If True then `HabRemoteZip` will be used
+                to only download specific files from the remote archive without
+                caching them to disk. If False then remote archives will be fully
+                downloaded to disk(using caching) before returning the open archive.
         """
+        if not partial:
+            logger.debug(f"Using CloudPath to open(downloading if needed) {zip_path}.")
+            archive = zipfile.ZipFile(zip_path)
+            archive.filename = zip_path
+            return archive
+
         # Creating a RemoteZip instance is very slow compared to local file access.
         # Reuse existing objects if already created.
         if zip_path in self._archives:
             logger.debug(f"Reusing cloud .zip resource: {zip_path}")
             return self._archives[zip_path]
 
-        s = time.time()
         logger.debug(f"Connecting to cloud .zip resource: {zip_path}")
+        s = time.time()
         auth, headers = self.credentials()
+
         archive = HabRemoteZip(zip_path.as_url(), auth=auth, headers=headers)
         archive.filename = zip_path
         e = time.time()
-        logger.debug(f"Connected to cloud .zip resource: {zip_path}, took: {e - s}")
+        logger.info(f"Connected to cloud .zip resource: {zip_path}, took: {e - s}")
         self._archives[zip_path] = archive
         return archive
 
@@ -103,8 +127,6 @@ class DistroFinderCloudZip(DistroFinderZip):
         for archive in self._archives.values():
             archive.close()
         self._archives = {}
-
-    def install(self, path, dest):
-        raise NotImplementedError("Using ZipFile.extract on this is a bad idea")
-        # Download zip if not in cache
-        # call super on cached zip file
+        if persistent:
+            # Clear downloaded temp files
+            self.client.clear_cache()

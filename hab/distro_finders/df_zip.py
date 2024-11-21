@@ -1,5 +1,4 @@
 import logging
-import time
 
 from .. import utils
 from .zip_sidecar import DistroFinderZipSidecar
@@ -52,11 +51,37 @@ class DistroFinderZip(DistroFinderZipSidecar):
             path (pathlib.Path): The member path to the `.hab.json` file defining
                 the distro.
         """
-        # If this is already a .zip file return it
-        if path.suffix == ".zip":
+        # If path is already a .zip file return it.
+        # Note: We can't concatenate this with `pathlib.Path.parents` so this has
+        # to be done separately from the for loop later
+        if path.suffix.lower() == ".zip":
             return path
-        # Otherwise the parent is expected to be the .zip file
-        return path.parent
+
+        # Search for the first .zip file extension and return that path if found
+        for parent in reversed(path.parents):
+            if parent.suffix.lower() == ".zip":
+                return parent
+
+        # Otherwise fall back to returning the path
+        return path
+
+    def content_member(self, path):
+        """Splits a member path into content and member.
+
+        Args:
+            path (pathlib.Path): The member path to split.
+
+        Returns:
+            content: A `pathlib.Path` like object representing the .zip file.
+            member (str): Any remaining member path after the .zip file. If path
+                doesn't specify a member, then a empty string is returned.
+        """
+        content = self.content(path)
+        member = str(path.relative_to(content))
+        # Return a empty string instead of the relative dot
+        if member == ".":
+            member = ""
+        return content, member
 
     def distro_path_info(self):
         """Generator yielding distro info for each distro found by this distro finder.
@@ -95,9 +120,7 @@ class DistroFinderZip(DistroFinderZipSidecar):
         if path in self._cache:
             return self._cache[path]
 
-        content = self.content(path)
-        member = str(path.relative_to(content))
-        s = time.time()
+        content, member = self.content_member(path)
         with self.archive(content) as archive:
             if member in archive.namelist():
                 data = archive.read(member)
@@ -105,8 +128,6 @@ class DistroFinderZip(DistroFinderZipSidecar):
                 data = None
             self._cache[path] = data
 
-        e = time.time()
-        logger.debug(f"Reading file data from {path} took {e - s} seconds.")
         return self._cache[path]
 
     def load_path(self, path):

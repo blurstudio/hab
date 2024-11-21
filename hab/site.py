@@ -1,6 +1,5 @@
 import logging
 import os
-import tempfile
 from collections import UserDict
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
@@ -256,7 +255,7 @@ class Site(UserDict):
                 del self["download_cache"]
         if "download_cache" not in self:
             # Default to inside the temp directory
-            self["download_cache"] = Path(tempfile.gettempdir()) / "hab_downloads"
+            self["download_cache"] = utils.Platform.default_download_cache()
 
     def load_file(self, filename):
         """Load an individual file path and merge its contents onto self.

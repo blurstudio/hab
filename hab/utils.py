@@ -6,6 +6,7 @@ import ntpath
 import os
 import re
 import sys
+import tempfile
 import textwrap
 import zlib
 from abc import ABC, abstractmethod
@@ -521,6 +522,14 @@ class BasePlatform(ABC):
     def default_ext(cls):
         """Returns the default file extension used on this platform."""
         return cls._default_ext
+
+    @classmethod
+    def default_download_cache(cls):
+        """Path where download files are cached.
+
+        This is used as the default location for `Site.download_cache`.
+        """
+        return Path(tempfile.gettempdir()) / "hab_downloads"
 
     @classmethod
     def expand_paths(cls, paths):

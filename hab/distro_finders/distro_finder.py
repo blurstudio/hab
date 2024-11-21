@@ -23,9 +23,9 @@ class DistroFinder:
     """
 
     def __init__(self, root, site=None):
+        self.site = site
         self.root = utils.Platform.normalize_path(self.cast_path(root))
         self.glob_str = "*/.hab.json"
-        self.site = site
 
     def __eq__(self, other):
         if not hasattr(other, "root"):
