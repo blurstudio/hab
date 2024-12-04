@@ -581,7 +581,8 @@ class WinPlatform(BasePlatform):
 
         This ensures that the drive letter is resolved consistently to uppercase.
         """
-        if not path.is_absolute():
+        # Don't change the case of relative or UNC paths
+        if not path.is_absolute() or ":" not in path.drive:
             return path
         parts = path.parts
         cls = type(path)

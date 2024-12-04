@@ -851,8 +851,12 @@ class TestPlatform:
             # the drive letter is always upper-cased if specified
             (r"c:\temp", "C:/temp"),
             (r"C:\temp", "C:/temp"),
+            (r"C:\teMP", "C:/teMP"),
             (r"z:\subfolder", "Z:/subfolder"),
             (r"relative\path", "relative/path"),
+            # UNC file paths do not have case changed
+            (r"\\unc\share\folder", "//unc/share/folder"),
+            (r"\\UnC\shaRe\folDer", "//UnC/shaRe/folDer"),
         ),
     )
     def test_normalize_path_windows(self, path, check):
