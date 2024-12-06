@@ -1,0 +1,24 @@
+{
+    "set": {
+        "config_paths": [
+            "{relative_root}/configs"
+        ],
+        "distro_paths": [
+            "{relative_root}/distros/*"
+        ],
+        "downloads": {
+            "cache_root": "{relative_root}/downloads",
+            "distros": [
+                [
+                    "hab.distro_finders.s3_zip:DistroFinderS3Zip",
+                    "s3://hab-test-bucket",
+                    {
+                        "no_sign_request": true,
+                        "local_storage_dir": "{{ zip_root }}"
+                    }
+                ]
+            ],
+            "install_root": "{relative_root}/distros"
+        }
+    }
+}

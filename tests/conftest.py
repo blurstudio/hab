@@ -1,9 +1,13 @@
 import json
 import os
+import shutil
+from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path, PurePath
+from zipfile import ZipFile
 
 import pytest
+from jinja2 import Environment, FileSystemLoader
 from packaging.requirements import Requirement
 
 from hab import Resolver, Site
@@ -111,6 +115,141 @@ def resolver(request):
     return request.getfixturevalue(test_map[request.param])
 
 
+Distro = namedtuple("Distro", ["name", "version", "inc_version", "distros"])
+
+
+class DistroInfo(namedtuple("DistroInfo", ["root", "versions", "zip_root"])):
+    default_versions = (
+        ("dist_a", "0.1", True, None),
+        ("dist_a", "0.2", False, ["dist_b"]),
+        ("dist_a", "1.0", False, None),
+        ("dist_b", "0.5", False, None),
+        ("dist_b", "0.6", False, None),
+    )
+
+    @classmethod
+    def dist_version(cls, distro, version):
+        return f"{distro}_v{version}"
+
+    @classmethod
+    def hab_json(cls, distro, version=None, distros=None):
+        data = {"name": distro}
+        if version:
+            data["version"] = version
+        if distros:
+            data["distros"] = distros
+        return json.dumps(data, indent=4)
+
+    @classmethod
+    def generate(cls, root, versions=None, zip_created=None, zip_root=None):
+        if versions is None:
+            versions = cls.default_versions
+        if zip_root is None:
+            zip_root = root
+
+        versions = {(x[0], x[1]): Distro(*x) for x in versions}
+
+        for version in versions.values():
+            name = cls.dist_version(version.name, version.version)
+            filename = root / f"{name}.zip"
+            ver = version.version if version.inc_version else None
+            with ZipFile(filename, "w") as zf:
+                # Make the .zip file larger than the remotezip initial_buffer_size
+                # so testing of partial archive reading is forced use multiple requests
+                zf.writestr("data.txt", "-" * 64 * 1024)
+                zf.writestr(
+                    ".hab.json",
+                    cls.hab_json(version.name, version=ver, distros=version.distros),
+                )
+                zf.writestr("file_a.txt", "File A inside the distro.")
+                zf.writestr("folder/file_b.txt", "File B inside the distro.")
+                if zip_created:
+                    zip_created(zf)
+
+        # Create a correctly named .zip file that doesn't have a .hab.json file
+        # to test for .zip files that are not distros.
+        with ZipFile(root / "not_valid_v0.1.zip", "w") as zf:
+            zf.writestr("README.txt", "This file is not a hab distro zip.")
+
+        return cls(root, versions, zip_root)
+
+
+@pytest.fixture(scope="session")
+def distro_finder_info(tmp_path_factory):
+    """Returns a DistroInfo instance with extracted distros ready for hab.
+
+    This is useful for using an existing hab distro structure as your download server.
+    """
+    root = tmp_path_factory.mktemp("_distro_finder")
+
+    def zip_created(zf):
+        """Extract all contents zip into a distro folder structure."""
+        filename = Path(zf.filename).stem
+        distro, version = filename.split("_v")
+        zf.extractall(root / distro / version)
+
+    return DistroInfo.generate(root, zip_created=zip_created)
+
+
+@pytest.fixture(scope="session")
+def zip_distro(tmp_path_factory):
+    """Returns a DistroInfo instance for a zip folder structure.
+
+    This is useful if the zip files are locally accessible or if your hab download
+    server supports `HTTP range requests`_. For example if you are using Amazon S3.
+
+    .. _HTTP range requests:
+       https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests
+    """
+    root = tmp_path_factory.mktemp("_zip_distro_files")
+    return DistroInfo.generate(root)
+
+
+@pytest.fixture(scope="session")
+def zip_distro_sidecar(tmp_path_factory):
+    """Returns a DistroInfo instance for a zip folder structure with sidecar
+    `.hab.json` files.
+
+    This is useful when your hab download server does not support HTTP range requests.
+    """
+    root = tmp_path_factory.mktemp("_zip_distro_sidecar_files")
+
+    def zip_created(zf):
+        """Extract the .hab.json from the zip to a sidecar file."""
+        filename = Path(zf.filename).stem
+        sidecar = root / f"{filename}.hab.json"
+        path = zf.extract(".hab.json", root)
+        shutil.move(path, sidecar)
+
+    return DistroInfo.generate(root, zip_created=zip_created)
+
+
+@pytest.fixture(scope="session")
+def _zip_distro_s3(tmp_path_factory):
+    """The files used by `zip_distro_s3` only generated once per test."""
+    root = tmp_path_factory.mktemp("_zip_distro_s3_files")
+    bucket_root = root / "hab-test-bucket"
+    bucket_root.mkdir()
+    return DistroInfo.generate(bucket_root, zip_root=root)
+
+
+@pytest.fixture()
+def zip_distro_s3(_zip_distro_s3, monkeypatch):
+    """Returns a DistroInfo instance for a s3 zip cloud based folder structure.
+
+    This is used to simulate using an aws s3 cloud storage bucket to host hab
+    distro zip files.
+    """
+    from cloudpathlib import implementation_registry
+    from cloudpathlib.local import LocalS3Client, local_s3_implementation
+
+    from hab.distro_finders import s3_zip
+
+    monkeypatch.setitem(implementation_registry, "s3", local_s3_implementation)
+    monkeypatch.setattr(s3_zip, "S3Client", LocalS3Client)
+    return _zip_distro_s3
+
+
 class Helpers(object):
     """A collection of reusable functions that tests can use."""
 
@@ -203,6 +342,36 @@ class Helpers(object):
             assert (
                 cache[i] == check[i]
             ), f"Difference on line: {i} between the generated cache and {generated}."
+
+    @staticmethod
+    def render_template(template, dest, **kwargs):
+        """Render a jinja template in from the test templates directory.
+
+        Args:
+            template (str): The name of the template file in the templates dir.
+            dest (os.PathLike): The destination filename to write the output.
+            **kwargs: All kwargs are used to render the template.
+        """
+        environment = Environment(
+            loader=FileSystemLoader(str(Path(__file__).parent / "templates")),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+        template = environment.get_template(template)
+
+        text = template.render(**kwargs).rstrip() + "\n"
+        with dest.open("w") as fle:
+            fle.write(text)
+
+    @classmethod
+    def render_resolver(cls, site_template, dest, **kwargs):
+        """Calls `render_template` and constructs a Resolver instance for it."""
+        # Build the hab site
+        site_file = dest / "site.json"
+        cls.render_template(site_template, site_file, **kwargs)
+
+        site = Site([site_file])
+        return Resolver(site)
 
 
 @pytest.fixture
