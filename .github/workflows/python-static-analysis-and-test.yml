@@ -49,9 +49,21 @@ jobs:
     strategy:
       matrix:
         # Test if using native json or pyjson5 for json parsing
-        json_ver: ['json', 'json5']
+        pkg_mods: ['json', 'json5', 's3']
         os: ['ubuntu-latest', 'windows-latest']
-        python: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python: ['3.8', '3.9', '3.10', '3.11']
+        # Works around the depreciation of python 3.6 for ubuntu
+        # https://github.com/actions/setup-python/issues/544
+        include:
+          - pkg_mods: 'json'
+            os: 'ubuntu-22.04'
+            python: '3.7'
+          - pkg_mods: 'json5'
+            os: 'ubuntu-22.04'
+            python: '3.7'
+          - pkg_mods: 's3'
+            os: 'ubuntu-22.04'
+            python: '3.7'
 
     runs-on: ${{ matrix.os }}
 
@@ -71,12 +83,12 @@ jobs:
 
       - name: Run Tox
         run: |
-          tox -e begin,py-${{ matrix.json_ver }}
+          tox -e begin,py-${{ matrix.pkg_mods }}
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.os }}-${{ matrix.python }}-${{ matrix.json_ver }}
+          name: coverage-${{ matrix.os }}-${{ matrix.python }}-${{ matrix.pkg_mods }}
           path: .coverage.*
           include-hidden-files: true
           retention-days: 1

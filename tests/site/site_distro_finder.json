@@ -1,0 +1,32 @@
+{
+    "set":
+    {
+        "distro_paths":
+        [
+            [
+                "hab.distro_finders.distro_finder:DistroFinder",
+                "hab testable/download/path"
+            ],
+            [
+                "hab.distro_finders.distro_finder:DistroFinder",
+                "hab testing/downloads",
+                {
+                    "site": "for testing only, do not specify site"
+                }
+            ]
+        ],
+        "downloads":
+        {
+            "cache_root": "hab testable/download/path",
+            "distros":
+            [
+                [
+                    "hab.distro_finders.df_zip:DistroFinderZip",
+                    "network_server/distro/source"
+                ]
+            ],
+            "install_root": "{relative_root}/distros",
+            "relative_path": "{{distro_name}}_v{{version}}"
+        }
+    }
+}

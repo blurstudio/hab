@@ -2,13 +2,16 @@ import os
 import pathlib
 from collections import OrderedDict
 from pathlib import Path
+from zipfile import ZipFile
 
 import anytree
 import pytest
 from packaging.requirements import Requirement
 
-from hab import NotSet, Resolver, Site, utils
+from hab import DistroMode, NotSet, Resolver, Site, utils
+from hab.distro_finders.distro_finder import DistroFinder
 from hab.errors import InvalidRequirementError
+from hab.parsers import DistroVersion
 from hab.solvers import Solver
 
 
@@ -16,12 +19,14 @@ def test_environment_variables(config_root, helpers, monkeypatch):
     """Check that Resolver's init respects the environment variables it uses."""
     config_paths_env = utils.Platform.expand_paths(["a/config/path", "b/config/path"])
     distro_paths_env = utils.Platform.expand_paths(["a/distro/path", "b/distro/path"])
+    distro_paths_env = [DistroFinder(p) for p in distro_paths_env]
     config_paths_direct = utils.Platform.expand_paths(
         ["z/config/path", "zz/config/path"]
     )
     distro_paths_direct = utils.Platform.expand_paths(
         ["z/distro/path", "zz/distro/path"]
     )
+    distro_paths_direct = [DistroFinder(p) for p in distro_paths_direct]
 
     # Set the config environment variables
     monkeypatch.setenv(
@@ -113,6 +118,56 @@ def test_config(resolver):
 def test_closest_config(resolver, path, result, reason):
     """Test that closest_config returns the expected results."""
     assert resolver.closest_config(path).fullpath == result, reason
+
+
+def test_distro_mode(zip_distro, helpers, tmp_path):
+    """Test `Resolver.distro_mode` is respected when calling `distros`.
+
+    Also test that the `distro_mode_override` with context updates and restores
+    the distro_mode.
+    """
+    site_file = tmp_path / "site.json"
+    helpers.render_template(
+        "site_download.json", site_file, zip_root=zip_distro.root.as_posix()
+    )
+    resolver = Resolver(Site([site_file]))
+
+    # Install some distros so the resolver can find them
+    for distro, version in (("dist_a", "0.1"), ("dist_b", "0.5")):
+        with ZipFile(zip_distro.root / f"{distro}_v{version}.zip") as zip_info:
+            zip_info.extractall(tmp_path / "distros" / distro / version)
+
+    def get_dist_names():
+        return [
+            row.node.name
+            for row in resolver.dump_forest(resolver.distros, attr=None)
+            if isinstance(row.node, DistroVersion)
+        ]
+
+    # Get the installed distros and check that `.distros` is the correct return
+    installed = get_dist_names()
+    assert resolver.distros is resolver._installed_distros
+    # Get the download distros and check that `.distros` is the correct return
+    with resolver.distro_mode_override(DistroMode.Downloaded):
+        downloads = get_dist_names()
+        assert resolver.distros is resolver._downloadable_distros
+    # Check that the installed distros are accessible again
+    installed_after = get_dist_names()
+    assert resolver.distros is resolver._installed_distros
+
+    assert installed == ["dist_a==0.1", "dist_b==0.5"]
+    assert installed_after == installed
+    assert downloads == [
+        "dist_a==0.1",
+        "dist_a==0.2",
+        "dist_a==1.0",
+        "dist_b==0.5",
+        "dist_b==0.6",
+    ]
+
+    with pytest.raises(ValueError, match=r"You can only specify DistroModes."):
+        with resolver.distro_mode_override("Downloaded"):
+            pass
 
 
 class TestDumpForest:
@@ -951,19 +1006,19 @@ def test_clear_caches(resolver):
     """Test that Resolver.clear_cache works as expected."""
     # Resolver cache is empty
     assert resolver._configs is None
-    assert resolver._distros is None
+    assert resolver._installed_distros is None
 
     # Populate resolver cache data
     resolver.resolve("not_set")
     assert isinstance(resolver._configs, dict)
-    assert isinstance(resolver._distros, dict)
+    assert isinstance(resolver._installed_distros, dict)
     assert len(resolver._configs) > 1
-    assert len(resolver._distros) > 1
+    assert len(resolver._installed_distros) > 1
 
     # Calling clear_caches resets the resolver cache
     resolver.clear_caches()
     assert resolver._configs is None
-    assert resolver._distros is None
+    assert resolver._installed_distros is None
 
 
 def test_clear_caches_cached(habcached_resolver):

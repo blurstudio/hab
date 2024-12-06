@@ -1,0 +1,20 @@
+{
+    "set": {
+        "config_paths": [
+            "{relative_root}/configs"
+        ],
+        "distro_paths": [
+            "{relative_root}/distros/*"
+        ],
+        "downloads": {
+            "cache_root": "{relative_root}/downloads",
+            "distros": [
+                [
+                    "hab.distro_finders.zip_sidecar:DistroFinderZipSidecar",
+                    "{{ zip_root }}"
+                ]
+            ],
+            "install_root": "{relative_root}/distros"
+        }
+    }
+}
