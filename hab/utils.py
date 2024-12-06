@@ -109,7 +109,7 @@ def decode_freeze(txt):
     return json.loads(data)
 
 
-def dump_object(obj, label="", width=80, flat_list=False, color=False):
+def dump_object(obj, label="", width=80, flat_list=False, color=False, verbosity=0):
     """Recursively convert python objects into a human readable table string.
 
     Args:
@@ -128,6 +128,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
             item to be broken into multiple lines.
         color (bool, optional): Use ANSI escape character sequences to colorize
             the output of the text.
+        verbosity (int, optional): More information is shown with higher values.
     """
     pad = " " * len(label)
     if label:
@@ -140,7 +141,10 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
     if isinstance(obj, (list, KeysView)):
         rows = []
         obj = [
-            dump_object(o, width=width, flat_list=flat_list, color=color) for o in obj
+            dump_object(
+                o, width=width, flat_list=flat_list, color=color, verbosity=verbosity
+            )
+            for o in obj
         ]
         if flat_list:
             # combine as many list items as possible onto each line
@@ -178,12 +182,16 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False):
                     width=width,
                     flat_list=flat_list,
                     color=color,
+                    verbosity=verbosity,
                 )
             )
             lbl = pad
         return "\n".join(rows)
     elif isinstance(obj, PurePath):
         return f"{label}{obj}"
+    elif hasattr(obj, "dump"):
+        # If the class implements a dump method, return its result
+        return obj.dump(verbosity=verbosity, color=color, width=width)
     elif hasattr(obj, "name"):
         # Likely HabBase objects
         return f"{label}{obj.name}"

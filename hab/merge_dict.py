@@ -53,18 +53,23 @@ class MergeDict(object):
         """Apply string formatting rules to the given value if applicable.
 
         If value is a list, this method is recursively called on the contents
-        and a new list is returned. If a bool or dict are passed, they are
-        returned without modification. Otherwise its assume to be a string and
-        str.format is called passing `self.format_kwargs`.
+        and a new list is returned. It is similarly called on the values of dict's.
+        If a bool or int are passed, they are returned without modification.
+        Otherwise its assume to be a string and str.format is called passing
+        `self.format_kwargs`.
 
         If `self.site` is set and platform is passed, site.platform_path_map is called
         on the text output to convert it to the desired platform.
         """
+        if value is None:
+            return value
         if isinstance(value, list):
             # Format the individual items if a list of args is used.
             # return [v.format(**self.format_kwargs) for v in value]
             return [self.default_format(v) for v in value]
-        if isinstance(value, (bool, dict, int)):
+        if isinstance(value, dict):
+            return {k: self.formatter(v, platform=platform) for k, v in value.items()}
+        if isinstance(value, (bool, int)):
             return value
         ret = value.format(**self.format_kwargs)
 
