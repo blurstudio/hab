@@ -80,9 +80,20 @@ class Site(UserDict):
         if color is None:
             color = self.get("colorize", True)
 
+        def dump_object(value, prop):
+            """Convert value and prop into text with correct settings."""
+            return utils.dump_object(
+                value, label=f"{prop}:  ", color=color, width=width, verbosity=verbosity
+            )
+
         def cached_fmt(path, cached):
+            if hasattr(path, "dump"):
+                # Provide information about the finder class used instead of
+                # a simple path.
+                path = path.dump(verbosity=verbosity, color=color, width=width)
             if not cached:
                 return path
+
             if color:
                 return f"{path} {Fore.YELLOW}(cached){Style.RESET_ALL}"
             else:
@@ -96,7 +107,10 @@ class Site(UserDict):
                 cache_file = self.cache.site_cache_path(path)
                 path = cached_fmt(path, cache_file.is_file())
             hab_paths.append(str(path))
-        site_ret = utils.dump_object({"HAB_PATHS": hab_paths}, color=color, width=width)
+        site_ret = utils.dump_object(
+            {"HAB_PATHS": hab_paths}, color=color, width=width, verbosity=verbosity
+        )
+
         # Include all of the resolved site configurations
         ret = []
         for prop, value in self.items():
@@ -107,22 +121,13 @@ class Site(UserDict):
                     prop, value, cache, include_path=False
                 ):
                     paths.append(cached_fmt(dirname, cached))
-                txt = utils.dump_object(
-                    paths, label=f"{prop}:  ", color=color, width=width
-                )
+                txt = dump_object(paths, prop)
             elif verbosity < 1 and isinstance(value, dict):
                 # This is too complex for most site dumps, hide the details behind
                 # a higher verbosity setting.
-                txt = utils.dump_object(
-                    f"Dictionary keys: {len(value)}",
-                    label=f"{prop}:  ",
-                    color=color,
-                    width=width,
-                )
+                txt = dump_object(f"Dictionary keys: {len(value)}", prop)
             else:
-                txt = utils.dump_object(
-                    value, label=f"{prop}:  ", color=color, width=width
-                )
+                txt = dump_object(value, prop)
 
             ret.append(txt)
 

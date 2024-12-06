@@ -149,6 +149,7 @@ class Resolver(object):
 
     @config_paths.setter
     def config_paths(self, paths):
+        """Path's used to populate `configs`."""
         # Convert string paths into a list
         if isinstance(paths, str):
             paths = utils.Platform.expand_paths(paths)
@@ -374,6 +375,9 @@ class Resolver(object):
             MaxRedirectError: Redirect limit reached, unable to resolve the requested
                 requirements.
         """
+
+        if isinstance(requirements, list):
+            requirements = Solver.simplify_requirements(requirements)
 
         solver = Solver(
             requirements, self, forced=self.forced_requirements, omittable=omittable

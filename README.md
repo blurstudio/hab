@@ -1367,7 +1367,7 @@ most part you can control the output using the `hab -v ...` verbosity option.
 However if you need more fine grained control you can create a `.hab_logging_prefs.json`
 file next to your user [user prefs](#user-prefs) file. The cli also supports passing
 the path to a configuration file using `hab --logging-config [path/to/file.json]`
-that is used instead of the default file if pased.
+that is used instead of the default file if passed.
 
 # Caveats
 
