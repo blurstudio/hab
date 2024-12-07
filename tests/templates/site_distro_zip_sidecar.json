@@ -1,0 +1,12 @@
+{
+    "set":
+    {
+        "distro_paths":
+        [
+            [
+                "hab.distro_finders.zip_sidecar:DistroFinderZipSidecar",
+                "{{ zip_root }}"
+            ]
+        ]
+    }
+}

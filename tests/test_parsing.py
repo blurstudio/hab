@@ -1,7 +1,9 @@
 import copy
 import json
+import pickle
 import re
 import sys
+from datetime import date, datetime
 from pathlib import Path
 
 import anytree
@@ -9,7 +11,8 @@ import pytest
 import setuptools_scm
 from packaging.version import Version
 
-from hab import NotSet, utils
+from hab import NotSet, Resolver, utils
+from hab.distro_finders.distro_finder import DistroFinder
 from hab.errors import (
     DuplicateJsonError,
     HabError,
@@ -17,10 +20,10 @@ from hab.errors import (
     ReservedVariableNameError,
     _IgnoredVersionError,
 )
-from hab.parsers import Config, DistroVersion, FlatConfig
+from hab.parsers import Config, DistroVersion, FlatConfig, HabBase
 
 
-class TestLoadJsonFile:
+class TestLoadJson:
     """Tests various conditions when using `hab.utils.load_json_file` to ensure
     expected output.
     """
@@ -34,16 +37,28 @@ class TestLoadJsonFile:
             utils.load_json_file(path)
         assert Path(excinfo.value.filename) == path
 
+    @classmethod
+    def check_exception(cls, excinfo, native_json, path):
+        if native_json:
+            # If built-in json was used, check that filename was appended to the message
+            assert f'Source("{path}")' in str(excinfo.value)
+        else:
+            # If pyjson5 was used, check that the filename was added to str
+            assert f"'source': {str(path)!r}" in str(excinfo.value)
+            # Check that the filename was added to the result dict
+            assert excinfo.value.result["source"] == str(path)
+
     def test_binary(self, tmpdir):
         """If attempting to read a binary file, filename is included in exception.
 
         This is a problem we run into rarely where a text file gets
         replaced/generated with a binary file containing noting but a lot of null bytes.
         """
+        bin_data = b"\x00" * 32
         path = Path(tmpdir) / "binary.json"
         # Create a binary test file containing multiple binary null values.
         with path.open("wb") as fle:
-            fle.write(b"\x00" * 32)
+            fle.write(bin_data)
 
         # Detect if using pyjson5 or not
         native_json = False
@@ -56,15 +71,15 @@ class TestLoadJsonFile:
         else:
             exc_type = pyjson5.pyjson5.Json5IllegalCharacter
 
+        # Test load_json_file
         with pytest.raises(exc_type) as excinfo:
             utils.load_json_file(path)
+        self.check_exception(excinfo, native_json, path)
 
-        if native_json:
-            # If built-in json was used, check that filename was appended to the message
-            assert f'Filename("{path}")' in str(excinfo.value)
-        else:
-            # If pyjson5 was used, check that the filename was added to the result dict
-            assert f"{{'filename': {str(path)!r}}}" in str(excinfo.value)
+        # Test loads_json
+        with pytest.raises(exc_type) as excinfo:
+            utils.loads_json(bin_data.decode(), path)
+        self.check_exception(excinfo, native_json, path)
 
     def test_config_load(self, uncached_resolver):
         cfg = Config({}, uncached_resolver)
@@ -76,6 +91,18 @@ class TestLoadJsonFile:
         # Loading a non-existent file path raises a FileNotFoundError
         with pytest.raises(FileNotFoundError):
             cfg.load("invalid_path.json")
+
+    def test_loads_json(self, config_root):
+        """Test that `loads_json` is able to parse a valid json string."""
+        filename = config_root / "site_main.json"
+        with filename.open() as fle:
+            text = fle.read()
+        # Test an existing file is able to be parsed successfully.
+        data = utils.loads_json(text, filename)
+        # Spot check that we were able to parse data from the file.
+        assert isinstance(data, dict)
+        assert "append" in data
+        assert "set" in data
 
 
 def test_distro_parse(config_root, resolver):
@@ -182,12 +209,17 @@ def test_distro_version_resolve(config_root, resolver, helpers, monkeypatch, tmp
             app.load(path)
 
 
-def test_distro_version(resolver):
+def test_distro_version(resolver, zip_distro_sidecar):
     """Verify that we find the expected version for a given requirement."""
     maya = resolver.distros["maya2020"]
 
     assert maya.latest_version("maya2020").name == "maya2020==2020.1"
     assert maya.latest_version("maya2020<2020.1").name == "maya2020==2020.0"
+
+    forest = {}
+    resolver = Resolver()
+    parsed = HabBase(forest, resolver, zip_distro_sidecar.root / "dist_a_v0.1.hab.json")
+    assert parsed.version == Version("0.1")
 
 
 def test_config_parse(config_root, resolver, helpers):
@@ -291,6 +323,7 @@ def test_metaclass():
             "environment",
             "environment_config",
             "filename",
+            "finder",
             "min_verbosity",
             "name",
             "optional_distros",
@@ -686,19 +719,16 @@ def test_invalid_config(config_root, resolver):
 
     with pytest.raises(_JsonException) as excinfo:
         Config({}, resolver, filename=path)
-
-    if native_json:
-        # If built-in json was used, check that filename was appended to the message
-        assert f'Filename("{path}")' in str(excinfo.value)
-    else:
-        # If pyjson5 was used, check that the filename was added to the result dict
-        assert excinfo.value.result["filename"] == str(path)
+    TestLoadJson.check_exception(excinfo, native_json, path)
 
 
 def test_misc_coverage(resolver):
     """Test that cover misc lines not covered by the rest of the tests"""
     assert str(NotSet) == "NotSet"
     assert copy.copy(NotSet) is NotSet
+    # Check that NotSet can be pickled
+    payload = pickle.dumps(NotSet)
+    assert pickle.loads(payload) is NotSet
 
     # Check that dirname is modified when setting a blank filename
     cfg = Config({}, resolver)
@@ -761,10 +791,13 @@ def test_duplicated_distros(config_root, resolver):
     definitions are in the same config_path so a DuplicateJsonError is raised.
     """
     original = resolver.distro_paths
+    site = resolver.site
 
     # Check that the first config in distro_paths was used
     distro_paths = list(original)
-    distro_paths.insert(0, config_root / "duplicates" / "distros_1" / "*")
+    distro_paths.insert(
+        0, DistroFinder(config_root / "duplicates" / "distros_1" / "*", site=site)
+    )
     resolver.distro_paths = distro_paths
 
     dcc = resolver.find_distro("the_dcc==1.2")
@@ -774,7 +807,9 @@ def test_duplicated_distros(config_root, resolver):
     # Check that an exception is raised if there are duplicate definitions from
     # the same distro_paths directory.
     distro_paths = list(original)
-    distro_paths.insert(0, config_root / "duplicates" / "distros_2" / "*")
+    distro_paths.insert(
+        0, DistroFinder(config_root / "duplicates" / "distros_2" / "*", site=site)
+    )
     resolver.distro_paths = distro_paths
 
     with pytest.raises(DuplicateJsonError):
@@ -1172,7 +1207,7 @@ class TestCustomVariables:
 
         # Add the test distro to hab's distro search. We don't need to call
         # `clear_caches` because distros haven't been resolved yet.
-        uncached_resolver.distro_paths.append(Path(tmpdir))
+        uncached_resolver.distro_paths.append(DistroFinder(Path(tmpdir)))
 
         # When distros are resolved, an exception should be raised
         with pytest.raises(
@@ -1180,3 +1215,14 @@ class TestCustomVariables:
             match=rf"'{invalid}' are reserved variable name\(s\) for hab",
         ):
             uncached_resolver.distros
+
+
+def test_hab_json_encoder():
+    # These non-standard data types are supported by HabJsonEncoder
+    json.dumps(NotSet, indent=4, cls=utils.HabJsonEncoder)
+    json.dumps(datetime.now(), indent=4, cls=utils.HabJsonEncoder)
+    json.dumps(date.today(), indent=4, cls=utils.HabJsonEncoder)
+
+    # Errors are still raised if passing un-handled data types.
+    with pytest.raises(TypeError):
+        json.dumps(object, indent=4, cls=utils.HabJsonEncoder)
