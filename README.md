@@ -1451,6 +1451,9 @@ hab in batch mode.
 Approximate time generated using `time cmd.exe /c  "hab -h"` in git bash after
 omitting the `%py_exe% -m ...` call.
 
+You can also set the `%TMP%` environment variable to a unique folder, but this
+is more of a fix for scripted or unittest workflows.
+
 # Glosary
 
 * **activate:** Update the current process(shell) for a given configuration. Name taken
