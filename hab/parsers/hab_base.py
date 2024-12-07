@@ -473,7 +473,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             self._filename = Path(os.devnull)
             self._dirname = Path(os.devnull)
         else:
-            self._filename = Path(filename)
+            if isinstance(filename, str):
+                filename = Path(filename)
+            self._filename = filename
             self._dirname = self._filename.parent
 
     def format_environment_value(self, value, ext=None, platform=None):
@@ -594,12 +596,16 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         """Load this objects configuration from the given json filename.
 
         Args:
-            filename (str): The json file to load the config from.
+            filename: The file to load the config from. If this is a string it is
+                cast to a `pathlib.Path` object, otherwise it is expected to be
+                a `pathlib.Path` like object.
             data (dict, optional): If provided this dict is used instead of parsing
                 the json file. In this case filename is ignored.
         """
         if data is None:
             data = self._load(filename)
+        else:
+            self.filename = filename
 
         # Check for NotSet so sub-classes can set values before calling super
         if self.name is NotSet:
