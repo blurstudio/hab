@@ -4,6 +4,7 @@ from collections import UserDict
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from colorama import Fore, Style
+from importlib_metadata import EntryPoint
 
 from . import utils
 from .cache import Cache
@@ -39,6 +40,7 @@ class Site(UserDict):
         if platform is None:
             platform = utils.Platform.name()
         self.platform = platform
+        self._downloads_parsed = False
 
         # Add default data to all site instances. Site data is only valid for
         # the current platform, so discard any other platform configurations.
@@ -63,6 +65,50 @@ class Site(UserDict):
     @property
     def data(self):
         return self.frozen_data.get(self.platform)
+
+    @property
+    def downloads(self):
+        """A dictionary of configuration information for downloading distros.
+
+        The key "distros" should contain a list of `DistroFinder` instances similar
+        to "distro_paths". These are used to find and download distro versions.
+
+        The key "cache_root" contains the Path to the directory where remote files
+        are downloaded for installation.
+
+        The key "install_root" indicates where distros are installed. This should
+        normally be one of the "distro_paths" but should not contain glob wildcards.
+        """
+        if self._downloads_parsed:
+            return self["downloads"]
+
+        self._downloads_parsed = True
+        downloads = self.setdefault("downloads", {})
+
+        # Convert distros data into DistroFinder classes
+        distros = []
+        for distro_finder in downloads.get("distros", []):
+            inst = self.entry_point_init(
+                "hab.download.finder", distro_finder[0], distro_finder[1:]
+            )
+            # Ensure these items can access the site and its cache
+            inst.site = self
+            distros.append(inst)
+        downloads["distros"] = distros
+
+        # Configure the download cache directory
+        cache_root = utils.Platform.default_download_cache()
+        if downloads.get("cache_root"):
+            # Use cache_root if its set to a non-empty value
+            paths = utils.Platform.expand_paths(downloads["cache_root"])
+            if paths:
+                cache_root = paths[0]
+        downloads["cache_root"] = cache_root
+
+        if "install_root" in downloads:
+            downloads["install_root"] = Path(downloads["install_root"])
+
+        return self["downloads"]
 
     def dump(self, verbosity=0, color=None, width=80):
         """Return a string of the properties and their values.
@@ -111,6 +157,9 @@ class Site(UserDict):
             {"HAB_PATHS": hab_paths}, color=color, width=width, verbosity=verbosity
         )
 
+        # Ensure lazy loaded code is run before dumping
+        self.downloads
+
         # Include all of the resolved site configurations
         ret = []
         for prop, value in self.items():
@@ -134,6 +183,30 @@ class Site(UserDict):
         ret = "\n".join(ret)
         return utils.dump_title("Dump of Site", f"{site_ret}\n{ret}", color=color)
 
+    def entry_point_init(self, group, value, args, name=""):
+        """Initialize an entry point with args and kwargs.
+
+        Args:
+            group (str): The entry point group name.
+            value (str): The entry point value used to import and resolve the class.
+            args (list): A list of arguments to pass to the class on init. If the
+                last item in this list is a dict, then it is passed to the kwargs
+                of the class. If not specified then the kwarg `site` will be set
+                to self.
+            name (str, optional): The entry point name.
+
+        Returns:
+            A initialized object defined by the inputs.
+        """
+        ep = EntryPoint(name, value, group)
+        ep_cls = ep.load()
+        kwargs = {}
+        if args and isinstance(args[-1], dict):
+            kwargs = args.pop()
+        if "site" not in kwargs:
+            kwargs["site"] = self
+        return ep_cls(*args, **kwargs)
+
     def entry_points_for_group(
         self, group, default=None, entry_points=None, omit_none=True
     ):
@@ -152,10 +225,6 @@ class Site(UserDict):
                 then don't include an EntryPoint object for it in the return. This
                 allows a second site file to disable a entry_point already set.
         """
-        # Delay this import to when required. It's faster than pkg_resources but
-        # no need to pay the import price for it if you are not using it.
-        from importlib_metadata import EntryPoint
-
         ret = []
         # Use the site defined entry_points if an override dict wasn't provided
         if entry_points is None:
@@ -208,9 +277,28 @@ class Site(UserDict):
                 self.paths.insert(0, path)
                 self.load_file(path)
 
-        # Convert config_paths and distro_paths to lists of Path objects
+        # Convert config_paths to lists of Path objects
         self["config_paths"] = utils.Platform.expand_paths(self["config_paths"])
-        self["distro_paths"] = utils.Platform.expand_paths(self["distro_paths"])
+
+        # Convert distro_paths to DistroFinder instances
+        distro_paths = []
+
+        default_distro_finder = self.get("entry_points", {}).get(
+            "hab.distro.finder.default", "hab.distro_finders.distro_finder:DistroFinder"
+        )
+        for distro_finder in self["distro_paths"]:
+            if isinstance(distro_finder, str):
+                # Handle simple folder paths by converting to the DistroFinder class
+                distro_finder = [default_distro_finder, distro_finder]
+
+            inst = self.entry_point_init(
+                "hab.distro.finder", distro_finder[0], distro_finder[1:]
+            )
+            # Ensure these items can access the site and its cache
+            inst.site = self
+            distro_paths.append(inst)
+
+        self["distro_paths"] = distro_paths
 
         # Ensure any platform_path_maps are converted to pathlib objects.
         self.standardize_platform_path_maps()
@@ -342,12 +430,5 @@ class Site(UserDict):
         cache = self.cache.config_paths()
         for dirname, path, _ in self.cache.iter_cache_paths(
             "config_paths", config_paths, cache, "*.json"
-        ):
-            yield dirname, path
-
-    def distro_paths(self, distro_paths):
-        cache = self.cache.distro_paths()
-        for dirname, path, _ in self.cache.iter_cache_paths(
-            "distro_paths", distro_paths, cache, "*/.hab.json"
         ):
             yield dirname, path
