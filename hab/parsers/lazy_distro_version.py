@@ -9,7 +9,7 @@ from .distro_version import DistroVersion
 logger = logging.getLogger(__name__)
 
 
-class DistroPaths:
+class DistroPath:
     __slots__ = ("distro", "hab_filename", "root", "site")
 
     def __init__(self, distro, root, relative=NotSet, site=None):
@@ -83,8 +83,8 @@ class LazyDistroVersion(DistroVersion):
                 contains this distro this error is raised and it is not installed.
                 Unless `replace` is set to True.
         """
-        if not isinstance(dest, DistroPaths):
-            dest = DistroPaths(self, dest, relative=relative, site=self.resolver.site)
+        if not isinstance(dest, DistroPath):
+            dest = DistroPath(self, dest, relative=relative, site=self.resolver.site)
 
         installed = self.installed(dest, relative=relative)
         if installed:
@@ -99,8 +99,8 @@ class LazyDistroVersion(DistroVersion):
         self.resolver.clear_caches()
 
     def installed(self, dest, relative=NotSet):
-        if not isinstance(dest, DistroPaths):
-            dest = DistroPaths(self, dest, relative=relative, site=self.resolver.site)
+        if not isinstance(dest, DistroPath):
+            dest = DistroPath(self, dest, relative=relative, site=self.resolver.site)
         return dest.hab_filename.exists()
 
     def _ensure_loaded(self):
