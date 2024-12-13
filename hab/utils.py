@@ -269,6 +269,24 @@ def encode_freeze(data, version=None, site=None):
     return f'v{version}:{data.decode("utf-8")}'
 
 
+def glob_path(path):
+    """Process any wildcards in the provided `pathlib.Path` like instance.
+
+    While a `pathlib.Path` can be created with a glob string you won't be able to
+    resolve the glob into files. This function breaks the path down to its top level
+    item and calls `Path.glob` on the remaining path. So `Path("/mnt/*/.hab.json")`
+    gets converted into `Path("/mnt").glob("*/.hab.json")`.
+
+    The input path will be converted to a `pathlib.Path` object for this operation.
+
+    Based on https://stackoverflow.com/a/51108375
+    """
+    # Strip the path into its parts removing the root of absolute paths.
+    parts = path.parts[1:]
+    # From the root run a glob search on all parts of the glob string
+    return Path(path.parts[0]).glob(str(Path(*parts)))
+
+
 class HabJsonEncoder(_json.JSONEncoder):
     """JsonEncoder class that handles non-supported objects like hab.NotSet."""
 
