@@ -13,7 +13,7 @@ from collections import UserDict
 from collections.abc import KeysView
 from contextlib import contextmanager
 from datetime import date, datetime
-from pathlib import Path, PurePath
+from pathlib import Path, PurePath, PureWindowsPath
 
 import colorama
 
@@ -27,6 +27,20 @@ except ImportError:
 
     class _JsonException(BaseException):
         """Placeholder exception when pyjson5 is not used. Should never be raised"""
+
+
+# cloudpathlib is an optional library, if installed then this will enable
+# `dump_object` to print its full path instead of just the filename.
+try:
+    from cloudpathlib import CloudPath as _CloudPath
+except ImportError:
+
+    class _CloudPath:
+        """Placeholder class because `cloudpathlib` is not importable.
+        Used for isinstance checking.
+        """
+
+        pass
 
 
 colorama.init()
@@ -187,7 +201,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False, verbosity
             )
             lbl = pad
         return "\n".join(rows)
-    elif isinstance(obj, PurePath):
+    elif isinstance(obj, (PurePath, _CloudPath)):
         return f"{label}{obj}"
     elif hasattr(obj, "dump"):
         # If the class implements a dump method, return its result
@@ -302,6 +316,39 @@ class HabJsonEncoder(_json.JSONEncoder):
         return _json.JSONEncoder.default(self, obj)
 
 
+def _load_json(source, load_funct, *args, **kwargs):
+    """Work function that parses json and ensures any errors report the source.
+
+    Args:
+        source (os.PathLike or str): The source of the json data. This is reported
+            in any raised exceptions.
+        load_funct (callable): A function called to parse the json data. Normally
+            this is `json.load` or `json.loads`.
+        *args: Arguments passed to `load_funct`.
+        *kwargs: Keyword arguments passed to `load_funct`.
+
+    Raises:
+        FileNotFoundError: If filename is not pointing to a file that actually exists.
+        pyjson5.Json5Exception: If using pyjson5, the error raised due to invalid json.
+        ValueError: If not using pyjson5, the error raised due to invalid json.
+    """
+    try:
+        return load_funct(*args, **kwargs)
+    # Include the filename in the traceback to make debugging easier
+    except _JsonException as e:
+        # pyjson5 is installed add filename to the traceback
+        if e.result is None:
+            # Depending on the exception result may be None, convert it
+            # into a empty dict so we can add the filename
+            e.args = e.args[:1] + ({},) + e.args[2:]
+        e.result["source"] = str(source)
+        raise e.with_traceback(sys.exc_info()[2]) from None
+    except ValueError as e:
+        # Using python's native json parser
+        msg = f'{e} Source("{source}")'
+        raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2]) from None
+
+
 def load_json_file(filename):
     """Open and parse a json file. If a parsing error happens the file path is
     added to the exception to allow for easier debugging.
@@ -321,22 +368,28 @@ def load_json_file(filename):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(filename))
 
     with filename.open() as fle:
-        try:
-            data = json.load(fle)
-        # Include the filename in the traceback to make debugging easier
-        except _JsonException as e:
-            # pyjson5 is installed add filename to the traceback
-            if e.result is None:
-                # Depending on the exception result may be None, convert it
-                # into a empty dict so we can add the filename
-                e.args = e.args[:1] + ({},) + e.args[2:]
-            e.result["filename"] = str(filename)
-            raise e.with_traceback(sys.exc_info()[2]) from None
-        except ValueError as e:
-            # Using python's native json parser
-            msg = f'{e} Filename("{filename}")'
-            raise type(e)(msg, e.doc, e.pos).with_traceback(sys.exc_info()[2]) from None
+        data = _load_json(filename, json.load, fle)
     return data
+
+
+def loads_json(json_string, source):
+    """Open and parse a json string. If a parsing error happens the source file
+    path is added to the exception to allow for easier debugging.
+
+    Args:
+        json_string (str): The json data to parse.
+        source (pathlib.Path): The location json_string was pulled from. This is
+            reported if any parsing errors happen.
+
+    Returns:
+        The data stored in the json file.
+
+    Raises:
+        FileNotFoundError: If filename is not pointing to a file that actually exists.
+        pyjson5.Json5Exception: If using pyjson5, the error raised due to invalid json.
+        ValueError: If not using pyjson5, the error raised due to invalid json.
+    """
+    return _load_json(source, json.loads, json_string)
 
 
 def natural_sort(ls, key=None):
@@ -607,12 +660,20 @@ class WinPlatform(BasePlatform):
 
         This ensures that the drive letter is resolved consistently to uppercase.
         """
-        # Don't change the case of relative or UNC paths
-        if not path.is_absolute() or ":" not in path.drive:
+        if (
+            # Don't change the case of relative or UNC paths
+            not path.is_absolute()
+            or ":" not in path.drive
+            # We only need to modify absolute WindowsPaths here, `CloudPath.is_absolute`
+            # always returns True, but does not inherit from PureWindowsPath.
+            # This prevents `CloudPath.client` from getting lost by the recast below.
+            or not isinstance(path, PureWindowsPath)
+        ):
             return path
+
         parts = path.parts
-        cls = type(path)
-        return cls(parts[0].upper()).joinpath(*parts[1:])
+        path_cls = type(path)
+        return path_cls(parts[0].upper()).joinpath(*parts[1:])
 
     @classmethod
     def pathsep(cls, ext=None, key=None):
