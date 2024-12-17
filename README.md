@@ -139,7 +139,7 @@ home directory on other platforms.
 
 ## Installing
 
-Hab is installed using pip. It requires python 3.6 or above. It's recommended
+Hab is installed using pip. It requires python 3.7 or above. It's recommended
 that you add the path to your python's bin or Scripts folder to the `PATH`
 environment variable so you can simply run the `hab` command.
 
@@ -1367,7 +1367,7 @@ most part you can control the output using the `hab -v ...` verbosity option.
 However if you need more fine grained control you can create a `.hab_logging_prefs.json`
 file next to your user [user prefs](#user-prefs) file. The cli also supports passing
 the path to a configuration file using `hab --logging-config [path/to/file.json]`
-that is used instead of the default file if pased.
+that is used instead of the default file if passed.
 
 # Caveats
 
@@ -1450,6 +1450,9 @@ hab in batch mode.
 
 Approximate time generated using `time cmd.exe /c  "hab -h"` in git bash after
 omitting the `%py_exe% -m ...` call.
+
+You can also set the `%TMP%` environment variable to a unique folder, but this
+is more of a fix for scripted or unittest workflows.
 
 # Glosary
 

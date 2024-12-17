@@ -220,7 +220,7 @@ class TestCliExitCodes:
 
     @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
     @missing_annotations_hack
-    def test_bat(self, config_root, exit_code):
+    def test_bat(self, config_root, exit_code, tmp_path):
         hab_bin = (config_root / ".." / "bin" / "hab.bat").resolve()
         # fmt: off
         cmd = [
@@ -230,8 +230,13 @@ class TestCliExitCodes:
         ]
         # fmt: on
 
+        # When running tox in parallel we may run into the `%RANDOM%` collision.
+        # Change the `TMP` env var to a per-test unique folder to avoid this.
+        env = os.environ.copy()
+        env["TMP"] = str(tmp_path)
+
         # Run the hab command in a subprocess
-        proc = subprocess.run(cmd, **self.run_kwargs)
+        proc = subprocess.run(cmd, env=env, **self.run_kwargs)
 
         # Check that the print statement was actually run
         assert proc.stdout == self.output_text

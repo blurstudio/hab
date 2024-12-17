@@ -52,15 +52,6 @@ jobs:
         json_ver: ['json', 'json5']
         os: ['ubuntu-latest', 'windows-latest']
         python: ['3.7', '3.8', '3.9', '3.10', '3.11']
-        # Works around the depreciation of python 3.6 for ubuntu
-        # https://github.com/actions/setup-python/issues/544
-        include:
-          - json_ver: 'json'
-            os: 'ubuntu-20.04'
-            python: '3.6'
-          - json_ver: 'json5'
-            os: 'ubuntu-20.04'
-            python: '3.6'
 
     runs-on: ${{ matrix.os }}
 

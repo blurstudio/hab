@@ -1,4 +1,5 @@
 import sys
+import tempfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
@@ -6,6 +7,7 @@ from colorama import Fore, Style
 
 from hab import Resolver, Site, utils
 from hab.cache import Cache
+from hab.distro_finders.distro_finder import DistroFinder
 
 
 def test_environment_variables(config_root, monkeypatch):
@@ -206,7 +208,7 @@ class TestResolvePaths:
         )
         assert len(site.get("distro_paths")) == 2
         helpers.check_path_list(
-            site.get("distro_paths"),
+            [p.root for p in site.get("distro_paths")],
             (
                 config_root / "distros" / "*",
                 config_root / "duplicates" / "distros_1" / "*",
@@ -228,7 +230,7 @@ class TestResolvePaths:
         )
         assert len(site.get("distro_paths")) == 2
         helpers.check_path_list(
-            site.get("distro_paths"),
+            [p.root for p in site.get("distro_paths")],
             (
                 config_root / "duplicates" / "distros_1" / "*",
                 config_root / "distros" / "*",
@@ -289,8 +291,8 @@ def test_dump_cached(config_root, habcached_site_file):
         f"            {other_site}",
         f"{{green}}config_paths:  {{reset}}config\\path\\{platform}",
         f"               {config_root}\\configs\\*{{cached}}",
-        f"{{green}}distro_paths:  {{reset}}distro\\path\\{platform}",
-        f"               {config_root}\\distros\\*{{cached}}",
+        f"{{green}}distro_paths:  {{reset}}distro\\path\\{platform}{{cls_name}}",
+        f"               {config_root}\\distros\\*{{cls_name}}{{cached}}",
     )
     check_template = "\n".join(check_template)
     colors = {
@@ -304,13 +306,22 @@ def test_dump_cached(config_root, habcached_site_file):
     # No verbosity, should not show cached status
     assert site.get("colorize") is None
     result = site.dump(width=60)
-    check = check_template.format(cached="", **colors)
+    check = check_template.format(cached="", cls_name="", **colors)
     assert check in result
 
     # verbosity enabled, should show cached status
     result = site.dump(verbosity=1, width=60)
     check = check_template.format(
-        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}", **colors
+        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}", cls_name="", **colors
+    )
+    assert check in result
+
+    # verbosity level 2, should also show DistroFinder classes
+    result = site.dump(verbosity=2, width=60)
+    check = check_template.format(
+        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}",
+        cls_name=f" {Fore.CYAN}[DistroFinder]{Style.RESET_ALL}",
+        **colors,
     )
     assert check in result
 
@@ -320,12 +331,19 @@ def test_dump_cached(config_root, habcached_site_file):
 
     # No verbosity, should not show cached status
     result = site.dump(width=60)
-    check = check_template.format(cached="", green="", reset="")
+    check = check_template.format(cached="", green="", reset="", cls_name="")
     assert check in result
 
     # verbosity enabled, should show cached status
     result = site.dump(verbosity=1, width=60)
-    check = check_template.format(cached=" (cached)", green="", reset="")
+    check = check_template.format(cached=" (cached)", green="", reset="", cls_name="")
+    assert check in result
+
+    # verbosity level 2, should also show DistroFinder classes
+    result = site.dump(verbosity=2, width=60)
+    check = check_template.format(
+        cached=" (cached)", green="", reset="", cls_name=" [DistroFinder]"
+    )
     assert check in result
 
 
@@ -340,7 +358,7 @@ class TestOsSpecific:
         site = Site(paths)
 
         assert site.get("config_paths") == [Path("config/path/linux")]
-        assert site.get("distro_paths") == [Path("distro/path/linux")]
+        assert site.get("distro_paths") == [DistroFinder(Path("distro/path/linux"))]
         assert site.get("platforms") == ["windows", "linux"]
 
     def test_osx(self, monkeypatch, config_root):
@@ -353,7 +371,7 @@ class TestOsSpecific:
         site = Site(paths)
 
         assert site.get("config_paths") == [Path("config/path/osx")]
-        assert site.get("distro_paths") == [Path("distro/path/osx")]
+        assert site.get("distro_paths") == [DistroFinder(Path("distro/path/osx"))]
         assert site.get("platforms") == ["osx", "linux"]
 
     def test_win(self, monkeypatch, config_root):
@@ -366,7 +384,7 @@ class TestOsSpecific:
         site = Site(paths)
 
         assert site.get("config_paths") == [Path("config\\path\\windows")]
-        assert site.get("distro_paths") == [Path("distro\\path\\windows")]
+        assert site.get("distro_paths") == [DistroFinder(Path("distro\\path\\windows"))]
         assert site.get("platforms") == ["windows", "osx"]
 
 
@@ -756,3 +774,93 @@ class TestEntryPoints:
             match="hab_test_entry_points.CacheVX class was used",
         ):
             Site([config_root / "site" / "eps" / "site_habcache_cls.json"])
+
+    def test_entry_point_init(self, config_root):
+        site = Site([config_root / "site_main.json"])
+        instance = site.entry_point_init(
+            "group.name",
+            "hab.distro_finders.distro_finder:DistroFinder",
+            ["a/root/path", {"site": "a Site Instance"}],
+        )
+        # The entry_point class was imported and initialized
+        assert isinstance(instance, DistroFinder)
+        # The instance had the requested arguments passed to it
+        assert instance.root == Path("a/root/path")
+        # The last item was a dictionary, that was removed from args and passed
+        # as kwargs.
+        # NOTE: you should not pass site using this method. It's being used here
+        # to test the kwargs feature and ensure the default site setting doesn't
+        # overwrite site if it was passed as a kwarg.
+        assert instance.site == "a Site Instance"
+
+        # Don't pass a kwargs dict, it should get site from itself.
+        instance = site.entry_point_init(
+            "group.name",
+            "hab.distro_finders.distro_finder:DistroFinder",
+            ["b/root/path"],
+        )
+        assert instance.root == Path("b/root/path")
+        assert instance.site is site
+
+
+class TestDownloads:
+    # Defaults to `$TEMP/hab_downloads` if not specified
+    default_cache_root = Path(tempfile.gettempdir()) / "hab_downloads"
+
+    def test_download_cache(self, config_root, uncached_resolver):
+        """Test how `site.downloads["cache_root"]` is processed."""
+        site = uncached_resolver.site
+        assert site.downloads["cache_root"] == self.default_cache_root
+        # `Platform.default_download_cache()` returns the expected default value
+        assert utils.Platform.default_download_cache() == self.default_cache_root
+
+        # If specified, only the first path is used. This is using a non-valid
+        # relative path for testing, in practice this should be a absolute path.
+        paths = [config_root / "site" / "site_distro_finder.json"]
+        site = Site(paths)
+        assert (
+            site.downloads["cache_root"] == Path("hab testable") / "download" / "path"
+        )
+
+        # Use the default if site specifies cache_root but its an empty string.
+        paths = [config_root / "site" / "site_distro_finder_empty.json"]
+        site = Site(paths)
+        assert site.downloads["cache_root"] == self.default_cache_root
+
+    def test_lazy(self, config_root):
+        site = Site([config_root / "site" / "site_distro_finder.json"])
+        # Check that downloads is not parsed before the downloads property
+        # is first called.
+        assert site._downloads_parsed is False
+        downloads = site.downloads
+        assert site._downloads_parsed is True
+        assert site.downloads is downloads
+
+    def test_default_settings(self, config_root):
+        """Test the default downloads values if not defined by site files."""
+        site = Site([config_root / "site_main.json"])
+        downloads = site.downloads
+        assert len(downloads["distros"]) == 0
+
+        # cache_root is always defined
+        assert downloads["cache_root"] == self.default_cache_root
+        # These are only defined if the json file defines them.
+        assert "install_root" not in downloads
+        assert "relative_path" not in downloads
+
+    def test_all_settings_defined(self, config_root):
+        """Test the resolved downloads values defined by a site file."""
+        from hab.distro_finders.df_zip import DistroFinderZip
+
+        site = Site([config_root / "site" / "site_distro_finder.json"])
+        downloads = site.downloads
+
+        # Check that each part of downloads was processed correctly
+        assert len(downloads["distros"]) == 1
+        finder = downloads["distros"][0]
+        assert isinstance(finder, DistroFinderZip)
+        assert finder.root == Path("network_server/distro/source")
+
+        assert downloads["cache_root"] == Path("hab testable/download/path")
+        assert downloads["install_root"] == config_root / "site" / "distros"
+        assert downloads["relative_path"] == "{distro_name}_v{version}"
