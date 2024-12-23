@@ -3,13 +3,6 @@ import sys
 
 from . import utils
 
-try:
-    CREATE_NO_WINDOW = subprocess.CREATE_NO_WINDOW
-except AttributeError:
-    # This constant comes from the WindowsAPI, but is not
-    # defined in subprocess until python 3.7
-    CREATE_NO_WINDOW = 0x08000000
-
 
 class Launcher(subprocess.Popen):
     """Runs cmd using subprocess.Popen enabling stdout/err/in redirection.
@@ -42,6 +35,6 @@ class Launcher(subprocess.Popen):
 
             # If this is a pythonw process, because there is no current window
             # for stdout, any subprocesses will try to create a new window
-            kwargs.setdefault("creationflags", CREATE_NO_WINDOW)
+            kwargs.setdefault("creationflags", subprocess.CREATE_NO_WINDOW)
 
         super().__init__(args, **kwargs)

@@ -139,7 +139,7 @@ home directory on other platforms.
 
 ## Installing
 
-Hab is installed using pip. It requires python 3.6 or above. It's recommended
+Hab is installed using pip. It requires python 3.7 or above. It's recommended
 that you add the path to your python's bin or Scripts folder to the `PATH`
 environment variable so you can simply run the `hab` command.
 
