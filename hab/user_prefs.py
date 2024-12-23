@@ -131,16 +131,10 @@ class UserPrefs(dict):
 
     @classmethod
     def _fromisoformat(cls, value):
-        """Calls `datetime.fromisoforamt` if possible otherwise replicates
-        its basic requirements (for python 3.6 support).
-        """
+        """Calls `datetime.fromisoformat` unless a datetime is passed."""
         if isinstance(value, datetime.datetime):
             return value
-        try:
-            return datetime.datetime.fromisoformat(value)
-        except AttributeError:
-            iso_format = r"%Y-%m-%dT%H:%M:%S.%f"
-            return datetime.datetime.strptime(value, iso_format)
+        return datetime.datetime.fromisoformat(value)
 
     def uri_check(self):
         """Returns the uri saved in preferences. It will only do that if enabled

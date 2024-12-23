@@ -1,7 +1,5 @@
-import functools
 import os
 import re
-import site
 import subprocess
 import sys
 
@@ -13,40 +11,6 @@ from hab.errors import HabError, InvalidAliasError
 
 class Topen(subprocess.Popen):
     """A custom subclass of Popen."""
-
-
-def missing_annotations_hack(function):
-    """Decorator that works around a missing annotations module in python 3.6.
-
-    Allows for calling subprocess calls in python 3.6 that would normally fail
-    with a `SyntaxError: future feature annotations is not defined` exception.
-
-    Works by temporarily removing the `_virtualenv.pth` file in the venv's
-    site-packages.
-
-    TODO: Figure out a better method until we can drop CentOS requirement.
-    """
-
-    @functools.wraps(function)
-    def new_function(*args, **kwargs):
-        if sys.version_info.minor != 6:
-            return function(*args, **kwargs)
-
-        site_packages = site.getsitepackages()
-        for path in site_packages:
-            pth = os.path.join(path, "_virtualenv.pth")
-            if os.path.exists(pth):
-                os.rename(pth, f"{pth}.bak")
-        try:
-            ret = function(*args, **kwargs)
-        finally:
-            for path in site_packages:
-                pth = os.path.join(path, "_virtualenv.pth.bak")
-                if os.path.exists(pth):
-                    os.rename(pth, pth[:-3])
-        return ret
-
-    return new_function
 
 
 def test_launch(resolver):
@@ -72,7 +36,6 @@ def test_launch(resolver):
     assert "\n".join(check) in proc.output_stdout
 
 
-@missing_annotations_hack
 def test_launch_str(resolver):
     cfg = resolver.resolve("app/aliased/mod")
 
@@ -212,14 +175,11 @@ class TestCliExitCodes:
     # but is used to ensure that exit-codes are returned to the calling process.
     py_cmd = "print('Running...');import sys;print(sys);sys.exit({code})"
     output_text = "Running...\n<module 'sys' (built-in)>\n"
-    run_kwargs = dict(stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5)
-    if sys.version_info.minor >= 7:
-        run_kwargs["text"] = True
-    else:
-        run_kwargs["universal_newlines"] = True
+    run_kwargs = dict(
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5, text=True
+    )
 
     @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
-    @missing_annotations_hack
     def test_bat(self, config_root, exit_code, tmp_path):
         hab_bin = (config_root / ".." / "bin" / "hab.bat").resolve()
         # fmt: off
@@ -247,7 +207,6 @@ class TestCliExitCodes:
         os.getenv("GITHUB_ACTIONS") == "true",
         reason="PowerShell tests timeout when run in a github action",
     )
-    @missing_annotations_hack
     def test_ps1(self, config_root, exit_code):
         # -File is needed to get the exit-code from powershell, and requires a full path
         script = (config_root / ".." / "bin" / "hab.ps1").resolve()
