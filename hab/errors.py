@@ -1,3 +1,6 @@
+import errno
+
+
 class HabError(Exception):
     """Base class for all hab errors."""
 
@@ -70,6 +73,13 @@ class InvalidVersionError(LookupError):
         if self.error:
             ret = f"[{type(self.error).__name__}] {self.error}\n{ret}"
         return ret
+
+
+class InstallDestinationExistsError(HabError, FileExistsError):
+    """Raised if attempting to install to a directory that already exists."""
+
+    def __init__(self, filename, message="The destination already exists"):
+        super().__init__(errno.EEXIST, message, filename)
 
 
 class ReservedVariableNameError(HabError):
