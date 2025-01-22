@@ -9,7 +9,7 @@ import click
 from click.shell_completion import CompletionItem
 from colorama import Fore
 
-from . import Resolver, Site, __version__, utils
+from . import DistroMode, Resolver, Site, __version__, utils
 from .parsers.unfrozen_config import UnfrozenConfig
 
 logger = logging.getLogger(__name__)
@@ -603,7 +603,18 @@ def env(settings, uri, launch):
     "--type",
     "report_type",
     type=click.Choice(
-        ["nice", "site", "s", "uris", "u", "versions", "v", "forest", "f", "all-uris"]
+        # Note: Put short names on same line as full name
+        # fmt: off
+        [
+            "nice",
+            "site", "s",
+            "uris", "u",
+            "versions", "v",
+            "downloads",
+            "forest", "f",
+            "all-uris",
+        ]
+        # fmt: on
     ),
     default="nice",
     help="Type of report.",
@@ -644,7 +655,7 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
 
     resolver = settings.resolver
 
-    if report_type in ("uris", "versions", "forest"):
+    if report_type in ("uris", "versions", "downloads", "forest"):
         from .parsers.format_parser import FormatParser
 
         formatter = FormatParser(verbosity, color=True)
@@ -659,16 +670,22 @@ def dump(settings, uri, env, env_config, report_type, flat, verbosity, format_ty
                     resolver.configs, fmt=formatter.format
                 ):
                     click.echo(line)
-        if report_type in ("versions", "forest"):
+        if report_type in ("versions", "downloads", "forest"):
             click.echo(f'{Fore.YELLOW}{" Versions ".center(50, "-")}{Fore.RESET}')
 
-            for line in resolver.dump_forest(
-                resolver.distros,
-                attr="name",
-                fmt=formatter.format,
-                truncate=truncate,
-            ):
-                click.echo(line)
+            mode = (
+                DistroMode.Downloaded
+                if report_type == "downloads"
+                else DistroMode.Installed
+            )
+            with resolver.distro_mode_override(mode):
+                for line in resolver.dump_forest(
+                    resolver.distros,
+                    attr="name",
+                    fmt=formatter.format,
+                    truncate=truncate,
+                ):
+                    click.echo(line)
     elif report_type == "all-uris":
         # Combines all non-placeholder URI's into a single json document and display.
         # This can be used to compare changes to configs when editing them in bulk.
@@ -784,6 +801,59 @@ def cache(settings, path):
     out = settings.resolver.site.cache.save_cache(settings.resolver, path)
     e = datetime.now()
     click.echo(f"Cache took: {e - s}, cache file: {out}")
+
+
+@_cli.command()
+@click.option(
+    "-u",
+    "--uri",
+    "uris",
+    multiple=True,
+    help="A URI that is resolved and all required distros are installed. Can "
+    "be used multiple times and each URI's distros are resolved independently.",
+)
+@click.option(
+    "-d",
+    "--distro",
+    "distros",
+    multiple=True,
+    help="Additional distros to install. Can be used multiple times and each use "
+    "is resolved independently.",
+)
+@click.option(
+    "--dry-run/--no-dry-run",
+    default=False,
+    help="Don't actually install anything, just print what would be installed.",
+)
+@click.option(
+    "--force-reinstall/--no-force-reinstall",
+    default=False,
+    help="Reinstall all resolved distros even if they are already installed.",
+)
+@click.option(
+    "--target",
+    type=click.Path(file_okay=False, resolve_path=True),
+    help="Install distros into DIRECTORY. Defaults to the sites "
+    'downloads["install_root"] setting.',
+)
+@click.pass_obj
+def install(settings, uris, distros, dry_run, force_reinstall, target):
+    """Install distros for use in hab. At least one uri or distro must be
+    specified to install. This is intended to install all versions of hab distros
+    that are required for a collection of hab URI on this system. This means that
+    unlike pip this may install multiple versions of hab distros.
+    """
+    distros = list(distros) if distros else None
+    uris = list(uris) if uris else None
+    if not distros and not uris:
+        raise ValueError("You must specify at least one --uri or --distro to install.")
+    settings.resolver.install(
+        uris=uris,
+        additional_distros=distros,
+        target=target,
+        dry_run=dry_run,
+        replace=force_reinstall,
+    )
 
 
 def cli(*args, **kwargs):

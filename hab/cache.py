@@ -111,6 +111,7 @@ class Cache:
         the provided site file. Use this method any time changes are made that
         hab needs to be aware of. Caching is enabled by the existence of this file.
         """
+        from .distro_finders.distro_finder import DistroFinder
         from .site import Site
 
         # Indicate the version specification this habcache file conforms to.
@@ -125,6 +126,9 @@ class Cache:
             glob_str, cls = stats
             # Process each glob dir defined for this site
             for dirname in temp_site.get(key, []):
+                # Caching is only supported for direct file paths
+                if isinstance(dirname, DistroFinder):
+                    dirname = dirname.root
                 cfg_paths = output.setdefault(key, {}).setdefault(
                     platform_path_key(dirname).as_posix(), {}
                 )
@@ -180,7 +184,7 @@ class Cache:
                 logger.debug(f"Using glob for {name} dir: {dirname}")
                 # Fallback to globing the file system
                 if glob_str:
-                    paths = sorted(glob.glob(str(dirname / glob_str)))
+                    paths = utils.glob_path(dirname / glob_str)
                 else:
                     paths = []
             if not include_path:

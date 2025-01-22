@@ -1,19 +1,33 @@
 # __all__ = ["Resolver"]
 
+import concurrent.futures
 import copy
+import enum
 import logging
+from contextlib import contextmanager
 
 import anytree
 from packaging.requirements import Requirement
 
 from . import utils
-from .errors import _IgnoredVersionError
-from .parsers import Config, DistroVersion, HabBase
+from .errors import HabError, InvalidRequirementError, _IgnoredVersionError
+from .parsers import Config, HabBase
 from .site import Site
 from .solvers import Solver
 from .user_prefs import UserPrefs
 
 logger = logging.getLogger(__name__)
+
+
+class DistroMode(enum.Enum):
+    """Used by `hab.Revolver` to control which forest is used to resolve distros."""
+
+    # TODO: Switch docstrings to `Annotated` if we move to py 3.9+ only
+    # support  https://stackoverflow.com/a/78361486
+    Downloaded = enum.auto()
+    """Use the `downloadable_distros` forest when using `Resolver.distros`."""
+    Installed = enum.auto()
+    """Use the `installed_distros` forest when using `Resolver.distros`."""
 
 
 class Resolver(object):
@@ -67,7 +81,9 @@ class Resolver(object):
         logger.debug(f"distro_paths: {self.distro_paths}")
 
         self._configs = None
-        self._distros = None
+        self.distro_mode = DistroMode.Installed
+        self._downloadable_distros = None
+        self._installed_distros = None
         self.ignored = self.site["ignored_distros"]
 
         # If true, then all scripts are printed instead of being written to disk
@@ -80,8 +96,10 @@ class Resolver(object):
         """Clears cached resolved data so it is re-generated on next use."""
         logger.debug("Resolver cache cleared.")
         self._configs = None
-        self._distros = None
+        self._downloadable_distros = None
+        self._installed_distros = None
         self.site.cache.clear()
+        [distro_finder.clear_cache() for distro_finder in self.distro_paths]
 
     def closest_config(self, path, default=False):
         """Returns the most specific leaf or the tree root matching path. Ignoring any
@@ -165,8 +183,33 @@ class Resolver(object):
             self._configs = self.parse_configs(self.config_paths)
         return self._configs
 
+    @contextmanager
+    def distro_mode_override(self, mode):
+        """A context manager that sets `distro_mode` while inside the context.
+        This lets you switch which distro forest is returned by the `distro` method.
+
+        Example:
+
+            assert resolver.distros == resolver.installed_distros
+            with resolver.distro_mode_override(DistroMode.Downloaded):
+                assert resolver.distros == resolver.downloadable_distros
+            assert resolver.distros == resolver.installed_distros
+        """
+        if not isinstance(mode, DistroMode):
+            raise ValueError("You can only specify DistroModes.")
+
+        current = self.distro_mode
+        logger.debug(f"Setting Resolver distro_mode to {mode} from {current}.")
+        try:
+            self.distro_mode = mode
+            yield current
+        finally:
+            self.distro_mode = current
+            logger.debug(f"Restored distro_mode to {self.distro_mode}.")
+
     @property
     def distro_paths(self):
+        """`DistroFinder`s used to populate `installed_distros`."""
         return self.site["distro_paths"]
 
     @distro_paths.setter
@@ -176,15 +219,46 @@ class Resolver(object):
             paths = utils.Platform.expand_paths(paths)
 
         self.site["distro_paths"] = paths
-        # Reset _distros so we re-generate them the next time they are requested
-        self._distros = None
+        # Reset the cache so we re-generate it the next time it is requested.
+        self._installed_distros = None
+
+    @property
+    def installed_distros(self):
+        """A dictionary of all usable distros that have been parsed for this resolver.
+
+        These are the distros used by hab when a hab environment is configured
+        and aliases(programs) access these files.
+        """
+        if self._installed_distros is None:
+            self._installed_distros = self.parse_distros(self.distro_paths)
+        return self._installed_distros
 
     @property
     def distros(self):
-        """A list of all of the requested distros to resolve."""
-        if self._distros is None:
-            self._distros = self.parse_distros(self.distro_paths)
-        return self._distros
+        """A dictionary of distros for this resolver.
+
+        This forest is used to resolve distro dependencies into config versions.
+
+        The output is dependent on `self.distro_mode`, use the `distro_mode_override`
+        context manager to change the mode temporarily.
+        """
+        if self.distro_mode == DistroMode.Downloaded:
+            return self.downloadable_distros
+        return self.installed_distros
+
+    @property
+    def downloadable_distros(self):
+        """A dictionary of all distros that can be installed into `installed_distros`.
+
+        This is used by the hab install process, not when enabling a hab
+        environment. These distros are available to download and install for use
+        in the `installed_distros` forest.
+        """
+        if self._downloadable_distros is None:
+            self._downloadable_distros = self.parse_distros(
+                self.site.downloads["distros"]
+            )
+        return self._downloadable_distros
 
     @classmethod
     def dump_forest(
@@ -291,6 +365,104 @@ class Resolver(object):
                 out[uri] = cfg.freeze()
         return out
 
+    def install(
+        self,
+        uris=None,
+        additional_distros=None,
+        target=None,
+        dry_run=True,
+        replace=False,
+    ):
+        """Ensure the required distros are installed for use in hab.
+
+        Resolves the distros defined by one or more URI's and additional distros
+        against the distro versions available on from a `downloadable_distros`.
+        Then extracts them into a target location for use in hab environments.
+
+        Each URI and additional_distros requirement is resolved independently. This
+        allows you to install multiple versions of a given distro so the correct
+        one is available when a given URI is used in a hab environment.
+
+        Args:
+            uris (list, optional): A list of URI strings. These URI's are resolved
+                against the available distros in `downloadable_distros`.
+            additional_distros (list, optional): A list of additional distro
+                requirements to resolve and install.
+            target (os.PathLike, optional): The target directory to install all
+                resolved distros into. This is the root directory. The per-distro
+                name and version paths are added relative to this directory based
+                on the `site.downloads["relative_path"]` setting.
+            dry_run (bool, optional): If True then don't actually install the
+                the distros. The returned list is the final list of all distros
+                that need to be installed.
+            replace (bool, optional): This method skips installing any distros
+                that are already installed. Setting this to True will delete the
+                existing distros before re-installing them.
+
+        Returns:
+            list: A list of DistroVersion's that were installed. The distros are
+                from `downloadable_distros` and represent the remote resources.
+        """
+
+        def str_distros(distros, sep=", "):
+            return sep.join([d.name for d in missing])
+
+        if target is None:
+            target = self.site.downloads.get("install_root")
+            if target is None:
+                raise HabError(
+                    'You must specify target, or set ["downloads"]["install_root"] '
+                    "in your site config."
+                )
+
+        distros = set()
+        if uris is None:
+            uris = []
+        # Resolve all distros and any additional distros they may require from
+        # the download forest.
+        with self.distro_mode_override(DistroMode.Downloaded):
+            if additional_distros:
+                requirements = self.resolve_requirements(additional_distros)
+                for req in requirements.values():
+                    version = self.find_distro(req)
+                    distros.add(version)
+
+            for uri in uris:
+                cfg = self.resolve(uri)
+                distros.update(cfg.versions)
+
+        # Check the installed forest for any that are not already installed and
+        # build a list of missing distros.
+        missing = []
+        for distro in distros:
+            if replace:
+                missing.append(distro)
+                continue
+
+            try:
+                installed = self.find_distro(distro.name)
+            except InvalidRequirementError:
+                installed = []
+            if not installed:
+                missing.append(distro)
+
+        # To ensure consistent logging and processing, sort missing items
+        missing = sorted(missing, key=lambda i: i.name)
+
+        if dry_run:
+            logger.warning(f"Dry Run would install distros: {str_distros(missing)}")
+            return missing
+
+        # Download and install the missing distros using threading to speed up
+        # the download process.
+        logger.warning(f"Installing distros: {str_distros(missing)}")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for distro in missing:
+                logger.warning(f"Installing distro: {distro.name}")
+                executor.submit(distro.install, target, replace=replace)
+        logger.warning(f"Installed distros: {str_distros(missing)}")
+        return missing
+
     @classmethod
     def instance(cls, name="main", **kwargs):
         """Returns a shared Resolver instance for name, initializing it if required.
@@ -325,14 +497,16 @@ class Resolver(object):
             Config(forest, self, path, root_paths=set((dirname,)))
         return forest
 
-    def parse_distros(self, distro_paths, forest=None):
+    def parse_distros(self, distro_finders, forest=None):
+        """Parse all provided DistroFinders and populate the forest of distros."""
         if forest is None:
             forest = {}
-        for dirname, path in self.site.distro_paths(distro_paths):
-            try:
-                DistroVersion(forest, self, path, root_paths=set((dirname,)))
-            except _IgnoredVersionError as error:
-                logger.debug(str(error))
+        for distro_finder in distro_finders:
+            for _, path, _ in distro_finder.distro_path_info():
+                try:
+                    distro_finder.distro(forest, self, path)
+                except _IgnoredVersionError as error:
+                    logger.debug(str(error))
         return forest
 
     def resolve(self, uri, forced_requirements=None):
