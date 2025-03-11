@@ -15,3 +15,4 @@ omit =
     hab/version.py
 parallel=True
 relative_files=True
+data_file=.coverage/.coverage
