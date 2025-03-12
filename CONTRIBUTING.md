@@ -70,8 +70,8 @@ Releases are made manually by project managers and will automatically be uploade
 [flake8]: https://github.com/PyCQA/flake8
 [flake8-bugbear]: https://github.com/PyCQA/flake8-bugbear
 [pep8-naming]: https://github.com/PyCQA/pep8-naming
-[setup.cfg]: https://github.com/blurstudio/python-example/blob/master/setup.cfg
+[setup.cfg]: https://github.com/blurstudio/hab/blob/master/setup.cfg
 [black]: https://github.com/psf/black
-[Issues]: https://github.com/blurstudio/python-example/issues
-[create a new issue]: https://github.com/blurstudio/python-example/issues/new
-[code of conduct]: https://github.com/blurstudio/python-example/blob/master/CODE_OF_CONDUCT.md
+[Issues]: https://github.com/blurstudio/hab/issues
+[create a new issue]: https://github.com/blurstudio/hab/issues/new
+[code of conduct]: https://github.com/blurstudio/hab/blob/master/CODE_OF_CONDUCT.md
