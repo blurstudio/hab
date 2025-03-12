@@ -1,7 +1,7 @@
 ---
 ci:
   autoupdate_schedule: quarterly
-  skip: [black, flake8, setup-cfg-fmt]
+  skip: [black, flake8]
 
 repos:
 
@@ -16,13 +16,8 @@ repos:
     -   id: flake8
         additional_dependencies:
             - flake8-bugbear==22.12.6
+            - Flake8-pyproject
             - pep8-naming==0.13.3
-
--   repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v2.5.0
-    hooks:
-    -   id: setup-cfg-fmt
-        args: [--min-py3-version=3.7]
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
