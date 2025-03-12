@@ -1,14 +1,122 @@
 [build-system]
 requires = [
     "setuptools >= 44.1.1",
-    "setuptools_scm[toml]>=4",
+    "setuptools-scm[toml]>=4",
     "wheel >= 0.36",
 ]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "hab"
+description = "An environment configuration and launcher system"
+authors = [{name = "Blur Studio", email = "opensource@blur.com"}]
+license = {text = "LGPL-3.0"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+requires-python = ">=3.7"
+dependencies = [
+    "Jinja2>=2.10.1",
+    "MarkupSafe>=0.23",
+    "Pygments",
+    "anytree",
+    "click>=7.1.2",
+    "colorama",
+    "future>=0.18.2",
+    "importlib-metadata",
+    "packaging>=20.0",
+    "setuptools-scm[toml]>=4",
+]
+dynamic = ["version"]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.urls]
+Homepage = "https://github.com/blurstudio/hab"
+Source = "https://github.com/blurstudio/hab"
+Tracker = "https://github.com/blurstudio/hab/issues"
+
+[project.optional-dependencies]
+cloud = [
+    "cloudpathlib",
+    "remotezip",
+]
+dev = [
+    "black==22.12.0",
+    "covdefaults",
+    "coverage",
+    "flake8==5.0.4",
+    "flake8-bugbear==22.12.6",
+    "Flake8-pyproject",
+    "isort",
+    "pep8-naming==0.13.3",
+    "pytest",
+    "tox",
+    "build",
+]
+json5 = [
+    "pyjson5"
+]
+s3 = [
+    "cloudpathlib[s3]",
+    "remotezip",
+    "requests-aws4auth",
+]
+
+[tool.setuptools]
+include-package-data = true
+platforms = ["any"]
+license-files = ["LICENSE"]
+# While script-files is discouraged by setuptools it is the only way to accomplish
+# the hab goals of not having a long running python process(hab env/launch) and
+# being able to modify an existing shell (hab activate).
+script-files = [
+    "bin/.hab-complete.bash",
+    "bin/hab.bat",
+    "bin/hab.ps1",
+    "bin/hab",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["tests"]
+namespaces = false
+
 [tool.setuptools_scm]
 write_to = "hab/version.py"
 version_scheme = "release-branch-semver"
+
+[tool.flake8]
+select = ["B", "C", "E", "F", "N", "W", "B9"]
+extend-ignore = [
+    "E203",
+    "E501",
+    "E722",
+    "W503",
+]
+max-line-length = "88"
+exclude = [
+    "*.egg-info",
+    "*.pyc",
+    ".cache",
+    ".eggs",
+    ".git",
+    ".tox",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv"
+]
 
 [tool.isort]
 profile = "black"
