@@ -236,6 +236,12 @@ Examples of running specific tests:
 - `tox -e flake8`  Run the flake8 tests
 - `tox -e begin,py37-json,end -- -vv`  Enables verbose mode for pytest. Any text after `--` is passed as cli arguments passed to pytest
 
+# Manual testing
+
+The majority of testing is done using tox and pytest, however there are a few tests
+that we haven't been able to get working automatically.
+See [tests/manual/README.md](tests/manual/README.md) for details.
+
 # Overview
 
 ## URI
