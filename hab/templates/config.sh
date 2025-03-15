@@ -1,10 +1,27 @@
 # Customize the prompt
 export PS1="[{{ hab_cfg.uri }}] $PS1"
 
-# Exit immediately if a command exits with a non-zero status.
-# This ensures that if any exit codes are encountered it gets propagated to
-# whatever originally called hab.
-set -e
+# ----- Exit Code propagation start -----
+# While this script is running, exit immediately if a command exits with a
+# non-zero status. This ensures that if any exit codes are encountered it gets
+# propagated to whatever originally called hab.
+if [[ $- == *e* ]]; then
+    errexit_was_enabled=true
+else
+    errexit_was_enabled=false
+    set -e
+fi
+
+# Function to reset errexit flag on exit.
+reset_errexit() {
+    if [[ "$errexit_was_enabled" == false ]]; then
+        set +e
+    fi
+}
+# Ensure reset_errexit is called when the script exits. This prevents hab from
+# changing the current setting of errexit outside of this hab script
+trap reset_errexit EXIT
+# ----- Exit Code propagation end -----
 
 # Setting global environment variables:
 {% for key, value in hab_cfg.environment.items() %}
@@ -59,12 +76,16 @@ export -f {{ alias }};
 
 {% endfor %}
 {% endif %}
-
 {% if launch_info %}
+
 # Run the requested command
 {{ launch_info.key }}{{ launch_info.args }}
 {% endif %}
-
 {% if exit and create_launch %}
+
 exit
 {% endif %}
+
+# Remove the `set -e` handling code
+trap - EXIT
+reset_errexit
