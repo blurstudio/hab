@@ -195,6 +195,8 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False, verbosity
 
         return "\n".join(rows)
     elif isinstance(obj, (dict, UserDict)):
+        if not obj:
+            return f"{label}"
         rows = []
         lbl = label
         for k, v in sorted(obj.items()):
