@@ -31,12 +31,13 @@ jobs:
 
       # Upload the built pip packages so we can inspect them
       - name: Upload packages.
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pip-packages
           path: |
             dist/hab-*.whl
             dist/hab-*.tar.gz
+          # This is only used if there is a problem with the next step
           retention-days: 1
 
       - name: Publish to PyPI
