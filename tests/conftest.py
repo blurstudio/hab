@@ -328,20 +328,22 @@ class Helpers(object):
             check (pathlib.Path): Compare generated to this check file. It is
                 normally committed inside the hab/tests folder.
         """
-        check = check.open().readlines()
+        _check = check.open().readlines()
         cache = generated.open().readlines()
         # Add trailing white space to match template file's trailing white space
         cache[-1] += "\n"
         cache_len = len(cache)
-        check_len = len(check)
-        assert (
-            cache_len == check_len
-        ), f"Generated cache does not have the same number of lines as check: {generated}"
+        check_len = len(_check)
+        assert cache_len == check_len, (
+            "Generated cache does not have the same number of lines "
+            f'"{check.name}": "{generated}"'
+        )
 
         for i in range(len(cache)):
-            assert (
-                cache[i] == check[i]
-            ), f"Difference on line: {i} between the generated cache and {generated}."
+            assert cache[i] == _check[i], (
+                f"Difference in generated cache on line {i}: "
+                f'"{check.name}" -> "{generated}"'
+            )
 
     @staticmethod
     def render_template(template, dest, **kwargs):

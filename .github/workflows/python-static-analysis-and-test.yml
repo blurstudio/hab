@@ -83,7 +83,7 @@ jobs:
 
       - name: Run Tox
         run: |
-          tox -e begin,py-${{ matrix.pkg_mods }}
+          tox -e begin,py-${{ matrix.pkg_mods }} -- --tb short
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
