@@ -650,6 +650,11 @@ class TestEntryPoints:
         assert ep.group == "hab.cli"
         if omit_none is False:
             assert ep.value is None
+            from hab.entry_points import EntryPointNull
+
+            # Verify that the custom subclass was returned.
+            assert isinstance(ep, EntryPointNull)
+
             # Noting else to test, we can't load a value of None.
             return
         else:
@@ -801,6 +806,27 @@ class TestEntryPoints:
         )
         assert instance.root == Path("b/root/path")
         assert instance.site is site
+
+    def test_null(self):
+        """Test misc implementation of `hab.entry_points.EntryPointNull`"""
+        from hab.entry_points import EntryPointNull
+
+        # For compatibility with the super class we are keeping the same args.
+        # However this class requires that you only pass None to value
+        with pytest.raises(ValueError, match="The value must be None."):
+            EntryPointNull("name", "value", "group")
+
+        # Verify class creation
+        ep = EntryPointNull("name", None, "group")
+        assert ep.group == "group"
+        assert ep.name == "name"
+        assert ep.value is None
+
+        # Ensure the various functions are tested for coverage
+        assert ep.load() is None
+        assert ep.module == "builtins"
+        assert ep.attr == ""
+        assert ep.extras == []
 
 
 class TestDownloads:

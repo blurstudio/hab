@@ -241,10 +241,18 @@ class Site(UserDict):
         # using it's `entry_points` function. We want the current site configuration
         # to define the entry points being loaded not the installed pip packages.
         for name, value in ep_defs.items():
-            if omit_none and value is None:
+            if value is None:
+                if omit_none:
+                    continue
+
+                # If requested return a representation of the null entry point
+                from .entry_points import EntryPointNull
+
+                ep = EntryPointNull(name=name, value=None, group=group)
+                ret.append(ep)
                 continue
 
-            ep = EntryPoint(name=name, group=group, value=value)
+            ep = EntryPoint(name=name, value=value, group=group)
             ret.append(ep)
         return ret
 
