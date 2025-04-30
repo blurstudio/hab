@@ -11,7 +11,7 @@ def omit_resolver(config_root):
     return Resolver(site=site)
 
 
-def test_defined(omit_resolver):
+def test_defined(omit_resolver, helpers):
     """The `omittable/defined` config defines both distros and omittable_distros.
     Ensure the versions are resolved correctly and doesn't raise a
     `InvalidRequirementError` exception.
@@ -28,7 +28,7 @@ def test_defined(omit_resolver):
     assert "non-existent-distro" in cfg.distros
 
     # Omitted distros that were found show up in versions
-    version_names = [v.distro_name for v in cfg.versions]
+    version_names = helpers.distro_names(cfg.versions, True)
     assert set(version_names) == set(
         [
             "houdini19.5",
@@ -46,7 +46,7 @@ def test_defined(omit_resolver):
     assert "non-existent-distro" not in version_names
 
 
-def test_inherited(omit_resolver):
+def test_inherited(omit_resolver, helpers):
     """The `omittable/inherited` config only defines distros but not
     omittable_distros which are inherited from `default`. Ensure the versions
     are resolved correctly and doesn't raise a `InvalidRequirementError` exception.
@@ -64,7 +64,7 @@ def test_inherited(omit_resolver):
     assert "non-existent-distro" in cfg.distros
 
     # Omitted distros that were found show up in versions
-    version_names = [v.distro_name for v in cfg.versions]
+    version_names = helpers.distro_names(cfg.versions, True)
     assert set(version_names) == set(
         [
             "maya2020",
@@ -80,7 +80,7 @@ def test_inherited(omit_resolver):
     assert "non-existent-distro" not in version_names
 
 
-def test_forced(omit_resolver):
+def test_forced(omit_resolver, helpers):
     """Checks how omittable_distros handle forced_requirements."""
 
     # Passing a missing non-omittable_distro as a forced_requirement should
@@ -104,7 +104,7 @@ def test_forced(omit_resolver):
     assert "houdini19.5" not in cfg.distros
 
     # Forced and omitted distros that were found show up in versions
-    version_names = [v.distro_name for v in cfg.versions]
+    version_names = helpers.distro_names(cfg.versions, True)
     assert set(version_names) == set(
         [
             "houdini19.5",
@@ -121,7 +121,7 @@ def test_forced(omit_resolver):
     assert "non-existent-distro" not in version_names
 
 
-def test_pure_default(omit_resolver):
+def test_pure_default(omit_resolver, helpers):
     """The `omittable/undefined` config is not explicitly defined so all values
     are inherited from `default`. Ensure the versions are resolved correctly
     and doesn't raise a `InvalidRequirementError` exception.
@@ -140,7 +140,7 @@ def test_pure_default(omit_resolver):
     assert "non-existent-distro" not in cfg.distros
 
     # Omitted distros that were found show up in versions
-    version_names = [v.distro_name for v in cfg.versions]
+    version_names = helpers.distro_names(cfg.versions, True)
     assert set(version_names) == set(
         [
             "houdini19.5",
