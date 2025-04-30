@@ -345,6 +345,17 @@ class Helpers(object):
                 f'"{check.name}" -> "{generated}"'
             )
 
+    @classmethod
+    def distro_names(cls, versions, distro_name=False):
+        """Convert a list of DistroVersion instances into a list of distro names.
+
+        By default returns the full name(distro==X.X), but setting `distro_name`
+        to True will return just the name of the distro without version info.
+        """
+        if distro_name:
+            return [v.distro_name for v in versions]
+        return [v.name for v in versions]
+
     @staticmethod
     def render_template(template, dest, **kwargs):
         """Render a jinja template in from the test templates directory.
