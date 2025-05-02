@@ -27,6 +27,12 @@ class FlatConfig(Config):
         self._collect_values(self.original_node)
         self._finalize_values()
 
+        # Emit any delayed log messages now that we are resolving a specific config
+        for log in self.original_node.logs_for_resolve:
+            # If requested use the provided logger, otherwise use the modules logger
+            _logger = log.logger if log.logger else logger
+            _logger.log(log.level, log.msg, *log.args, **log.kwargs)
+
     def _finalize_values(self):
         """Post processing done after `_collect_values` is run."""
 

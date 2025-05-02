@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+from collections import namedtuple
 from pathlib import Path
 
 import anytree
@@ -23,6 +24,12 @@ from .meta import HabMeta, hab_property
 logger = logging.getLogger(__name__)
 
 TEMPLATES = Path(__file__).parent.parent / "templates"
+
+
+class DelayedLogMessage(
+    namedtuple("DelayedLogMessage", ["level", "msg", "args", "kwargs", "logger"])
+):
+    """Used by `HabBase.log_on_resolve` to store logging calls to be emitted later."""
 
 
 class HabBase(anytree.NodeMixin, metaclass=HabMeta):
@@ -53,6 +60,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         self._filename = None
         self._dirname = None
         self._distros = NotSet
+        self._logs_for_resolve = []
         self._variables = NotSet
         self._uri = NotSet
         self.parent = parent
@@ -631,6 +639,15 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 self.context = [data["name"]]
 
         return data
+
+    @property
+    def logs_for_resolve(self):
+        """A list of DelayedLogMessage objects to call when resolving this class."""
+        return self._logs_for_resolve
+
+    def log_on_resolve(self, level, msg, *args, logger=None, **kwargs):
+        msg = DelayedLogMessage(level, msg, args, kwargs, logger)
+        self.logs_for_resolve.append(msg)
 
     def merge_environment(self, environment_config, obj=None):
         """Check and update environment with the provided environment config."""

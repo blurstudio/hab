@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import pickle
 import re
 import sys
@@ -327,6 +328,60 @@ def test_config_parenting(config_root, resolver):
 
     # Check that the forest didn't loose the default tree
     assert ["hab.parsers.config.Config('default')"] == repr_list(forest["default"])
+
+
+def test_delayed_logging(uncached_resolver, caplog):
+    """Test delayed logging using `log_on_resolve` and `logs_for_resolve` on HabBase"""
+    logger = logging.getLogger("HAB_TEST_LOGGER")
+
+    cfg = uncached_resolver.closest_config("app/aliased")
+    assert cfg.logs_for_resolve == []
+
+    # Add some delayed logs. These should not emit any logging messages yet.
+    caplog.set_level(logging.INFO)
+    caplog.clear()
+    # By default emit using the logger for the code emitting the delayed log
+    cfg.log_on_resolve(logging.WARNING, "WARNING 1, default logger")
+    cfg.log_on_resolve(logging.INFO, "INFO 1, default logger")
+    # Make it emit using a provided logger instead of the default
+    cfg.log_on_resolve(logging.INFO, "INFO 1, custom logger", logger=logger)
+    # Test passing args and kwargs
+    cfg.log_on_resolve(
+        logging.CRITICAL,
+        "CRITICAL 1, custom logger %s: %s",
+        "arg1",
+        "arg2",
+        logger=logger,
+        stack_info=True,
+    )
+
+    # At this point the log messages have not been emitted
+    assert caplog.record_tuples == []
+
+    # Force the log messages to be emitted.
+    cfg.reduced(uncached_resolver, uri="app/aliased")
+
+    # Check that the expected log messages were emitted. For a FlatConfig they
+    # should be the last log messages emitted.
+    # Check default emit using the logger for the code emitting the delayed log
+    check = ("hab.parsers.flat_config", 30, "WARNING 1, default logger")
+    assert caplog.record_tuples[-4] == check
+    check = ("hab.parsers.flat_config", 20, "INFO 1, default logger")
+    assert caplog.record_tuples[-3] == check
+    # Check make it emit using a provided logger instead of the default
+    check = ("HAB_TEST_LOGGER", 20, "INFO 1, custom logger")
+    assert caplog.record_tuples[-2] == check
+    # Verify that the stack_info was not passed to this log message
+    record = caplog.records[-2]
+    assert record.stack_info is None
+
+    # Check passing args and kwargs
+    check = ("HAB_TEST_LOGGER", 50, "CRITICAL 1, custom logger arg1: arg2")
+    assert caplog.record_tuples[-1] == check
+    record = caplog.records[-1]
+    assert record.args == ("arg1", "arg2")
+    # stack_info=True was processed successfully
+    assert record.stack_info.startswith("Stack (most recent call last):")
 
 
 def test_metaclass():
