@@ -412,7 +412,6 @@ def test_metaclass():
             "min_verbosity",
             "inherits",
             "name",
-            "omittable_distros",
             "optional_distros",
             "stub_distros",
             "uri",
@@ -542,9 +541,9 @@ class TestDump:
                 assert "optional_distros:" in result
             if verbosity < 3:
                 # This is shown for v3 or higher
-                assert "omittable_distros:" not in result
+                assert "stub_distros:" not in result
             else:
-                assert "omittable_distros:" in result
+                assert "stub_distros:" in result
 
 
 def test_environment(resolver):

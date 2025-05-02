@@ -522,6 +522,21 @@
                 "inherits": false,
                 "name": "stub"
             },
+            "{config-root}/configs/stub/stub_omittable.json": {
+                "context": [
+                    "stub"
+                ],
+                "description": "Legacy testing for omittable_distros. This is replaced by stub_distros.",
+                "distros": {
+                    "maya2024": null
+                },
+                "inherits": false,
+                "name": "omittable",
+                "omittable_distros": [
+                    "missing_dcc",
+                    "non-existent-distro"
+                ]
+            },
             "{config-root}/configs/stub/stub_override.json": {
                 "context": [
                     "stub"

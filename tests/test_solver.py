@@ -100,46 +100,6 @@ def test_solver_errors(uncached_resolver):
         solver.resolve()
 
 
-def test_omittable(caplog, uncached_resolver):
-    """Test the solver respects the `omittable` property. This will prevent raising
-    an error if a distro is required but is not found.
-    """
-    # A set of requirements that includes distros that hab can't find
-    requirements = OrderedDict(
-        (
-            ("the_dcc", Requirement("the_dcc")),
-            ("the_dcc_plugin_b", Requirement("the_dcc_plugin_b==0.9")),
-            ("missing_distro", Requirement("missing_distro")),
-            ("missing_distro_b", Requirement("missing_distro_b==1.0")),
-        )
-    )
-    # By default this should raise an InvalidRequirementError
-    solver = Solver(requirements, uncached_resolver)
-    with pytest.raises(InvalidRequirementError, match="requirement: missing_distro"):
-        solver.resolve()
-
-    # However if that distro is marked as omittable, then a warning is logged
-    # and no exception is raised.
-    omittable = ["the_dcc_plugin_b", "missing_distro", "missing_distro_b"]
-    solver = Solver(requirements, uncached_resolver, omittable=omittable)
-    caplog.clear()
-    with caplog.at_level(logging.WARNING):
-        reqs = solver.resolve()
-    # This plugin can be found so it is not skipped
-    assert "the_dcc_plugin_b" not in caplog.text
-    # These plugins don't exist and will be skipped by the omittable setting.
-    assert "Skipping missing omitted requirement: missing_distro" in caplog.text
-    assert "Skipping missing omitted requirement: missing_distro_b==1.0" in caplog.text
-    check = [
-        "the_dcc",
-        "the_dcc_plugin_a",
-        "the_dcc_plugin_b",
-        "the_dcc_plugin_d",
-        "the_dcc_plugin_e",
-    ]
-    assert sorted(reqs.keys()) == check
-
-
 @pytest.mark.parametrize(
     "specifier,limit,result,limit_valid",
     (
