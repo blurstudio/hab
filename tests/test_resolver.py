@@ -209,6 +209,7 @@ class TestDumpForest:
         "  project_a/Sc001/Animation",
         "  project_a/Sc001/Rigging",
         "stub",
+        "  stub/omittable",
         "  stub/override",
         "verbosity",
         "  verbosity/hidden",

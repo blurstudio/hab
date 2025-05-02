@@ -367,6 +367,22 @@
         ]
     },
     "stub": "Error resolving stub: Unable to find a distro for requirement: invalid",
+    "stub/omittable": {
+        "context": [
+            "stub"
+        ],
+        "name": "omittable",
+        "stub_distros": {
+            "set": {
+                "missing_dcc": {},
+                "non-existent-distro": {}
+            }
+        },
+        "uri": "stub/omittable",
+        "versions": [
+            "maya2024==2024.0"
+        ]
+    },
     "stub/override": "Error resolving stub/override: Unable to find a distro for requirement: invalid",
     "verbosity": {
         "context": [],

@@ -1,0 +1,13 @@
+{
+    "name": "omittable",
+    "description": "Legacy testing for omittable_distros. This is replaced by stub_distros.",
+    "context": ["stub"],
+    "inherits": false,
+    "distros": {
+        "maya2024": null
+    },
+    "omittable_distros": [
+        "missing_dcc",
+        "non-existent-distro"
+    ]
+}

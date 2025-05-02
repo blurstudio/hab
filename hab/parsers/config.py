@@ -129,20 +129,26 @@ class Config(HabBase):
         data = super().load(filename)
         self._alias_mods = data.get("alias_mods", NotSet)
         self.inherits = data.get("inherits", NotSet)
-        if self.omittable_distros is NotSet:
-            self.omittable_distros = data.get("omittable_distros", NotSet)
         if self.stub_distros is NotSet:
             self.stub_distros = data.get("stub_distros", NotSet)
+
+        # Handle legacy omittable_distros by convert it to stub_distros.
+        # NOTE: This will be removed in a future version of hab.
+        omittable_distros = data.get("omittable_distros", [])
+        for distro in omittable_distros:
+            # Only log these warnings if this config is flattened. This prevents
+            # showing the warning every time hab resolves its configuration
+            self.log_on_resolve(
+                logging.WARNING,
+                'omittable_distros is deprecated, move "{}" to stub_distros '
+                'in "{}".'.format(distro, self.filename),
+                logger=logger,
+            )
+            if self.stub_distros is NotSet:
+                self.stub_distros = {}
+            self.stub_distros.setdefault("set", {}).setdefault(distro, {})
+
         return data
-
-    @hab_property(verbosity=3, process_order=50)
-    def omittable_distros(self):
-        """A collection of distro names that are ignored if required by distros."""
-        return self.frozen_data.get("omittable_distros", NotSet)
-
-    @omittable_distros.setter
-    def omittable_distros(self, value):
-        self.frozen_data["omittable_distros"] = value
 
     @hab_property(verbosity=3)
     def stub_distros(self):

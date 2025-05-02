@@ -1,3 +1,4 @@
+import logging
 import sys
 
 import pytest
@@ -273,3 +274,27 @@ class TestConfig:
 
         assert found_maya is True
         assert found_the_dcc_plugin_a is True
+
+    def test_legacy_omittable_distros(self, site_stub, caplog):
+        """Test that if a config uses omittable_distros it is converted to stubs
+        and that the user is warned that omittable_distros is deprecated.
+        """
+        resolver = Resolver(site_stub)
+
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            cfg = resolver.resolve("stub/omittable")
+
+        # stub_distros was updated correctly
+        assert cfg.stub_distros == {
+            "set": {"missing_dcc": {}, "non-existent-distro": {}}
+        }
+
+        # The user is warned that omittable_distros should be migrated.
+        assert caplog.records[-2].levelno == logging.WARNING
+        assert caplog.records[-2].msg.startswith(
+            'omittable_distros is deprecated, move "missing_dcc"'
+        )
+        assert caplog.records[-1].msg.startswith(
+            'omittable_distros is deprecated, move "non-existent-distro"'
+        )
