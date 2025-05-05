@@ -1,0 +1,27 @@
+{
+    "append": {
+        "config_paths": [
+            "{relative_root}/../configs/*"
+        ],
+        "distro_paths": [
+            "{relative_root}/../distros/*"
+        ]
+    },
+    "set": {
+        "generic_value": false,
+        "filename": "site_main.json",
+        "platforms": [
+            "windows",
+            "linux"
+        ],
+        "stub_distros": {
+            "distro1.0": {},
+            "invalid": {},
+            "maya2024": {},
+            "the_dcc_plugin_a": {"limit": ">=1.0,!=2.*,<4.0"},
+            "unset-by-config": {},
+            "unset-by-null": {},
+            "unset-by-site": {}
+        }
+    }
+}

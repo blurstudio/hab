@@ -1,0 +1,8 @@
+{
+    "append": {
+        "stub_distros": {
+            "distro*": {},
+            "unset-by-site": null
+        }
+    }
+}

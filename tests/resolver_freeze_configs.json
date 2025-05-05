@@ -366,6 +366,8 @@
             "maya2020==2020.1"
         ]
     },
+    "stub": "Error resolving stub: Unable to find a distro for requirement: invalid",
+    "stub/override": "Error resolving stub/override: Unable to find a distro for requirement: invalid",
     "verbosity": {
         "context": [],
         "min_verbosity": {

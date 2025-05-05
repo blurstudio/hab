@@ -414,6 +414,7 @@ def test_metaclass():
             "name",
             "omittable_distros",
             "optional_distros",
+            "stub_distros",
             "uri",
             "variables",
         ]

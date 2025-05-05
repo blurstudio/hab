@@ -500,6 +500,44 @@
                 "inherits": true,
                 "name": "Rigging"
             },
+            "{config-root}/configs/stub/stub.json": {
+                "distros": {
+                    "houdini19.5": null,
+                    "maya2020": null,
+                    "maya2024": [
+                        "invalid",
+                        "maya2024==2025",
+                        "distro1.0",
+                        "distro2.0",
+                        "another"
+                    ],
+                    "the_dcc": [
+                        "the_dcc_plugin_a",
+                        "the_dcc_plugin_b",
+                        "the_dcc_plugin_c",
+                        "the_dcc_plugin_d",
+                        "the_dcc_plugin_e"
+                    ]
+                },
+                "inherits": false,
+                "name": "stub"
+            },
+            "{config-root}/configs/stub/stub_override.json": {
+                "context": [
+                    "stub"
+                ],
+                "inherits": true,
+                "name": "override",
+                "stub_distros": {
+                    "set": {
+                        "another": {},
+                        "unset-by-null": null
+                    },
+                    "unset": [
+                        "unset-by-config"
+                    ]
+                }
+            },
             "{config-root}/configs/verbosity/verbosity.json": {
                 "context": [],
                 "description": "Defines verbosity settings that can be inherited",
