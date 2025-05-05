@@ -1,0 +1,14 @@
+{
+    "name": "override",
+    "context": ["stub"],
+    "inherits": true,
+    "stub_distros": {
+        "unset": [
+            "unset-by-config"
+        ],
+        "set": {
+            "another": {},
+            "unset-by-null": null
+        }
+    }
+}

@@ -1,0 +1,22 @@
+{
+    "name": "stub",
+    "inherits": false,
+    "distros": {
+        "the_dcc": [
+            "the_dcc_plugin_a",
+            "the_dcc_plugin_b",
+            "the_dcc_plugin_c",
+            "the_dcc_plugin_d",
+            "the_dcc_plugin_e"
+        ],
+        "houdini19.5": null,
+        "maya2020": null,
+        "maya2024": [
+            "invalid",
+            "maya2024==2025",
+            "distro1.0",
+            "distro2.0",
+            "another"
+        ]
+    }
+}
