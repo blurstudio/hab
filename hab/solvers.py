@@ -3,7 +3,7 @@ from copy import copy
 
 from packaging.requirements import Requirement
 
-from .errors import InvalidRequirementError, MaxRedirectError
+from .errors import MaxRedirectError
 
 logger = logging.getLogger(__name__)
 
@@ -137,21 +137,16 @@ class Solver(object):
             # Update the requirement to match all current requirements
             req = self.append_requirement(resolved, req)
             if name in self.invalid:
-                # TODO: build the correct not specifier
+                # Add the != specifier to the requirement
                 invalid = self.invalid[name]
                 logger.debug(f"Adding invalid specifier: {invalid}")
-                req = req.specifier & invalid.specifier
+                req = self.append_requirement(resolved, invalid)
 
             logger.debug(f"Checking requirement: {req}")
 
-            # Attempt to find a version, raises a exception if no version was found
-            try:
-                dist = self.resolver.distros[name]
-            except KeyError:
-                raise InvalidRequirementError(
-                    f"Unable to find a distro for requirement: {req}"
-                ) from None
-            version = dist.latest_version(req)
+            # Attempt to find a version, raising an InvalidRequirementError
+            # exception if no version was found.
+            version = self.resolver.find_distro(req)
             logger.debug(f"Found Version: {version.name}")
 
             if version.distros and version not in processed:

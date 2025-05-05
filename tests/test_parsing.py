@@ -9,6 +9,8 @@ from pathlib import Path
 import anytree
 import pytest
 import setuptools_scm
+from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
 from hab import NotSet, Resolver, utils
@@ -220,6 +222,19 @@ def test_distro_version(resolver, zip_distro_sidecar):
     resolver = Resolver()
     parsed = HabBase(forest, resolver, zip_distro_sidecar.root / "dist_a_v0.1.hab.json")
     assert parsed.version == Version("0.1")
+
+
+def test_matching_versions(uncached_resolver):
+    """Verify processing of all supported specification inputs"""
+    distro = uncached_resolver.distros["maya2020"]
+    check = [Version("2020.0"), Version("2020.1")]
+    # packaging Requirement
+    assert sorted(distro.matching_versions(Requirement("maya2020==2020.*"))) == check
+    # packaging SpecifierSet
+    assert sorted(distro.matching_versions(SpecifierSet("==2020.*"))) == check
+    # Version String is treated as a Requirement
+    assert sorted(distro.matching_versions("maya2020")) == check
+    assert sorted(distro.matching_versions("maya2020==2020.*")) == check
 
 
 def test_config_parse(config_root, resolver, helpers):

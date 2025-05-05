@@ -337,13 +337,22 @@ class Resolver(object):
                         yield fmt(parser, attr=attr, pre=pre)
 
     def find_distro(self, requirement):
-        """Returns the DistroVersion matching the requirement or None"""
+        """Returns the DistroVersion matching the requirement.
+
+        Raises:
+            InvalidRequirementError: Raised if no DistroVersion's could be found
+                matching the requirement.
+        """
         if not isinstance(requirement, Requirement):
             requirement = Requirement(requirement)
 
         if requirement.name in self.distros:
-            app = self.distros[requirement.name]
-            return app.latest_version(requirement)
+            distro = self.distros[requirement.name]
+            return distro.latest_version(requirement)
+
+        raise InvalidRequirementError(
+            f"Unable to find a distro for requirement: {requirement}"
+        ) from None
 
     def freeze_configs(self):
         """Returns a composite dict of the freeze for all URI configs.
