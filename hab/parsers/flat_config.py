@@ -229,9 +229,11 @@ class FlatConfig(Config):
                 self._alias_mods = {}
             self.frozen_data["versions"] = versions
 
-            reqs = self.resolver.resolve_requirements(
-                distros, omittable=self.omittable_distros
-            )
+            # Apply the config level stub_distros before resolving
+            with self.resolver.site.stub_distros_override(self.stub_distros):
+                reqs = self.resolver.resolve_requirements(
+                    distros, omittable=self.omittable_distros
+                )
             for req in reqs.values():
                 version = self.resolver.find_distro(req)
                 versions.append(version)

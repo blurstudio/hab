@@ -9,14 +9,23 @@ from .hab_base import HabBase
 class Distro(HabBase):
     """Container of DistroVersion objects. One per distro exists in a distro forest"""
 
-    def latest_version(self, specifier):
+    def __init__(self, *args, **kwargs):
+        self._stub = None
+        super().__init__(*args, **kwargs)
+
+    def latest_version(self, specification):
         """Returns the newest version available matching the specifier"""
-        versions = self.matching_versions(specifier)
+        versions = self.matching_versions(specification)
         try:
             version = max(versions)
         except ValueError:
+            # If allowed to, create a stub version instead of raising a error
+            stub = self.resolver.get_stub_distro(specification)
+            if stub:
+                return stub
+
             raise InvalidRequirementError(
-                f'Unable to find a valid version for "{specifier}" in versions '
+                f'Unable to find a valid version for "{specification}" in versions '
                 f'[{", ".join([str(v) for v in self.versions.keys()])}]'
             ) from None
         return self.versions[version]
@@ -53,6 +62,19 @@ class Distro(HabBase):
         # version to pip even if you don't pass `--pre`.
         prereleases = self.resolver.prereleases or specifier.prereleases
         return specifier.filter(self.versions.keys(), prereleases=prereleases)
+
+    @property
+    def stub(self):
+        """The StubDistroVersion for this Distro if already created."""
+        return self._stub
+
+    @stub.setter
+    def stub(self, value):
+        if self._stub:
+            # Remove the existing node from the forest so it can be replaced
+            self._stub.parent = None
+
+        self._stub = value
 
     @property
     def versions(self):

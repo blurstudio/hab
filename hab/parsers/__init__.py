@@ -5,6 +5,7 @@ from .flat_config import FlatConfig
 from .hab_base import HabBase
 from .meta import HabMeta, hab_property
 from .placeholder import Placeholder
+from .stub_distro_version import StubDistroVersion
 from .unfrozen_config import UnfrozenConfig
 
 __all__ = [
@@ -16,5 +17,6 @@ __all__ = [
     "HabBase",
     "HabMeta",
     "Placeholder",
+    "StubDistroVersion",
     "UnfrozenConfig",
 ]

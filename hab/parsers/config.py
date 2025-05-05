@@ -131,6 +131,8 @@ class Config(HabBase):
         self.inherits = data.get("inherits", NotSet)
         if self.omittable_distros is NotSet:
             self.omittable_distros = data.get("omittable_distros", NotSet)
+        if self.stub_distros is NotSet:
+            self.stub_distros = data.get("stub_distros", NotSet)
         return data
 
     @hab_property(verbosity=3, process_order=50)
@@ -141,6 +143,15 @@ class Config(HabBase):
     @omittable_distros.setter
     def omittable_distros(self, value):
         self.frozen_data["omittable_distros"] = value
+
+    @hab_property(verbosity=3)
+    def stub_distros(self):
+        """Overrides applied to the site stub_distros."""
+        return self.frozen_data.get("stub_distros", NotSet)
+
+    @stub_distros.setter
+    def stub_distros(self, value):
+        self.frozen_data["stub_distros"] = value
 
     @hab_property(verbosity=1, group=0)
     def uri(self):

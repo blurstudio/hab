@@ -1,6 +1,8 @@
+import copy
 import logging
 import os
 from collections import UserDict
+from contextlib import contextmanager
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from colorama import Fore, Style
@@ -30,6 +32,7 @@ class Site(UserDict):
         "set": {
             "config_paths": [],
             "distro_paths": [],
+            "stub_distros": {},
             "ignored_distros": ["release", "pre"],
             "platforms": ["windows", "osx", "linux"],
             "site_cache_file_template": ["{{stem}}.habcache"],
@@ -433,6 +436,34 @@ class Site(UserDict):
                     mapping[platform] = PureWindowsPath(mapping[platform])
                 else:
                     mapping[platform] = PurePosixPath(mapping[platform])
+
+    @contextmanager
+    def stub_distros_override(self, stubs):
+        """A context manager that updates `stub_distros` while inside the context."""
+        if stubs is utils.NotSet:
+            # No stubs to apply, just yield and exit
+            yield {}
+            return
+
+        current = self["stub_distros"]
+        logger.debug("Overwriting Site's stub_distros")
+        try:
+            stub_distros = copy.deepcopy(current)
+
+            # Merge stubs onto current, we only care about the current platform.
+            platform = utils.Platform.name()
+            stub_distros = {platform: stub_distros}
+            merger = MergeDict(
+                platforms=[platform],
+                site=self,
+            )
+            merger.apply_platform_wildcards(stubs, output=stub_distros)
+
+            self["stub_distros"] = stub_distros[platform]
+            yield current
+        finally:
+            self["stub_distros"] = current
+            logger.debug("Restored stub_distros to previous.")
 
     def config_paths(self, config_paths):
         cache = self.cache.config_paths()
