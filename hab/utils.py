@@ -1,6 +1,7 @@
 import base64
 import errno
 import json as _json
+import logging
 import logging.config
 import ntpath
 import os
@@ -8,6 +9,7 @@ import re
 import sys
 import tempfile
 import textwrap
+import warnings
 import zlib
 from abc import ABC, abstractmethod
 from collections import UserDict
@@ -42,6 +44,12 @@ except ImportError:
         """
 
         pass
+
+
+if sys.version_info >= (3, 8):
+    import dep_logic.specifiers
+
+logger = logging.getLogger(__name__)
 
 
 colorama.init()
@@ -447,6 +455,23 @@ NotSet = NotSet()
 def path_forward_slash(path):
     """Converts a Path object into a string with forward slashes"""
     return str(path).replace("\\", "/")
+
+
+def specifier_valid(specifier):
+    """Returns False if the specifier would exclude all versions.
+
+    If using python 3.7 or older this always returns True.
+    """
+    if sys.version_info >= (3, 8):
+        spec = dep_logic.specifiers.parse_version_specifier(str(specifier))
+        return not isinstance(spec, dep_logic.specifiers.EmptySpecifier)
+
+    # Warn the user that this feature isn't supported in older versions of python.
+    if logger.isEnabledFor(logging.INFO):
+        warnings.warn(
+            "Unable to determine specifier validity for python 3.7 and below."
+        )
+    return True
 
 
 @contextmanager

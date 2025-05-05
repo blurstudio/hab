@@ -31,6 +31,7 @@ dependencies = [
     "anytree",
     "click>=7.1.2",
     "colorama",
+    "dep-logic; python_version>='3.8'",
     "future>=0.18.2",
     "importlib-metadata",
     "packaging>=20.0",
