@@ -1,9 +1,11 @@
 import logging
+import sys
 from collections import OrderedDict
 
 import pytest
 from packaging.requirements import Requirement
 
+from hab import utils
 from hab.errors import InvalidRequirementError, MaxRedirectError
 from hab.solvers import Solver
 
@@ -60,6 +62,14 @@ def test_simplify_requirements(helpers, value, check):
                 "the_dcc_plugin_b": Requirement("the_dcc_plugin_b<1.0"),
             },
             r'Unable to find a valid version for "the_dcc<1.2,>1.1" in versions \[.+\]',
+        ),
+        pytest.param(
+            {"the_dcc": Requirement("the_dcc==1.0,==2.0")},
+            'Specifier for "the_dcc" excludes all possible versions: "==1.0,==2.0"',
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 8),
+                reason="Library does not support python version",
+            ),
         ),
     ),
 )
@@ -128,3 +138,35 @@ def test_omittable(caplog, uncached_resolver):
         "the_dcc_plugin_e",
     ]
     assert sorted(reqs.keys()) == check
+
+
+@pytest.mark.parametrize(
+    "specifier,limit,result,limit_valid",
+    (
+        ("==1.0,==1.0", None, True, True),
+        ("==1.0,==1.1", None, False, True),
+        ("==1.0,!=1.1", None, True, True),
+        ("==1.0,!=1.0", None, False, True),
+        (">=1.2,<1.2.a1", None, False, True),
+        (">=1.2,<1.3.a1", None, True, True),
+        ("~=1.2", None, True, True),
+        ("~=1.2", "==1.2", True, True),
+        ("~=1.2", "==1.3,==1.0", False, False),
+    ),
+)
+def test_specifier_valid(specifier, limit, result, limit_valid, caplog):
+    """Test utils.specifier_valid. In python 3.7 and lower it always returns True"""
+    if sys.version_info < (3, 8):
+        assert utils.specifier_valid(specifier, limit=limit)
+    else:
+        caplog.clear()
+        caplog.set_level(logging.DEBUG)
+        assert utils.specifier_valid(specifier, limit=limit) is result
+        # Verify that limit was processed if specified
+        if limit:
+            assert f"Applying specifier limit: {limit}" in caplog.text
+            # If the limit is invalid, a warning is logged
+            if not limit_valid:
+                assert f"Specifier limit is invalid: {limit}" in caplog.text
+                # This should always result in a false return
+                assert result is False

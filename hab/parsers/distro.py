@@ -1,6 +1,7 @@
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 
+from .. import utils
 from ..errors import InvalidRequirementError
 from .hab_base import HabBase
 
@@ -38,6 +39,15 @@ class Distro(HabBase):
             specifier = specification
         else:
             specifier = Requirement(specification).specifier
+
+        # If the specifier excludes all possible versions then it should be
+        # considered invalid
+        if not utils.specifier_valid(str(specifier)):
+            raise InvalidRequirementError(
+                f'Specifier for "{self.name}" excludes all possible '
+                f'versions: "{specifier}"'
+            )
+
         # If a pre-release specifier was provided, it should enable pre-releases
         # even if the site doesn't. This replicates explicitly passing a pre-release
         # version to pip even if you don't pass `--pre`.
