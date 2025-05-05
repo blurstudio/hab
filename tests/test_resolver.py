@@ -511,7 +511,7 @@ class TestResolveRequirements:
 
         # Check that the resolve is correct
         assert len(resolved) == 5
-        assert str(resolved["the_dcc"]) == "the_dcc<1.2"
+        assert str(resolved["the_dcc"]) == "the_dcc!=1.2,<1.2"
         # required by the_dcc==1.1 distro
         assert str(resolved["the_dcc_plugin_a"]) == "the_dcc_plugin_a>=1.0"
         assert str(resolved["the_dcc_plugin_b"]) == "the_dcc_plugin_b==0.9"
