@@ -459,13 +459,21 @@ def path_forward_slash(path):
     return str(path).replace("\\", "/")
 
 
-def specifier_valid(specifier):
+def specifier_valid(specifier, limit=None):
     """Returns False if the specifier would exclude all versions.
 
-    If using python 3.7 or older this always returns True.
+    If limit is specified, it will be joined to the specifier when checking.
+
+    Note: If using python 3.7 or older this always returns True.
     """
     if sys.version_info >= (3, 8):
         spec = dep_logic.specifiers.parse_version_specifier(str(specifier))
+        if limit:
+            logger.debug(f"Applying specifier limit: {limit}")
+            _limit = dep_logic.specifiers.parse_version_specifier(limit)
+            if isinstance(_limit, dep_logic.specifiers.EmptySpecifier):
+                logger.warning(f"Specifier limit is invalid: {limit}")
+            spec &= _limit
         return not isinstance(spec, dep_logic.specifiers.EmptySpecifier)
 
     # Warn the user that this feature isn't supported in older versions of python.

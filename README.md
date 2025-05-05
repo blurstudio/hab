@@ -1292,6 +1292,116 @@ the `-r`/`--requirement` option.
 Users can see the optional distros in the dump output with verbosity level of 1
 or higher. `hab dump - -v`
 
+### Stub Distros
+
+The `stub_distros` key in [site](#site) and [config](#config) definitions are used to
+specify distros that are not required to use hab configurations. This can be used
+to make it so not all hosts need to have a distro installed. For example a producer
+likely will never need to open houdini but does need access to external tools.
+You would need to install Houdini(or create a empty .hab.json distro) so hab
+doesn't raise an `InvalidRequirementError` when it can't find Houdini.
+
+A stub distro is empty, it doesn't create any aliases or modify env vars. A stub
+distro is only used if no installed distro versions match the requirements and
+a stub distro is authorized by `stub_distros`.
+
+When a stub distro is used, its included in the resolved versions to document that
+it was used. The version of the distro is set to `STUB`. Example hab dump output
+using `HAB_PATHS=./tests/site/site_stub_a.json;./tests/site/site_stub.json`.
+```
+$ hab dump stub/override -v
+Dump of FlatConfig('stub/override')
+--------------------------------------------------------------------------------
+name:  override
+uri:  stub/override
+aliases:  ...
+versions:  another==STUB
+           ...
+           maya2020==2020.1
+           maya2024==STUB
+           the_dcc==1.2
+           ...
+--------------------------------------------------------------------------------
+```
+
+
+Adding stub distros to a [site](#site) config enables that stub distro for all
+uri's. This example shows enabling stubs for houdini and maya on a specific
+workstation by updating its `c:\hab\host.json` file.
+Note: the keys of the dictionary are distro names and do not contain specifiers.
+
+```json5
+// host.json
+{
+   "set": {
+      "stub_distros": {
+         "houdini18.5": {},
+         "houdini19.5": {},
+         "maya2020": {}
+         "maya2024": {}
+      }
+   }
+}
+```
+
+Adding stub distros to a [config](#config) limits the stub distros to only the URI's
+covered by that config. This is useful for limiting the scope of the stubs to
+a specific project. This example shows enabling stubs for `the_dcc`. This builds
+on top of the above host.json so when using this URI stubs are enabled for
+houdini, maya and the_dcc.
+
+```json5
+{
+    "name": "stub",
+    ...
+    "stub_distros": {
+        "set": {
+            "the_dcc": {}
+        }
+    }
+}
+```
+
+Example [sites](tests/site) and [configs](tests/configs/stub).
+
+#### Removing Stub Authorization
+
+The empty dictionaries in the previous examples allow for customization of the
+stub requirements.
+
+To remove previous stub authorization set the value to `null` instead of a dictionary.
+For example `project_a` must have maya2024, but the above host.json allows it to
+be a stub. In the project_a.json file you can do the following to require it's install.
+```json5
+{
+    "stub_distros": {
+        "set": {
+            "maya2024": null
+        }
+    }
+}
+```
+
+#### Limiting to Versions
+
+By default a stub_distro enables the stub for all versions of that distro. If you
+want to limit stub authorization to to a specific set of versions, add `limit`
+to the dictionary. The value is a version specifier string and only distro
+requirements matching the specifier are allowed to be stubs.
+
+```json5
+{
+    "stub_distros": {
+        "set": {
+            "the_dcc": {"limit": ">1.2"}
+        }
+    }
+}
+```
+Assuming that neither of these distro version are installed, this example would
+create a stub for the requirement `the_dcc==1.3` but not for a requirement of
+`the_dcc==1.0.1`.
+
 ### Omittable Distros
 
 The `omittable_distros` key in [config](#config) definitions are used to specify distros

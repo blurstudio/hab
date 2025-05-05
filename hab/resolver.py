@@ -3,6 +3,7 @@
 import concurrent.futures
 import copy
 import enum
+import fnmatch
 import logging
 from contextlib import contextmanager
 
@@ -11,7 +12,7 @@ from packaging.requirements import Requirement
 
 from . import utils
 from .errors import HabError, InvalidRequirementError, _IgnoredVersionError
-from .parsers import Config, HabBase
+from .parsers import Config, HabBase, StubDistroVersion
 from .site import Site
 from .solvers import Solver
 from .user_prefs import UserPrefs
@@ -350,6 +351,11 @@ class Resolver(object):
             distro = self.distros[requirement.name]
             return distro.latest_version(requirement)
 
+        # If allowed to, create a stub version instead of raising a error
+        stub = self.get_stub_distro(requirement)
+        if stub:
+            return stub
+
         raise InvalidRequirementError(
             f"Unable to find a distro for requirement: {requirement}"
         ) from None
@@ -373,6 +379,49 @@ class Resolver(object):
             else:
                 out[uri] = cfg.freeze()
         return out
+
+    def get_stub_distro(self, requirement: Requirement):
+        """Returns the `StubDistroVersion` instance for requirement if allowed.
+
+        If the site settings allow the requirement to be a stub, returns the
+        instance of the stub, creating it if required.
+        """
+
+        name = requirement.name
+        if name in self.distros:
+            # Return the existing StubDistroVersion if already created
+            stub = self.distros[name].stub
+            if stub:
+                return stub
+
+        # Check to see if name matches any of the stub_distros
+        for stub_name, stub_rule in self.site["stub_distros"].items():
+            matches = fnmatch.fnmatchcase(name, stub_name)
+            if not matches:
+                continue
+            # If the stub rule is set to None, its unset, do not create a stub
+            if stub_rule is None:
+                continue
+
+            # If a limit is defined only allow the stub if the requirement is
+            # contained inside the limit.
+            if "limit" in stub_rule:
+                if not utils.specifier_valid(requirement.specifier, stub_rule["limit"]):
+                    continue
+            break
+        else:
+            # No stub rule applies, do not create a stub
+            return
+
+        logger.info(
+            f"Creating StubDistroVersion: {name} from stub_distros: {stub_name}"
+        )
+        # NOTE: This mutates self.distros by adding the stub to it. You can undo
+        # this by calling `Distro.stub = None`.
+        stub = StubDistroVersion(self.distros, self, name=name)
+        # Store the stub on the Distro for future calls
+        self.distros[name].stub = stub
+        return stub
 
     def install(
         self,
