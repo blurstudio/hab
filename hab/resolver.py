@@ -5,6 +5,7 @@ import copy
 import enum
 import fnmatch
 import logging
+import os
 from contextlib import contextmanager
 
 import anytree
@@ -12,7 +13,7 @@ from packaging.requirements import Requirement
 
 from . import utils
 from .errors import HabError, InvalidRequirementError, _IgnoredVersionError
-from .parsers import Config, HabBase, StubDistroVersion
+from .parsers import Config, HabBase, StubDistroVersion, UnfrozenConfig
 from .site import Site
 from .solvers import Solver
 from .user_prefs import UserPrefs
@@ -567,15 +568,32 @@ class Resolver(object):
                     logger.debug(str(error))
         return forest
 
-    def resolve(self, uri, forced_requirements=None):
+    def resolve(self, uri=None, from_env=False, forced_requirements=None):
         """Find the closest configuration and reduce it into its final form.
 
         Args:
-            uri (str): The URI to resolve.
+            uri (str, optional): The URI to resolve.
+            from_env (bool, optional): If enabled return a `UnfrozenConfig` built
+                from the `HAB_FREEZE` environment variable if set. Otherwise
+                use the `HAB_PATHS` env variable if set and `uri` is None.
             forced_requirements (list, optional): A list of additional distro version
                 requirements to respect even if they are not specified in a config.
                 Has :py:meth:`hab.solvers.Solver.simplify_requirements` called on it.
         """
+        if from_env:
+            # If the HAB_FREEZE env var is set, just return it as a UnfrozenConfig
+            freeze = os.getenv("HAB_FREEZE")
+            if freeze:
+                return UnfrozenConfig(freeze, self)
+            # Otherwise if uri is not specified resolve the URI stored in HAB_URI
+            if uri is None:
+                uri = os.getenv("HAB_URI")
+                if uri is None:
+                    logger.warning(
+                        'The "HAB_FREEZE" or "HAB_URI" env vars are not defined, '
+                        "can't resolve from_env."
+                    )
+
         uri = self.uri_validate(uri)
         context = self.closest_config(uri)
         try:
