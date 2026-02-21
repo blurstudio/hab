@@ -413,16 +413,21 @@ class SiteCommandLoader(click.Group):
 
     def list_commands(self, ctx):
         ret = super().list_commands(ctx)
+        if ctx.obj is None:
+            # Cover edge case where `SharedSettings.set_ctx_instance` hasn't been
+            # called yet, creating the SharedSettings class.
+            return sorted(ret)
         # Add any site defined entry_point commands
         for _, cmd in self._cli_entry_points(ctx.obj.resolver.site):
             ret.append(cmd.name)
         return sorted(ret)
 
     def get_command(self, ctx, name):
-        # Find and use site defined entry_points commands
-        for _, funct in self._cli_entry_points(ctx.obj.resolver.site):
-            if name == funct.name:
-                return funct
+        if ctx.obj is not None:
+            # Find and use site defined entry_points commands
+            for _, funct in self._cli_entry_points(ctx.obj.resolver.site):
+                if name == funct.name:
+                    return funct
         # falling back to the commands defined by hab
         return super().get_command(ctx, name)
 
