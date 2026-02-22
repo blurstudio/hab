@@ -13,9 +13,9 @@ class Topen(subprocess.Popen):
     """A custom subclass of Popen."""
 
 
-def test_launch(resolver):
+def test_launch(habcached_resolver):
     """Check the Config.launch method."""
-    cfg = resolver.resolve("app/aliased/mod")
+    cfg = habcached_resolver.resolve("app/aliased/mod")
     proc = cfg.launch("global", args=None, blocking=True)
 
     # Enabling mod_std sends all exception text to stdout
@@ -36,8 +36,8 @@ def test_launch(resolver):
     assert "\n".join(check) in proc.output_stdout
 
 
-def test_launch_str(resolver):
-    cfg = resolver.resolve("app/aliased/mod")
+def test_launch_str(habcached_resolver):
+    cfg = habcached_resolver.resolve("app/aliased/mod")
 
     # Check that args are passed to the subprocess
     # Check that if "cmd" is a str, it is converted to a list and extended with args
@@ -61,9 +61,9 @@ def test_launch_str(resolver):
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
-def test_pythonw(monkeypatch, resolver):
+def test_pythonw(monkeypatch, habcached_resolver):
     """Check that sys.stdin is set if using pythonw."""
-    cfg = resolver.resolve("app/aliased/mod")
+    cfg = habcached_resolver.resolve("app/aliased/mod")
 
     # If not using pythonw.exe proc.stdin is not routed to PIPE
     proc = cfg.launch("global", args=None, blocking=True)
@@ -76,8 +76,8 @@ def test_pythonw(monkeypatch, resolver):
     assert proc.stdin is not None
 
 
-def test_invalid_alias(resolver):
-    cfg = resolver.resolve("app/aliased/mod")
+def test_invalid_alias(habcached_resolver):
+    cfg = habcached_resolver.resolve("app/aliased/mod")
     with pytest.raises(
         InvalidAliasError,
         match='The alias "not-a-alias" is not found for URI "app/aliased/mod".',
@@ -92,14 +92,14 @@ def test_invalid_alias(resolver):
         cfg.launch("global")
 
 
-def test_cls_no_entry_point(resolver):
+def test_cls_no_entry_point(habcached_resolver):
     """Check that if no entry point is defined, `hab.launcher.Launcher` is
     used to launch the alias.
     """
-    entry_points = resolver.site.entry_points_for_group("hab.launch_cls")
+    entry_points = habcached_resolver.site.entry_points_for_group("hab.launch_cls")
     assert len(entry_points) == 0
 
-    cfg = resolver.resolve("app/aliased/mod")
+    cfg = habcached_resolver.resolve("app/aliased/mod")
     proc = cfg.launch("global", blocking=True)
 
     from hab.launcher import Launcher
