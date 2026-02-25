@@ -5,13 +5,78 @@
 # supports. This calls the python module cli passing the arguments to it and
 # ends up calling the script file that code generates if required.
 
+# -------------------------------------------------------------------
+# SOURCE: https://vegardit.com/en/blog/bash-trap/
+# hab_add_trap - append a command to a signal trap without overwriting it
+#
+# Usage: hab_add_trap "command" [SIGNAL]
+#   command - string to evaluate when SIGNAL triggers
+#   SIGNAL  - name or number (default: EXIT)
+#
+# Examples:
+#   hab_add_trap 'echo "Goodbye!"'      # appends to EXIT
+#   hab_add_trap 'echo "SIGINT!"' INT
+#
+# Skips duplicate registrations for the same command+signal combo.
+function hab_add_trap() {
+  local cmd=$1 # command(s) to add
+  local sig=${2:-EXIT} # signal name or number
+
+  # validate signal name or numeric id
+  local sig_name
+  {
+    if [[ $sig =~ ^[0-9]+$ ]]; then
+      sig_name=$(kill -l "$sig")
+    else
+      sig_name=${sig^^}
+      kill -l "$sig_name" &>/dev/null
+    fi
+  } || {
+    echo "hab_add_trap: invalid signal '$sig'" >&2
+    return 1
+  }
+
+  # Compute effective trap list for current (sub)shell
+  # Based on info from https://stackoverflow.com/a/59307894/5116073
+  local old
+  if [[ "${BASH_VERSINFO:-0}" -ge 4 ]]; then
+    trap -- KILL &>/dev/null || true
+    old=$(trap -p "$sig_name")
+  else
+    old=$( (trap -p "$sig_name") )
+  fi
+
+  # extract/cleanup the existing registered command(s)
+  old=${old#*\'}         # remove leading "trap -- '"
+  old=${old%\'*}         # remove trailing "' EXIT"
+  old=${old//"'\''"/"'"} # unescape every '\'' to '
+
+  # if command is already registered, do nothing
+  if [[ ";$old;" == *";$cmd;"* ]]; then
+    return 0
+  fi
+
+  # build the new combined handler
+  if [[ -n $old ]]; then
+    combined="$old;$cmd"
+  else
+    combined="$cmd"
+  fi
+
+  # register the new combined handler
+  trap -- "$combined" "$sig"
+}
+export -f hab_add_trap;
+# -------------------------------------------------------------------
+
+
 # Generate a unique temp directory to contain all of our script files
 temp_directory=$(mktemp -d 2>/dev/null || mktemp -d -t 'hab')
 temp_launch_file=$temp_directory/hab_launch.sh
 temp_config_file=$temp_directory/hab_config.sh
 
 # Ensure the tempfiles are remove on exit if they were created
-trap "rm -rf $temp_directory" EXIT
+hab_add_trap "rm -rf $temp_directory" EXIT
 
 # Calculate the command to run python with
 if [[ ! -z "${HAB_PYTHON}" ]]; then
@@ -36,8 +101,11 @@ fi
 $py_exe -m hab --script-dir $temp_directory --script-ext ".sh" "$@"
 
 # Run the launch or config script if it was created on disk
-if test -f "$temp_launch_file"; then
+if [[ -t 0 ]] && [[ -f "$temp_launch_file" ]]; then
+    # Only run launch_file in an interactive terminal. This would cause issues
+    # with running bash from a python subprocess call.
     . $temp_launch_file
-elif test -f "$temp_config_file"; then
+elif [[ -f "$temp_config_file" ]]; then
+    # Non-interactive terminal, or if only the config file was created
     . $temp_config_file
 fi
