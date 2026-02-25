@@ -500,6 +500,10 @@ class RunHab:
             platform = "windows"
             if shell not in ("bash_win", "bat", "ps1"):
                 valid = False
+            # TODO: Figure out how to run powershell when using github actions
+            if os.getenv("GITHUB_ACTIONS") == "true":
+                if valid and shell == "ps1":
+                    return False, "github-actions"
         return valid, platform
 
     @classmethod
