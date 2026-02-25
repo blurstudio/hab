@@ -227,7 +227,7 @@ class TestCliExitCodes:
         assert proc.stdout == self.output_text
         assert proc.returncode == exit_code
 
-    @pytest.mark.skip(reason="Find a way to make this test run successfully")
+    @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
     def test_bash_win(self, config_root, exit_code):
         # fmt: off
         cmd = [
@@ -245,11 +245,6 @@ class TestCliExitCodes:
         # fmt: on
 
         # Run the hab command in a subprocess
-        print(
-            "# If you run this command in a command prompt the expected results "
-            "are printed, but calling it here doesn't return any results."
-        )
-        print('# Make sure to check the exit-code with "echo %ERRORLEVEL%"')
         print(subprocess.list2cmdline(cmd))
         proc = subprocess.run(cmd, **self.run_kwargs)
         print(proc.stdout)
@@ -259,7 +254,9 @@ class TestCliExitCodes:
         assert proc.stdout == self.output_text
         assert proc.returncode == exit_code
 
-    @pytest.mark.skip(reason="Find a way to make this test run successfully")
+    @pytest.mark.skipif(
+        not sys.platform.startswith("linux"), reason="only applies on linux"
+    )
     def test_bash_linux(self, config_root, exit_code):
         hab_bin = (config_root / ".." / "bin" / "hab").resolve()
 
@@ -273,11 +270,7 @@ class TestCliExitCodes:
         # fmt: on
 
         # Run the hab command in a subprocess
-        print(
-            "# Run this command in a bash shell and verify that the expected results"
-            " are printed. TODO: figure out how to run this with pytest."
-        )
-        print('# Make sure to check the exit-code with "echo $?"')
+        print(cmd)
         print(subprocess.list2cmdline(cmd))
         proc = subprocess.run(cmd, shell=True, **self.run_kwargs)
         print(proc.stdout)

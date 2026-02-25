@@ -19,8 +19,9 @@ reset_errexit() {
     fi
 }
 # Ensure reset_errexit is called when the script exits. This prevents hab from
-# changing the current setting of errexit outside of this hab script
-trap reset_errexit EXIT
+# changing the current setting of errexit outside of this hab script.
+# hab_add_trap is defined in the `bin/hab`` cli script.
+hab_add_trap "reset_errexit" EXIT
 # ----- Exit Code propagation end -----
 
 # Setting global environment variables:
