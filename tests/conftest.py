@@ -1,6 +1,8 @@
 import json
 import os
 import shutil
+import subprocess
+import sys
 from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path, PurePath
@@ -391,3 +393,146 @@ class Helpers(object):
 def helpers():
     """Expose the Helpers class as a fixture for ease of use in tests."""
     return Helpers
+
+
+class RunHab:
+    """Configure and run a hab command in a subprocess easily.
+
+    The shell arguments can be passed ("bat", "ps1", "bash_win", "bash_linux").
+    """
+
+    def __init__(self, config_root, tmp_path, **run_kwargs) -> None:
+        self.config_root = config_root
+        self.tmp_path = tmp_path
+        self.site_path = config_root / "site_main.json"
+        self.bin_root = (config_root / ".." / "bin").resolve()
+
+        run_kwargs.setdefault("stdout", subprocess.PIPE)
+        run_kwargs.setdefault("stderr", subprocess.STDOUT)
+        run_kwargs.setdefault("timeout", 10)
+        run_kwargs.setdefault("text", True)
+        self.run_kwargs = run_kwargs
+
+    def escape_str(self, shell, text):
+        if shell == "ps1":
+            return (f'"{text}"',)
+        return text
+
+    @classmethod
+    def normalize_cmd(cls, cmd):
+        """Work around python 3.7 not supporting pathlib.Path in cmds."""
+        if sys.version_info < (3, 8):
+            return [str(x) if isinstance(x, PurePath) else x for x in cmd]
+        return cmd
+
+    def print_proc(self, proc, width=50, sep="-"):
+        """Prints info on the provided CompletedProcess or SubprocessError"""
+        if isinstance(proc, subprocess.CompletedProcess):
+            cmd = proc.args
+        else:
+            cmd = proc.cmd
+        print(" RunHab: CMD ".center(width, sep))
+        print(subprocess.list2cmdline(cmd))
+        if proc.stderr:
+            print(" RunHab: STDERR ".center(width, sep))
+            print(proc.stderr.strip())
+        if proc.stdout:
+            print(" RunHab: STDOUT ".center(width, sep))
+            print(proc.stdout.strip())
+        print(" RunHab: End ".center(width, sep))
+
+    def shell_cmd(self, shell):
+        """Return the command to launch hab in a shell as argument list."""
+        if shell == "bat":
+            return [self.bin_root / "hab.bat"]
+        elif shell == "ps1":
+            # -File is needed to get the exit-code from powershell, and requires
+            # a full path
+            # fmt: off
+            return [
+                "powershell.exe",
+                "-ExecutionPolicy", "Unrestricted",
+                "-File", self.bin_root / "hab.ps1",
+            ]
+            # fmt: on
+        elif shell == "bash_win":
+            return ["hab"]
+        elif shell == "bash_linux":
+            return [self.bin_root / "hab"]
+        raise ValueError("Invalid shell {shell}")
+
+    def shell_args(self, shell, sub_cmd):
+        env = None
+        # fmt: off
+        cmd = [
+            *self.shell_cmd(shell),
+            "--site", self.site_path.as_posix(),
+            *sub_cmd,
+        ]
+        # fmt: on
+        if shell == "bat":
+            # When running tox in parallel we may run into the `%RANDOM%` collision.
+            # Change the `TMP` env var to a per-test unique folder to avoid this.
+            env = os.environ.copy()
+            env["TMP"] = str(self.tmp_path)
+        if shell == "bash_win":
+            cmd = [
+                # Note: This requires compatible with git bash, or the `--site` path
+                # gets mangled.
+                os.path.expandvars(r"%PROGRAMFILES%\Git\usr\bin\bash.exe"),
+                "--login",
+                "-c",
+                subprocess.list2cmdline(cmd),
+            ]
+
+        return self.normalize_cmd(cmd), env
+
+    @classmethod
+    def shell_valid_for_platform(cls, shell):
+        """Skip tests that will not run on the current platform"""
+        valid = True
+        platform = "UNKNOWN"
+        if sys.platform.startswith("linux"):
+            platform = "linux"
+            if shell not in ("bash_linux",):
+                valid = False
+        elif sys.platform == "win32":
+            platform = "windows"
+            if shell not in ("bash_win", "bat", "ps1"):
+                valid = False
+        return valid, platform
+
+    @classmethod
+    def skip_wrong_platform(cls, shell):
+        """Skip tests that will not run on the current platform"""
+        valid, platform = cls.shell_valid_for_platform(shell)
+        if not valid:
+            raise pytest.skip(f"test doesn't apply on {platform}")
+
+    @contextmanager
+    def std_on_failure(self, proc):
+        """Context that prints proc's stderr/out text if an exception is raised."""
+        try:
+            yield
+        except Exception:
+            self.print_proc(proc)
+            raise
+
+    def run_in_shell(self, shell, sub_cmd):
+        """Run the sub_cmd inside a target shell.
+
+        If an error is raised it will print the output from the subprocess.
+        """
+        cmd, env = self.shell_args(shell, sub_cmd)
+        # Run the hab command in a subprocess
+        try:
+            return subprocess.run(cmd, env=env, **self.run_kwargs)
+        except subprocess.SubprocessError as error:
+            self.print_proc(error)
+            raise
+
+
+@pytest.fixture
+def run_hab():
+    """Expose the RunHab class as a fixture for ease of use in tests."""
+    return RunHab

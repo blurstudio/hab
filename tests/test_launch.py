@@ -179,103 +179,20 @@ class TestCliExitCodes:
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=5, text=True
     )
 
-    @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
-    def test_bat(self, config_root, exit_code, tmp_path):
-        hab_bin = (config_root / ".." / "bin" / "hab.bat").resolve()
-        # fmt: off
-        cmd = [
-            str(hab_bin), "--site", str(config_root / "site_main.json"),
-            *self.sub_cmd,
-            self.py_cmd.format(code=exit_code),
-        ]
-        # fmt: on
-
-        # When running tox in parallel we may run into the `%RANDOM%` collision.
-        # Change the `TMP` env var to a per-test unique folder to avoid this.
-        env = os.environ.copy()
-        env["TMP"] = str(tmp_path)
+    @pytest.mark.parametrize("shell", ("bat", "ps1", "bash_win", "bash_linux"))
+    def test_exit_code(self, shell, exit_code, config_root, tmp_path, run_hab):
+        # Skip tests that will not run on the current platform
+        run_hab.skip_wrong_platform(shell)
 
         # Run the hab command in a subprocess
-        proc = subprocess.run(cmd, env=env, **self.run_kwargs)
-
-        # Check that the print statement was actually run
-        assert proc.stdout == self.output_text
-        assert proc.returncode == exit_code
-
-    @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
-    @pytest.mark.skipif(
-        os.getenv("GITHUB_ACTIONS") == "true",
-        reason="PowerShell tests timeout when run in a github action",
-    )
-    def test_ps1(self, config_root, exit_code):
-        # -File is needed to get the exit-code from powershell, and requires a full path
-        script = (config_root / ".." / "bin" / "hab.ps1").resolve()
-        # fmt: off
-        cmd = [
-            "powershell.exe", "-ExecutionPolicy", "Unrestricted",
-            "-File", str(script),
-            "--site", str(config_root / "site_main.json"),
+        sub_cmd = [
             *self.sub_cmd,
-            f"\"{self.py_cmd.format(code=exit_code)}\"",
+            *[self.py_cmd.format(code=exit_code)],
         ]
-        # fmt: on
+        runner = run_hab(config_root, tmp_path)
+        proc = runner.run_in_shell(shell, sub_cmd)
 
-        # Run the hab command in a subprocess
-        proc = subprocess.run(cmd, **self.run_kwargs)
-
-        # Check that the print statement was actually run
-        assert proc.stdout == self.output_text
-        assert proc.returncode == exit_code
-
-    @pytest.mark.skipif(sys.platform != "win32", reason="only applies on windows")
-    def test_bash_win(self, config_root, exit_code):
-        # fmt: off
-        cmd = [
-            "hab",
-            "--site", f'{(config_root / "site_main.json").as_posix()}',
-            *self.sub_cmd,
-            self.py_cmd.format(code=exit_code),
-        ]
-        cmd = [
-            # Note: This requires compatible with git bash, or the `--site` path
-            # gets mangled.
-            os.path.expandvars(r"%PROGRAMFILES%\Git\usr\bin\bash.exe"),
-            "--login", "-c", subprocess.list2cmdline(cmd)
-        ]
-        # fmt: on
-
-        # Run the hab command in a subprocess
-        print(subprocess.list2cmdline(cmd))
-        proc = subprocess.run(cmd, **self.run_kwargs)
-        print(proc.stdout)
-        print(proc.stderr)
-
-        # Check that the print statement was actually run
-        assert proc.stdout == self.output_text
-        assert proc.returncode == exit_code
-
-    @pytest.mark.skipif(
-        not sys.platform.startswith("linux"), reason="only applies on linux"
-    )
-    def test_bash_linux(self, config_root, exit_code):
-        hab_bin = (config_root / ".." / "bin" / "hab").resolve()
-
-        # fmt: off
-        cmd = [
-            hab_bin,
-            "--site", f'{(config_root / "site_main.json")}',
-            *self.sub_cmd,
-            self.py_cmd.format(code=exit_code),
-        ]
-        # fmt: on
-
-        # Run the hab command in a subprocess
-        print(cmd)
-        print(subprocess.list2cmdline(cmd))
-        proc = subprocess.run(cmd, shell=True, **self.run_kwargs)
-        print(proc.stdout)
-        print(proc.stderr)
-
-        # Check that the print statement was actually run
-        assert proc.stdout == self.output_text
-        assert proc.returncode == exit_code
+        with runner.std_on_failure(proc):
+            # Check that the print statement was actually run
+            assert proc.stdout == self.output_text
+            assert proc.returncode == exit_code
