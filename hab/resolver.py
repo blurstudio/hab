@@ -12,7 +12,7 @@ from packaging.requirements import Requirement
 
 from . import utils
 from .errors import HabError, InvalidRequirementError, _IgnoredVersionError
-from .parsers import Config, HabBase, StubDistroVersion
+from .parsers import Config, HabBase, Placeholder, StubDistroVersion
 from .site import Site
 from .solvers import Solver
 from .user_prefs import UserPrefs
@@ -576,8 +576,19 @@ class Resolver(object):
                 requirements to respect even if they are not specified in a config.
                 Has :py:meth:`hab.solvers.Solver.simplify_requirements` called on it.
         """
-        uri = self.uri_validate(uri)
-        context = self.closest_config(uri)
+        if uri == "":
+            # The URI comma is a shortcut to create a empty config. This is useful
+            # if you want to manually build a config using the `-r` argument to
+            # specify one or more distros to load without auto loading any others
+            uri = "<empty>"
+            context = Placeholder(self.configs, self)
+            context.name = uri
+            context.distros = []
+            # context.frozen_data["environment"] = {}
+            self.configs[uri] = context
+        else:
+            uri = self.uri_validate(uri)
+            context = self.closest_config(uri)
         try:
             # Apply the custom forced_requirements if provided
             if forced_requirements is not None:

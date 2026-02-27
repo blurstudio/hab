@@ -11,7 +11,7 @@ from packaging.requirements import Requirement
 from hab import DistroMode, NotSet, Resolver, Site, utils
 from hab.distro_finders.distro_finder import DistroFinder
 from hab.errors import InvalidRequirementError
-from hab.parsers import DistroVersion
+from hab.parsers import DistroVersion, FlatConfig
 from hab.solvers import Solver
 
 
@@ -118,6 +118,29 @@ def test_config(resolver):
 def test_closest_config(resolver, path, result, reason):
     """Test that closest_config returns the expected results."""
     assert resolver.closest_config(path).fullpath == result, reason
+
+
+def test_empty(uncached_resolver):
+    """Verify that the URI `,` creates an empty URI"""
+    cfg = uncached_resolver.resolve("")
+    # Verify the empty item was created correctly
+    assert isinstance(cfg, FlatConfig)
+    assert cfg.name == "<empty>"
+    assert cfg.parent is None
+    assert not cfg.versions
+
+    # Verify that forced requirements were resolved
+    cfg = uncached_resolver.resolve(
+        "", forced_requirements=["the_dcc_plugin_b", "the_dcc_plugin_c"]
+    )
+    check = ["the_dcc_plugin_b==1.1", "the_dcc_plugin_c==1.1"]
+    assert isinstance(cfg, FlatConfig)
+    assert cfg.name == "<empty>"
+    assert cfg.parent is None
+    versions = cfg.versions
+    assert len(versions) == len(check)
+    for i, v in enumerate(versions):
+        assert v.name == check[i]
 
 
 def test_distro_mode(zip_distro, helpers, tmp_path):

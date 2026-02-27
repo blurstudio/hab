@@ -111,8 +111,12 @@ class UriArgument(click.Argument):
             if self.required:
                 raise result
             return result
-        # User wants to use saved user prefs for the uri
-        if value == "-":
+
+        if value == "":
+            # An empty string is a shortcut for a empty URI without using default
+            return ""
+        elif value == "-":
+            # User wants to use saved user prefs for the uri
             uri_check = ctx.obj.resolver.user_prefs().uri_check()
 
             # If not using the prompt then just return the uri_check and allow
@@ -188,10 +192,18 @@ class UriHelpClass(click.Command):
 
     # Note: the leading whitespace is important to ensure the help text formats
     # correctly when merged with multi-line docstrings like activate.
+    # Note: The `\b` prefix disables rewrapping inside that data block.
     uri_text = """
+    \b
     If you pass a dash `-` for URI, it will use the last URI you saved. You can
     update the saved uri by adding `--save-prefs` to a hab call. For example:
     `hab --save-prefs {subcmd} a/uri`.
+
+    \b
+    If you pass a empty string, hab will not use the default config. This is
+    useful for targeted testing of a specific set of distros without loading
+    defaults. The URI will be changed to "<empty>". For example:
+    `hab -r the_dcc -r the_dcc_plugin_e==1.0 {subcmd} "" -v`
     """
     timeout_text = (
         "The saved uri will periodically timeout requiring you to re-save your uri."

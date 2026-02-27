@@ -196,3 +196,58 @@ class TestCliExitCodes:
             # Check that the print statement was actually run
             assert proc.stdout == self.output_text
             assert proc.returncode == exit_code
+
+
+@pytest.mark.parametrize("shell", ("bat", "ps1", "bash_win", "bash_linux"))
+class TestURILaunch:
+    # Launch python and print the HAB_FREEZE
+    # fmt: off
+    sub_cmd = [
+        "-r", "aliased",
+        "launch", "#URI#",
+        "as_str", "-c", "import os;print(os.environ['HAB_FREEZE'])"
+    ]
+    # fmt: on
+
+    def sub_cmd_for_uri(self, uri):
+        """Return a copy of sub_cmd with the requested URI."""
+        ret = list(self.sub_cmd)
+        ret[ret.index("#URI#")] = uri
+        return ret
+
+    def test_empty(self, shell, config_root, tmp_path, run_hab):
+        # Skip tests that will not run on the current platform
+        run_hab.skip_wrong_platform(shell)
+
+        runner = run_hab(config_root, tmp_path, stderr=subprocess.PIPE)
+        proc = runner.run_in_shell(shell, self.sub_cmd_for_uri(""))
+
+        # Verify that the default config was not loaded and only aliased was loaded
+        with runner.std_on_failure(proc):
+            data = utils.decode_freeze(proc.stdout)
+            assert data["uri"] == "<empty>"
+            assert data["versions"] == ["aliased==2.0"]
+            assert proc.returncode == 0
+
+    def test_default(self, shell, config_root, tmp_path, run_hab):
+        # Skip tests that will not run on the current platform
+        run_hab.skip_wrong_platform(shell)
+
+        runner = run_hab(config_root, tmp_path, stderr=subprocess.PIPE)
+        proc = runner.run_in_shell(shell, self.sub_cmd_for_uri("non/defined/uri"))
+
+        with runner.std_on_failure(proc):
+            # Verify that the default config was not loaded and only aliased was loaded
+            data = utils.decode_freeze(proc.stdout)
+            assert data["uri"] == "non/defined/uri"
+            assert data["versions"] == [
+                "the_dcc_plugin_a==1.1",
+                "the_dcc_plugin_e==1.1",
+                "the_dcc_plugin_d==1.1",
+                "aliased==2.0",
+                "the_dcc_plugin_b==1.1",
+                "the_dcc_plugin_c==1.1",
+                "maya2020==2020.1",
+                "houdini18.5==18.5.351",
+            ]
+            assert proc.returncode == 0

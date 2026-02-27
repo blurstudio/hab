@@ -32,8 +32,12 @@ else {
 $py_exe, $py_args = $py_exe.split(' ')
 # TODO: Test setting HAB_PYTHON to various values like `py`, `py -3` and many arguments `py -3 -u`
 
+# This is required to allow you to pass "" empty URI's. When $args gets processed
+# the empty string will be automatically removed and never passed to python.
+$normalized_args = $args | ForEach-Object { if ($_ -eq "") { '""' } else { $_ } }
+
 # Call our worker python process that may write the temp filename
-& $py_exe $py_args -m hab --script-dir $temp_directory --script-ext .ps1 $args
+& $py_exe $py_args -m hab --script-dir $temp_directory --script-ext .ps1 $normalized_args
 
 # Run the launch or config script if it was created on disk
 if (Test-Path $temp_launch -PathType Leaf)

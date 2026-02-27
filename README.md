@@ -263,6 +263,11 @@ This also supports inheritance with some special rules, see
 
 The provided URI is always stored in the `HAB_URI` environment variable.
 
+### Special URIs
+
+- `-`: This URI is expanded into the user prefs saved URI. This keeps you from having to re-type the same URI for every command
+- `""`: Passing an empty string as the URI will force hab to load an empty config ignoring the default. This is useful with the `-r` argument to build a collection of distros completely from scratch. The URI will be changed to `<empty>`. Example command: `hab -r aliased -r the-dcc dump ""`
+
 ## CLI
 
 Hab is designed as an api with cli support. The majority of the actual work is

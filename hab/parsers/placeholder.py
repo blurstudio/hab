@@ -10,7 +10,7 @@ class Placeholder(HabBase):
     @hab_property(verbosity=2)
     def inherits(self):
         """Placeholders don't contain their own data, so they always inherit."""
-        return True
+        return self.uri != "<empty>"
 
 
 # This is the first place where both HabBase and its subclass Placeholder
