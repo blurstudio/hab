@@ -1,7 +1,7 @@
 import pytest
 
 from hab import utils
-from hab.formatter import Formatter
+from hab.formatter import ExpandMode, Formatter
 from hab.parsers import Config
 
 
@@ -37,8 +37,12 @@ def test_env_format(language, expanded, not_expanded, monkeypatch):
     # Check that "!e" is converted to the correct shell specific specifier.
     assert Formatter(language).format(fmt, regular_var="V") == not_expanded
 
-    # Check that "!e" uses the env var value if `expand=True` not the shell specifier.
-    assert Formatter(language, expand=True).format(fmt, regular_var="V") == expanded
+    # Check that "!e" uses the env var value if `expand=ExpandMode.ToShell` not
+    # the shell specifier.
+    assert (
+        Formatter(language, expand=ExpandMode.ToShell).format(fmt, regular_var="V")
+        == expanded
+    )
 
 
 def test_language_from_ext(monkeypatch):

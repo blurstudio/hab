@@ -16,7 +16,7 @@ from ..errors import (
     InvalidAliasError,
     ReservedVariableNameError,
 )
-from ..formatter import Formatter
+from ..formatter import ExpandMode, Formatter
 from ..site import MergeDict
 from ..solvers import Solver
 from .meta import HabMeta, hab_property
@@ -757,7 +757,14 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             return self._uri
         return self.fullpath
 
-    def update_environ(self, env, alias_name=None, include_global=True, formatter=None):
+    def update_environ(
+        self,
+        env,
+        alias_name=None,
+        include_global=True,
+        formatter=None,
+        expand=ExpandMode.ToShell,
+    ):
         """Updates the given environment variable dictionary to conform with
         the hab environment specification.
 
@@ -772,11 +779,12 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 also adds `HAB_FREEZE` if possible.
             formatter (hab.formatter.Formatter, optional): Str formatter class
                 used to format the env var values.
+            ext (str, optional): Defaults to `Platform.default_ext()` if NotSet.
         """
         ext = utils.Platform.default_ext()
         if formatter is None:
             # Make sure to expand environment variables when formatting.
-            formatter = Formatter(ext, expand=True)
+            formatter = Formatter(ext, expand=expand)
 
         def _apply(data):
             for key, value in data.items():
