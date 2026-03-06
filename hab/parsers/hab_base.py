@@ -260,7 +260,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                         # a developer is overriding a new version of a config.
                         raise DuplicateJsonError(msg)
                     else:
-                        logger.warning(msg)
+                        logger.info(msg)
                         # Document that we have processed the new paths so if there are
                         # any duplicate context:name defined in these paths, the above
                         # exception is raised.
@@ -323,7 +323,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                         # a developer is overriding a new version of a config.
                         raise DuplicateJsonError(msg)
                     else:
-                        logger.warning(msg)
+                        logger.info(msg)
 
                         # Document that we have processed the new paths so if there are
                         # any duplicate context:name defined in these paths, the above
