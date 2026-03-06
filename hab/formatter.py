@@ -1,7 +1,33 @@
+import enum
 import os
 import string
 
 from . import utils
+
+
+class ExpandMode(enum.Enum):
+    """Defines how Formatter handles the habitat-specific ``!e`` conversion field."""
+
+    Preserve = (1, False)
+    """Preserve the conversion marker.
+    This returns the environment variable specifier or the original marker.
+    ('-{A!e}-' -> `-{A!e}-` or ``-$A-`` depending on the target shell)."""
+
+    ToShell = (2, True)
+    """Convert to the shell's environment variable.
+    Returns a shell-specific environment variable reference.
+    ('-{A!e}-' -> `-$A-` or ``-%env:A-``)."""
+
+    Remove = (3, True)
+    """Replace with an empty string.
+    ('-{A!e}-' -> `--`)."""
+
+    def __init__(self, value, expand) -> None:
+        self._value_ = value
+        self.expand = expand
+
+    def __str__(self):
+        return self.name
 
 
 class Formatter(string.Formatter):
@@ -23,8 +49,7 @@ class Formatter(string.Formatter):
             :py:const:`Formatter.shell_formats` and :py:meth:`Formatter.language_from_ext`.
             for supported values. If you pass None, it will preserve the
             formatting markers so it can be converted later.
-        expand(bool, optional): Should the ``!e`` conversion insert the shell
-            environment variable specifier or the value of the env var?
+        expand(ExpandMode, optional): Controls how the ``!e`` conversion is handled.
 
     .. _conversion field:
        https://docs.python.org/3/library/string.html#grammar-token-format-string-conversion
@@ -64,7 +89,7 @@ class Formatter(string.Formatter):
     string that accepts the env var name. ``;`` is the path separator to use.
     """
 
-    def __init__(self, language, expand=False):
+    def __init__(self, language, expand=ExpandMode.Preserve):
         super().__init__()
         self.language = self.language_from_ext(language)
         self.expand = expand
@@ -120,12 +145,15 @@ class Formatter(string.Formatter):
                 yield (literal_text, field_name, format_spec, conversion)
                 continue
 
-            elif self.expand and field_name in os.environ:
+            elif self.expand.expand:
                 # Expand the env var to the env var value. Later `get_field`
                 # will update kwargs with the existing env var value
                 yield (literal_text, field_name, format_spec, "s")
                 continue
 
             # Convert this !e conversion to the shell specific env var specifier
-            value = self.shell_formats[self.language]["env_var"].format(field_name)
+            if self.expand == ExpandMode.Remove:
+                value = ""
+            else:
+                value = self.shell_formats[self.language]["env_var"].format(field_name)
             yield (literal_text + value, None, None, None)
