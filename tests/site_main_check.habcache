@@ -1795,6 +1795,184 @@
                     }
                 },
                 "version": "1.1"
+            },
+            "{config-root}/distros/var-expand-a/1.0/.hab.json": {
+                "name": "var-expand-a",
+                "environment": {
+                    "os_specific": true,
+                    "*": {
+                        "set": {
+                            "OS_AGNOSTIC": "agnostic_value",
+                            "FROM_VAR_EXPAND_B": "--{VAR_EXPAND_B!e}--"
+                        }
+                    }
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/var-expand-b/1.0/.hab.json": {
+                "name": "var-expand-b",
+                "variables": {
+                    "alias_specific_linux": "Linux{;} /{OS_AGNOSTIC!e}/test to {OS_SPECIFIC!e}",
+                    "alias_specific_windows": "Windows{;} c:/{OS_AGNOSTIC!e}/test to {OS_SPECIFIC!e}"
+                },
+                "aliases": {
+                    "linux": [
+                        [
+                            "list_vars",
+                            [
+                                "python",
+                                "{relative_root}/list_vars.py"
+                            ]
+                        ],
+                        [
+                            "list_vars_env",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "set": {
+                                        "ALIAS_SPECIFIC": "{alias_specific_linux}"
+                                    }
+                                }
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "list_vars",
+                            [
+                                "python",
+                                "{relative_root}/list_vars.py"
+                            ]
+                        ],
+                        [
+                            "list_vars_env",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "set": {
+                                        "ALIAS_SPECIFIC": "{alias_specific_windows}"
+                                    }
+                                }
+                            }
+                        ]
+                    ]
+                },
+                "environment": {
+                    "os_specific": true,
+                    "*": {
+                        "set": {
+                            "VAR_EXPAND_B": "var-expand-b-wild"
+                        }
+                    },
+                    "linux": {
+                        "set": {
+                            "OS_SPECIFIC": "/{OS_AGNOSTIC!e}",
+                            "VAR_EXPAND_B": "var-expand-b-linux"
+                        }
+                    },
+                    "windows": {
+                        "set": {
+                            "OS_SPECIFIC": "c:/{OS_AGNOSTIC!e}",
+                            "VAR_EXPAND_B": "var-expand-b-windows"
+                        }
+                    }
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/var-expand-c/1.0/.hab.json": {
+                "name": "var-expand-c",
+                "aliases": {
+                    "linux": [
+                        [
+                            "list_vars",
+                            [
+                                "python",
+                                "{relative_root}/list_vars.py"
+                            ]
+                        ],
+                        [
+                            "list_vars_env",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "set": {
+                                        "EXPAND_ALIAS_PRE": "-*-{EXPAND_C!e}-",
+                                        "EXPAND_C": "expand-c-alias",
+                                        "EXPAND_ALIAS_POST": "-*-{EXPAND_C!e}-",
+                                        "MERGE_C": "{MERGE_C!e},ALIAS"
+                                    }
+                                }
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "list_vars",
+                            [
+                                "python",
+                                "{relative_root}/list_vars.py"
+                            ]
+                        ],
+                        [
+                            "list_vars_env",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "environment": {
+                                    "set": {
+                                        "EXPAND_ALIAS_PRE": "-*-{EXPAND_C!e}-",
+                                        "EXPAND_C": "expand-c-alias",
+                                        "EXPAND_ALIAS_POST": "-*-{EXPAND_C!e}-",
+                                        "MERGE_C": "{MERGE_C!e},ALIAS"
+                                    }
+                                }
+                            }
+                        ]
+                    ]
+                },
+                "environment": {
+                    "os_specific": true,
+                    "*": {
+                        "NOT_OPERATION": "Incorrect, should be inside operation",
+                        "set": {
+                            "EXPAND_WILD_PRE": "-*-{EXPAND_C!e}-",
+                            "EXPAND_C": "expand-c-wild",
+                            "EXPAND_WILD_POST": "-*-{EXPAND_C!e}-",
+                            "MERGE_C": "WILD",
+                            "PY_EXPAND_WILD": "-not-e-*-{MERGE_C}-"
+                        }
+                    },
+                    "linux": {
+                        "set": {
+                            "EXPAND_LINUX_PRE": "-L-{EXPAND_C!e}-",
+                            "EXPAND_C": "expand-c-linux",
+                            "EXPAND_LINUX_POST": "-L-{EXPAND_C!e}-",
+                            "MERGE_C": "{MERGE_C!e},linux",
+                            "PY_EXPAND_LINUX": "-not-e-L-{MERGE_C}-"
+                        }
+                    },
+                    "windows": {
+                        "set": {
+                            "EXPAND_WINDOWS_PRE": "-W-{EXPAND_C!e}-",
+                            "EXPAND_C": "expand-c-windows",
+                            "EXPAND_WINDOWS_POST": "-W-{EXPAND_C!e}-",
+                            "MERGE_C": "{MERGE_C!e},windows",
+                            "PY_EXPAND_WINDOWS": "-not-e-W-{MERGE_C}-"
+                        }
+                    }
+                },
+                "version": "1.0"
             }
         }
     }

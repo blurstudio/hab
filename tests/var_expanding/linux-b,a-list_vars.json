@@ -1,0 +1,7 @@
+{
+    "OS_AGNOSTIC": "agnostic_value",
+    "OS_SPECIFIC": "/",
+    "ALIAS_SPECIFIC": "<UNSET>",
+    "VAR_EXPAND_B": "var-expand-b-linux",
+    "FROM_VAR_EXPAND_B": "--var-expand-b-linux--"
+}

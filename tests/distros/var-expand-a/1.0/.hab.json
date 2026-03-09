@@ -1,0 +1,12 @@
+{
+    "name": "var-expand-a",
+    "environment": {
+        "os_specific": true,
+        "*": {
+            "set": {
+                "OS_AGNOSTIC": "agnostic_value",
+                "FROM_VAR_EXPAND_B": "--{VAR_EXPAND_B!e}--"
+            }
+        }
+    }
+}

@@ -368,6 +368,12 @@ class TestDumpForest:
             "  the_dcc_plugin_e==0.9",
             "  the_dcc_plugin_e==1.0",
             "  the_dcc_plugin_e==1.1",
+            "var-expand-a",
+            "  var-expand-a==1.0",
+            "var-expand-b",
+            "  var-expand-b==1.0",
+            "var-expand-c",
+            "  var-expand-c==1.0",
         ]
         assert result == check
 
@@ -423,6 +429,12 @@ class TestDumpForest:
             "  the_dcc_plugin_e==0.9",
             "  ...",
             "  the_dcc_plugin_e==1.1",
+            "var-expand-a",
+            "  var-expand-a==1.0",
+            "var-expand-b",
+            "  var-expand-b==1.0",
+            "var-expand-c",
+            "  var-expand-c==1.0",
         ]
         assert result == check
 
