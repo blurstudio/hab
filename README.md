@@ -214,7 +214,7 @@ the changes it makes.
 
 ## tox
 
-We use tox to do all unit tests using pytest and also run black and flake8 code
+All testing should be launched using tox. It launches pytest and also runs code
 quality checks. You should use tox before you push your code changes to ensure
 that your tests will pass when running on github.
 
@@ -230,17 +230,11 @@ tox
 ```
 
 Examples of running specific tests:
-- `tox -e py37-json`  Run just the py37-json test
+- `tox -e py311-json`  Run just the py311-json test
 - `tox -e py39-json5`  Run just the py39-json5 test
-- `tox -e begin,py37-json,end`  Show code coverage report for just this test
+- `tox -e begin,py311-json,end`  Show code coverage report for just this test
 - `tox -e flake8`  Run the flake8 tests
-- `tox -e begin,py37-json,end -- -vv`  Enables verbose mode for pytest. Any text after `--` is passed as cli arguments passed to pytest
-
-# Manual testing
-
-The majority of testing is done using tox and pytest, however there are a few tests
-that we haven't been able to get working automatically.
-See [tests/manual/README.md](tests/manual/README.md) for details.
+- `tox -e begin,py311-json,end -- -vv`  Enables verbose mode for pytest. Any text after `--` is passed as cli arguments passed to pytest
 
 # Overview
 
