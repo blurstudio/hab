@@ -1,0 +1,12 @@
+---
+rules:
+  - id: prevent-json-sort-keys
+    patterns:
+      - pattern-either:
+          - pattern: json.dumps(..., sort_keys=True, ...)
+          - pattern: json.dump(..., sort_keys=True, ...)
+    message: Do not use sort_keys in json, hab relies on preserving the original
+      defined order. You will need to use hab.utils.natural_sort for all glob
+      calls for consistency.
+    languages: [python]
+    severity: ERROR
