@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from hab import utils
@@ -44,6 +46,11 @@ def test_env_format(language, expanded, not_expanded, monkeypatch):
         == expanded
     )
 
+    # Coverage of the __str__ method of ExpandMode
+    assert str(ExpandMode.Preserve) == "Preserve"
+    assert str(ExpandMode.ToShell) == "ToShell"
+    assert str(ExpandMode.Remove) == "Remove"
+
 
 def test_language_from_ext(monkeypatch):
     # Arbitrary values are not modified
@@ -75,3 +82,38 @@ def test_format_environment_value(uncached_resolver):
     # shell scripts, not the first time we evaluate environment variables.
     value = "a{;}b;c:{PATH!e}{;}d"
     assert config.format_environment_value(value, ext=None) == value
+
+
+def test_invalid(monkeypatch):
+    """Verify the expected behavior for given formatter input."""
+    assert "INVALID" not in os.environ
+    fmt_s = "-{INVALID}-"
+    fmt_e = "-{INVALID!e}-"
+
+    # Not using !s so it raises an error if not in os.environ or passed
+    for expand in ExpandMode:
+        with pytest.raises(KeyError, match=r"INVALID"):
+            Formatter("sh", expand=expand).format(fmt_s)
+
+    # If the value is passed it resolves correctly
+    for expand in ExpandMode:
+        fmtr = Formatter("sh", expand=expand)
+        check = "-AS-KWARG-"
+        assert fmtr.format(fmt_s, INVALID="AS-KWARG") == check
+        assert fmtr.format(fmt_e, INVALID="AS-KWARG") == check
+
+    # When not using !e, env vars are ignored
+    monkeypatch.setenv("INVALID", "NOW-VALID")
+    with pytest.raises(KeyError, match=r"INVALID"):
+        Formatter("sh").format(fmt_s)
+
+    # When using !e the env var is converted to shell expansion variable
+    # when using the default ExpandMode.Preserve
+    assert Formatter("sh").format(fmt_e) == "-$INVALID-"
+    assert Formatter("shwin").format(fmt_e) == "-$INVALID-"
+    assert Formatter("batch").format(fmt_e) == "-%INVALID%-"
+    assert Formatter("ps").format(fmt_e) == "-$env:INVALID-"
+
+    # When using ExpandMode.Remove or ToShell it replaces the variable
+    assert Formatter("sh", expand=ExpandMode.ToShell).format(fmt_e) == "-NOW-VALID-"
+    assert Formatter("sh", expand=ExpandMode.Remove).format(fmt_e) == "-NOW-VALID-"

@@ -1,0 +1,55 @@
+{
+    "name": "var-expand-b",
+    "variables": {
+        "alias_specific_linux": "Linux{;} /{OS_AGNOSTIC!e}/test to {OS_SPECIFIC!e}",
+        "alias_specific_windows": "Windows{;} c:/{OS_AGNOSTIC!e}/test to {OS_SPECIFIC!e}"
+    },
+    "aliases": {
+        "linux": [
+            ["list_vars", ["python", "{relative_root}/list_vars.py"]],
+            [
+                "list_vars_env", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "set": {
+                            "ALIAS_SPECIFIC": "{alias_specific_linux}"
+                        }
+                    }
+                }
+            ]
+        ],
+        "windows": [
+            ["list_vars", ["python", "{relative_root}/list_vars.py"]],
+            [
+                "list_vars_env", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "environment": {
+                        "set": {
+                            "ALIAS_SPECIFIC": "{alias_specific_windows}"
+                        }
+                    }
+                }
+            ]
+        ]
+    },
+    "environment": {
+        "os_specific": true,
+        "*": {
+            "set": {
+                "VAR_EXPAND_B": "var-expand-b-wild"
+            }
+        },
+        "linux": {
+            "set": {
+                "OS_SPECIFIC": "/{OS_AGNOSTIC!e}",
+                "VAR_EXPAND_B": "var-expand-b-linux"
+            }
+        },
+        "windows": {
+            "set": {
+                "OS_SPECIFIC": "c:/{OS_AGNOSTIC!e}",
+                "VAR_EXPAND_B": "var-expand-b-windows"
+            }
+        }
+    }
+}

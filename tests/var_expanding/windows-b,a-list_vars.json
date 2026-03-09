@@ -1,0 +1,7 @@
+{
+    "OS_AGNOSTIC": "agnostic_value",
+    "OS_SPECIFIC": "c:/",
+    "ALIAS_SPECIFIC": "<UNSET>",
+    "VAR_EXPAND_B": "var-expand-b-windows",
+    "FROM_VAR_EXPAND_B": "--var-expand-b-windows--"
+}
