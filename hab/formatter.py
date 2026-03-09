@@ -118,25 +118,65 @@ class Formatter(string.Formatter):
         self.expand = expand
 
     def get_field(self, field_name, args, kwargs):
-        """Returns the object to be inserted for the given field_name.
+        """Returns the value for the given field_name.
 
-        If kwargs doesn't contain ``field_name`` but ``field_name`` is in the
-        environment variables, the stored value is returned. This also returns
-        the pathsep for the ``;`` field_name. Otherwise works the same as
-        the standard `string.Formatter`_.
+        This method extends the standard `string.Formatter.get_field` to handle:
+
+        1. **Path Separators**: If ``field_name`` is ``;``, returns the language-specific
+           path separator (e.g., ``:`` for sh, ``;`` for batch/ps).
+        2. **Automatic List Joining**: If the value in ``kwargs`` is a list, it is
+           automatically joined using the language-specific path separator.
+        3. **Environment Expansion (!e only)**: If the field uses the ``!e`` conversion,
+           exists in ``os.environ``, and expansion is enabled (via :py:const:`ExpandMode`),
+           the environment value is returned. Standard fields (``!s``) do not trigger
+           environment expansion.
+        4. **Fallback Handling (!e only)**: If an ``!e`` field is missing from both
+           ``kwargs`` and the environment, the behavior is determined by the
+           :py:attr:`expand` mode. See :py:class:`ExpandMode` for details. Standard
+           fields (``!s``) use the default `string.Formatter` fallback behavior.
+
+        Otherwise, it falls back to the standard `string.Formatter`_ implementation.
+        !e mode is enabled if field_name ends with :e.
 
         .. _`string.Formatter`:
            https://docs.python.org/3/library/string.html#string.Formatter.get_field
         """
-        if field_name not in kwargs and self.expand == ExpandMode.Remove:
-            return "", field_name
-        # If a field_name was not provided, use the value stored in os.environ
-        if field_name not in kwargs and field_name in os.environ:
-            return os.getenv(field_name), field_name
+        do_expand = False
+        if field_name.endswith(":e"):
+            field_name = field_name[:-2]
+            do_expand = True
+
         # Process the pathsep character
         if field_name == ";":
             value = self.shell_formats[self.language][";"]
             return value, field_name
+
+        if field_name in kwargs:
+            value = kwargs[field_name]
+            # If the value is a list, join it using the language specific pathsep
+            if isinstance(value, list):
+                pathsep = self.shell_formats[self.language][";"]
+                value = pathsep.join([str(v) for v in value])
+            return value, field_name
+
+        # If a field_name was not provided, use the value stored in os.environ
+        # Only if the mode allows expansion and !e was used.
+        if do_expand and self.expand.expand and field_name in os.environ:
+            return os.getenv(field_name), field_name
+
+        # Default fallback logic for !e markers (parse forces to conversion='s')
+        if do_expand:
+            if self.expand == ExpandMode.ToShell:
+                return (
+                    self.shell_formats[self.language]["env_var"].format(field_name),
+                    field_name,
+                )
+            elif self.expand == ExpandMode.Remove:
+                return "", field_name
+            elif self.expand == ExpandMode.Preserve:
+                # Preserve mode returns the shell specifier or marker
+                lang_formats = self.shell_formats[self.language]
+                return lang_formats["env_var"].format(field_name), field_name
 
         return super().get_field(field_name, args, kwargs)
 
@@ -164,20 +204,11 @@ class Formatter(string.Formatter):
 
     def parse(self, txt):
         for literal_text, field_name, format_spec, conversion in super().parse(txt):
-            # Non-hab specific operation, just use the super value unchanged
-            if conversion != "e":
-                yield (literal_text, field_name, format_spec, conversion)
+            if conversion == "e":
+                # If the conversion is !e, encode that into the field_name so
+                # later get_field can enable the extra features it provides, but
+                # !s does not get those special features enabled.
+                yield (literal_text, f"{field_name}:e", format_spec, "s")
                 continue
 
-            elif self.expand.expand:
-                # Expand the env var to the env var value. Later `get_field`
-                # will update kwargs with the existing env var value
-                yield (literal_text, field_name, format_spec, "s")
-                continue
-
-            # Convert this !e conversion to the shell specific env var specifier
-            if self.expand == ExpandMode.Remove:
-                value = ""
-            else:
-                value = self.shell_formats[self.language]["env_var"].format(field_name)
-            yield (literal_text + value, None, None, None)
+            yield (literal_text, field_name, format_spec, conversion)

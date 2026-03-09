@@ -411,9 +411,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         name = type(self).__name__
         if color:  # pragma: no cover
             # Only colorize the uri name not the entire title line
-            title = (
-                f"Dump of {name}({Fore.GREEN}'" f"{self.fullpath}'{Style.RESET_ALL})"
-            )
+            title = f"Dump of {name}({Fore.GREEN}'{self.fullpath}'{Style.RESET_ALL})"
         else:
             title = f"Dump of {name}('{self.fullpath}')"
         return utils.dump_title(title, ret, color=False)
@@ -486,7 +484,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             self._filename = filename
             self._dirname = self._filename.parent
 
-    def format_environment_value(self, value, ext=None, platform=None):
+    def format_environment_value(
+        self, value, ext=None, platform=None, expand=NotSet, **kwargs
+    ):
         """Apply standard formatting to string values.
 
          If passed a list, tuple, dict, recursively calls this function on them
@@ -509,19 +509,25 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
         if isinstance(value, list):
             # Format the individual items if a list of args is used.
             return [
-                self.format_environment_value(v, ext=ext, platform=platform)
+                self.format_environment_value(
+                    v, ext=ext, platform=platform, expand=expand, **kwargs
+                )
                 for v in value
             ]
         elif isinstance(value, tuple):
             # Format the individual items if a tuple of args is used.
             return tuple(
-                self.format_environment_value(v, ext=ext, platform=platform)
+                self.format_environment_value(
+                    v, ext=ext, platform=platform, expand=expand, **kwargs
+                )
                 for v in value
             )
         elif isinstance(value, dict):
             # Format the values each dictionary pair
             return {
-                k: self.format_environment_value(v, ext=ext, platform=platform)
+                k: self.format_environment_value(
+                    v, ext=ext, platform=platform, expand=expand, **kwargs
+                )
                 for k, v in value.items()
             }
         elif isinstance(value, (bool, int)):
@@ -529,14 +535,18 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             return value
 
         # Include custom variables in the format dictionary.
-        kwargs = {}
-        if self.variables:
-            kwargs.update(self.variables)
+        format_kwargs = {}
+        if self.variables is not NotSet:
+            format_kwargs.update(self.variables)
+        format_kwargs.update(kwargs)
+
+        if expand is NotSet:
+            expand = ExpandMode.Preserve
 
         # Custom variables do not override hab variables, ensure they are set
         # to the correct value.
-        kwargs["relative_root"] = utils.path_forward_slash(self.dirname)
-        ret = Formatter(ext).format(value, **kwargs)
+        format_kwargs["relative_root"] = utils.path_forward_slash(self.dirname)
+        ret = Formatter(ext, expand=expand).format(value, **format_kwargs)
 
         # Use site.the platform_path_maps to convert the result to the target platform
         if platform:
@@ -665,7 +675,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             site=self.resolver.site,
             parser=obj,
         )
-        merger.formatter = obj.format_environment_value
+        merger.formatter = lambda v, **k: obj.format_environment_value(v, **k)
         merger.validator = self.check_environment
         # Flatten the site configuration down to per-platform configurations
         merger.apply_platform_wildcards(
@@ -791,7 +801,9 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             for key, value in data.items():
                 if value:
                     value = utils.Platform.collapse_paths(value, ext=ext, key=key)
-                    value = formatter.format(value, key=key, value=value)
+                    value = self.format_environment_value(
+                        value, ext=ext, key=key, expand=expand, **env
+                    )
                     env[key] = value
                 else:
                     env.pop(key, None)

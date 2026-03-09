@@ -3,6 +3,7 @@ import os
 
 from .. import NotSet, utils
 from ..errors import HabError, InvalidAliasError
+from ..formatter import ExpandMode
 from .hab_base import HabBase
 from .meta import hab_property
 
@@ -111,7 +112,7 @@ class Config(HabBase):
             env = kwargs["env"]
         else:
             env = dict(os.environ)
-        self.update_environ(env, alias_name)
+        self.update_environ(env, alias_name, expand=ExpandMode.Remove)
         kwargs["env"] = env
 
         # Launch the subprocess using the requested Popen subclass
