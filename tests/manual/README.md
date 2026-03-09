@@ -8,11 +8,5 @@ verified.
 
 This tests the `hab env` command in bash on both windows and linux. Follow the
 instructions printed when running the script and verify the output of each command
-run.
-
-# test_launch.sh
-
-This tests the `hab launch` command in bash on both windows and linux. This test
-requires no user input but won't run when called by pytest. You should see it test
-several exit codes and is only considered successful if you see the final message
-printed `'hab launch' testing completed successfully.`
+run. This workflow is now tested by tests/test_launch.py but this documents how
+hab's bash scripts configure the shell.

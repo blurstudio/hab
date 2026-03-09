@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-# This script is a workaround for not being able to call `hab launch`` and `hab env`
+# This script was a workaround for not being able to call `hab launch`` and `hab env`
 # automatically from using subprocess in pytest. The developer should manually
 # run this script and verify that all steps can be completed successfully.
+# This process is now tested automatically via tests/test_launch.py but serves
+# as documentation of how to inspect and debug the bash mode of hab.
 
 # Hab will always output this text for the command we are calling
 EXPECTED_OUTPUT="Running...
