@@ -37,3 +37,17 @@ repos:
     hooks:
       - id: isort
         name: isort (python)
+
+-   repo: https://github.com/semgrep/pre-commit
+    # This version works with python 3.9+
+    rev: 'v1.136.0'
+    hooks:
+      - id: semgrep
+        entry: semgrep
+        args: [
+          '--config',
+          'semgrep-json.yaml',
+          '--error',
+          '--skip-unknown-extensions',
+          '.'
+        ]

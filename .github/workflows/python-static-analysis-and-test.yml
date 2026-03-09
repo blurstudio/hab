@@ -37,6 +37,9 @@ jobs:
       - name: Format with black
         run: tox -e black
 
+      - name: semgrep checks
+        run: tox -e semgrep
+
 
   test:
     # We want to run on external PRs, but not on our own internal PRs as they'll
