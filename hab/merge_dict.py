@@ -61,28 +61,19 @@ class MergeDict:
 
         return output
 
-    def default_format(self, value, platform=None):
-        """Apply string formatting rules to the given value if applicable.
-
-        If value is a list, this method is recursively called on the contents
-        and a new list is returned. It is similarly called on the values of dict's.
-        If a bool or int are passed, they are returned without modification.
-        Otherwise its assume to be a string and str.format is called passing
-        `self.format_kwargs`.
-
-        If `self.site` is set and platform is passed, site.platform_path_map is called
-        on the text output to convert it to the desired platform.
-        """
+    def default_format(self, value, platform=None, **kwargs):
         if value is None:
             return value
         if isinstance(value, list):
-            # Format the individual items if a list of args is used.
-            # return [v.format(**self.format_kwargs) for v in value]
-            return [self.default_format(v) for v in value]
+            return [self.default_format(v, platform=platform, **kwargs) for v in value]
         if isinstance(value, dict):
-            return {k: self.formatter(v, platform=platform) for k, v in value.items()}
+            return {
+                k: self.default_format(v, platform=platform, **kwargs)
+                for k, v in value.items()
+            }
         if isinstance(value, (bool, int)):
             return value
+
         ret = value.format(**self.format_kwargs)
 
         if platform and self.site:
@@ -147,7 +138,9 @@ class MergeDict:
             data["os_specific"] = True
         return data
 
-    def update_platform(self, data, changes, platform=None):
+    def update_platform(self, data, changes, platform=None, kwargs=None):
+        if kwargs is None:
+            kwargs = {}
         if self.validator:
             self.validator(changes)
 
@@ -173,12 +166,16 @@ class MergeDict:
         # base user and system variable values without them causing issues.
         if "set" in changes:
             for key, value in changes["set"].items():
+                kwargs.update({key: data[key]} if key in data else {})
                 with format_feedback(
                     value, key=key, parser=self.parser, platform=platform
                 ):
-                    data[key] = self.formatter(value, platform=platform)
+                    data[key] = self.formatter(value, platform=platform, **kwargs)
+
                 if isinstance(data[key], str):
                     data[key] = [data[key]]
+
+                kwargs[key] = data[key]
 
         for operation in ("prepend", "append"):
             if operation not in changes:
@@ -188,7 +185,7 @@ class MergeDict:
                 with format_feedback(
                     value, key=key, parser=self.parser, platform=platform
                 ):
-                    value = self.formatter(value, platform=platform)
+                    value = self.formatter(value, platform=platform, **kwargs)
                 existing = data.get(key, "")
                 if existing:
                     if operation == "prepend":
