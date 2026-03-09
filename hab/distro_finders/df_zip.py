@@ -95,7 +95,7 @@ class DistroFinderZip(DistroFinderZipSidecar):
             cached: Will always be `False`. The path is not stored in a .habcache
                 file so this data is not cached across processes.
         """
-        for path in self.root.glob(self.glob_str):
+        for path in utils.natural_sort(self.root.glob(self.glob_str)):
             member_path = path / self.hab_filename
             if self.safe:
                 # Opening archives on cloud based systems is slow, this allows us

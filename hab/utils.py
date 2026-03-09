@@ -249,8 +249,6 @@ def dumps_json(data, **kwargs):
     consistent dumps output as python's json module has more features than
     pyjson5. For example pyjson5 doesn't support indent."""
     kwargs.setdefault("cls", HabJsonEncoder)
-    # Sort dictionaries by key for consistent freeze and diff.
-    kwargs.setdefault("sort_keys", True)
     return _json.dumps(data, **kwargs)
 
 
@@ -300,7 +298,7 @@ def glob_path(path):
     While a `pathlib.Path` can be created with a glob string you won't be able to
     resolve the glob into files. This function breaks the path down to its top level
     item and calls `Path.glob` on the remaining path. So `Path("/mnt/*/.hab.json")`
-    gets converted into `Path("/mnt").glob("*/.hab.json")`.
+    gets converted into `hab.utils.natural_sort(Path("/mnt").glob("*/.hab.json"))`.
 
     The input path will be converted to a `pathlib.Path` object for this operation.
 
@@ -309,7 +307,7 @@ def glob_path(path):
     # Strip the path into its parts removing the root of absolute paths.
     parts = path.parts[1:]
     # From the root run a glob search on all parts of the glob string
-    return Path(path.parts[0]).glob(str(Path(*parts)))
+    return natural_sort(Path(path.parts[0]).glob(str(Path(*parts))))
 
 
 class HabJsonEncoder(_json.JSONEncoder):
@@ -420,6 +418,8 @@ def natural_sort(ls, key=None):
             return text
 
     def alphanum_key(a_key):
+        if isinstance(a_key, (PurePath, _CloudPath)):
+            a_key = str(a_key)
         return [convert(c) for c in re.split(r"([0-9]+)", key(a_key))]
 
     return sorted(ls, key=alphanum_key)

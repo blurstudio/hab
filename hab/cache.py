@@ -134,7 +134,7 @@ class Cache:
                 )
 
                 # Add each found hab config to the cache
-                for path in sorted(glob.glob(str(dirname / glob_str))):
+                for path in utils.natural_sort(glob.glob(str(dirname / glob_str))):
                     path = Path(path)
                     try:
                         data = cls(forest={}, resolver=resolver)._load(
@@ -240,7 +240,7 @@ class Cache:
         cache = self.generate_cache(resolver, site_file, version=version)
 
         with cache_file.open("w") as fle:
-            json.dump(cache, fle, indent=4, sort_keys=True, cls=utils.HabJsonEncoder)
+            json.dump(cache, fle, indent=4, cls=utils.HabJsonEncoder)
         return cache_file
 
     def site_cache_path(self, path):

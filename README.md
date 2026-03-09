@@ -440,6 +440,15 @@ resolver = hab.Resolver(site=site)
 Hab is configured by json files found with glob strings passed to the cli or defined
 by an environment variable.
 
+Sort order is important to hab. The order of paths in `HAB_PATHS` controls how
+site files are merged. In site, config, and distro json files the order you define
+lists and dictionaries matters. Hab uses the python 3.7+ feature of dictionaries
+that they preserve the order a key was first inserted into the dict and iterating
+over the dict respects this insertion order(this does not apply to sets). Due to
+this hab code has a blanket ban on using `sort_keys=True` in json.dump(s) and care
+should be taken to ensure that dictionary order is preserved when processing.
+This documentation uses left and right to document the how items are processed,
+this is accomplished using sort order.
 
 ### Duplicate definitions
 
