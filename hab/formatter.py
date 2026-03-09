@@ -1,8 +1,12 @@
 import enum
+import logging
 import os
 import string
+from contextlib import contextmanager
 
 from . import utils
+
+logger = logging.getLogger(__name__)
 
 
 class ExpandMode(enum.Enum):
@@ -28,6 +32,25 @@ class ExpandMode(enum.Enum):
 
     def __str__(self):
         return self.name
+
+
+@contextmanager
+def format_feedback(value, key=None, parser=None, platform=None):
+    try:
+        yield
+    except KeyError as error:
+        data = {}
+        if key:
+            data["key"] = key
+        data["value"] = value
+        if platform:
+            data["platform"] = platform
+        if parser:
+            if parser.filename:
+                data["filename"] = parser.filename.as_posix()
+            else:
+                data["parser"] = parser
+        raise KeyError(f"Error formatting: {data}") from error
 
 
 class Formatter(string.Formatter):
@@ -105,6 +128,8 @@ class Formatter(string.Formatter):
         .. _`string.Formatter`:
            https://docs.python.org/3/library/string.html#string.Formatter.get_field
         """
+        if field_name not in kwargs and self.expand == ExpandMode.Remove:
+            return "", field_name
         # If a field_name was not provided, use the value stored in os.environ
         if field_name not in kwargs and field_name in os.environ:
             return os.getenv(field_name), field_name
@@ -113,8 +138,7 @@ class Formatter(string.Formatter):
             value = self.shell_formats[self.language][";"]
             return value, field_name
 
-        ret = super().get_field(field_name, args, kwargs)
-        return ret
+        return super().get_field(field_name, args, kwargs)
 
     @classmethod
     def language_from_ext(cls, ext):

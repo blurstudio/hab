@@ -4,6 +4,7 @@ import pytest
 
 from hab import utils
 from hab.merge_dict import MergeDict
+from hab.parsers import StubDistroVersion
 
 
 @pytest.mark.parametrize(
@@ -92,3 +93,52 @@ def test_merge(config_root, filename):
     result = merger.apply_platform_wildcards(file_two, output=result)
 
     assert result == out_data
+
+
+@pytest.mark.parametrize(
+    "platforms",
+    (
+        ["windows", "linux"],
+        ["linux", "windows"],
+    ),
+)
+def test_format_feedback(uncached_resolver, platforms):
+    """Verify that the extra debug info is included when using format_feedback.
+
+    All tests will fail on the first platform being processed.
+    """
+    data = {"set": {"INVALID": "{A_KEY}"}}
+    site = uncached_resolver.site
+
+    def error_text(platform, parser=None, filename=None):
+        ret = '"' "Error formatting: {'key': 'INVALID', 'value': '{A_KEY}'"
+        ret += f", 'platform': '{platform}'"
+        if parser:
+            ret += f", 'parser': {parser}"
+        if filename:
+            ret += f", 'filename': '{filename.as_posix()}'"
+        ret += '}"'
+        return ret
+
+    # Test without a parser
+    merger = MergeDict(site=site, platforms=platforms)
+    with pytest.raises(KeyError) as excinfo:
+        merger.apply_platform_wildcards(data)
+
+    assert str(excinfo.value) == error_text(platforms[0])
+
+    # Test with a parser without a filename
+    stub = StubDistroVersion(uncached_resolver.distros, uncached_resolver, name="ABC")
+    merger = MergeDict(site=site, platforms=platforms, parser=stub, test=5)
+    with pytest.raises(KeyError) as excinfo:
+        merger.apply_platform_wildcards(data)
+
+    assert str(excinfo.value) == error_text(platforms[0], parser=stub)
+
+    # Test with a parser with a filename
+    cfg = uncached_resolver.resolve("not_set")
+    merger = MergeDict(site=site, platforms=platforms, parser=cfg)
+    with pytest.raises(KeyError) as excinfo:
+        merger.apply_platform_wildcards(data)
+
+    assert str(excinfo.value) == error_text(platforms[0], filename=cfg.filename)

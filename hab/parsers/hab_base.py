@@ -663,6 +663,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             relative_root=self.dirname,
             platforms=self.resolver.site["platforms"],
             site=self.resolver.site,
+            parser=obj,
         )
         merger.formatter = obj.format_environment_value
         merger.validator = self.check_environment

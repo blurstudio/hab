@@ -1,11 +1,22 @@
+import logging
 import os
 
 from . import utils
+from .formatter import format_feedback
+
+logger = logging.getLogger(__name__)
 
 
-class MergeDict(object):
+class MergeDict:
+    operations = ["unset", "set", "prepend", "append"]
+
     def __init__(
-        self, platform=None, platforms=("linux", "windows"), site=None, **format_kwargs
+        self,
+        platform=None,
+        platforms=("linux", "windows"),
+        site=None,
+        parser=None,
+        **format_kwargs,
     ):
         self.format_kwargs = format_kwargs
         self.formatter = self.default_format
@@ -13,6 +24,7 @@ class MergeDict(object):
         self.platforms = platforms
         self.validator = None
         self.site = site
+        self.parser = parser
 
         if platform is None:
             platform = utils.Platform.name()
@@ -139,6 +151,19 @@ class MergeDict(object):
         if self.validator:
             self.validator(changes)
 
+        # Check for any unsupported operations that may have been defined.
+        # This likely is caused by forgetting to add the operation and directly
+        # adding the env vars accidentally.
+        for invalid in set(changes.keys()).difference(self.operations):
+            parser = (
+                self.parser.filename
+                if self.parser and self.parser.filename
+                else self.parser
+            )
+            logger.warning(
+                f"Unsupported operation {invalid!r} for plaform {platform!r} in {parser}"
+            )
+
         if "unset" in changes:
             # When applying the env vars later None will trigger removing the env var.
             # The other operations may end up replacing this value.
@@ -148,7 +173,10 @@ class MergeDict(object):
         # base user and system variable values without them causing issues.
         if "set" in changes:
             for key, value in changes["set"].items():
-                data[key] = self.formatter(value, platform=platform)
+                with format_feedback(
+                    value, key=key, parser=self.parser, platform=platform
+                ):
+                    data[key] = self.formatter(value, platform=platform)
                 if isinstance(data[key], str):
                     data[key] = [data[key]]
 
@@ -157,7 +185,10 @@ class MergeDict(object):
                 continue
 
             for key, value in changes[operation].items():
-                value = self.formatter(value, platform=platform)
+                with format_feedback(
+                    value, key=key, parser=self.parser, platform=platform
+                ):
+                    value = self.formatter(value, platform=platform)
                 existing = data.get(key, "")
                 if existing:
                     if operation == "prepend":
