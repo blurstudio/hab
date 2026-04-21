@@ -148,7 +148,7 @@ class DistroVersion(HabBase):
         if aliases is NotSet:
             return aliases
 
-        version_info = (self.distro_name, str(self.version))
+        version_info = (self.distro_name, str(self.version), None)
         for platform in aliases.values():
             for alias in platform:
                 # Ensure that we always have a dictionary for aliases
