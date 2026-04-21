@@ -1,0 +1,32 @@
+{
+    "set": {
+        "dump_filters": {
+            "site": {
+                "0": [
+                    "config_paths",
+                    "distro_paths",
+                    "downloads",
+                    "dump_filters",
+                    "ignored_distros",
+                    "platform_path_maps",
+                    "platforms",
+                    "site_cache_file_template",
+                    "stub_distros"
+                ],
+                "2": [
+                    "downloads",
+                    "dump_filters",
+                    "entry_points",
+                    "filename",
+                    "platform_path_maps",
+                    "platforms"
+                ],
+                "4": [
+                    "dump_filters",
+                    "platform_path_maps",
+                    "platforms"
+                ]
+            }
+        }
+    }
+}

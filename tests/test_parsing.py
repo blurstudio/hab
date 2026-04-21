@@ -545,6 +545,23 @@ class TestDump:
             else:
                 assert "stub_distros:" in result
 
+    def test_filters(self, habcached_resolver):
+        """Check that dump properly respects dump_filters["alias"] site settings."""
+        # Verify that the expected test data is set. There is at least a 3 verbosity setting.
+        assert set(habcached_resolver.site["dump_filters"]["alias"].keys()) == set([3])
+
+        cfg = habcached_resolver.resolve("not_set/child")
+        checks = ["distro:  ('aliased', '2.0')", "distro:  ('maya2020', '2020.1')"]
+
+        # At verbosity 3 distro is not shown
+        result = cfg.dump(verbosity=3, color=False)
+        for check in checks:
+            assert result.count(check) == 0
+        # At verbosity 4 distro starts showing
+        result = cfg.dump(verbosity=4, color=False)
+        for check in checks:
+            assert result.count(check) == 5
+
 
 def test_environment(resolver):
     # Check that the correct errors are raised
