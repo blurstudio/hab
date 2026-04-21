@@ -1,3 +1,4 @@
+import json
 import sys
 import tempfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -246,105 +247,209 @@ def test_path_in_raise(config_root):
     assert "missing_file.json" in str(excinfo.value)
 
 
-def test_dump(config_root):
-    """utils.dump_object are checked pretty well in test_parsing, here we test
-    the colorization settings and ensuring that the desired results are listed
-    """
-    checks = (
-        "{green}Dump of Site{reset}\n",
-        "{green}ignored_distros:  {reset}release, pre",
-    )
+class TestDump:
+    def test_dump(self, config_root):
+        """utils.dump_object are checked pretty well in test_parsing, here we test
+        the colorization settings and ensuring that the desired results are listed
+        """
+        checks = (
+            "{green}Dump of Site{reset}\n",
+            "{green}filename:  {reset}{fn}",
+            "{green}stub_distros:  {reset}Dictionary keys: 0",
+            "{green}downloads:  {reset}Dictionary keys: 2",
+        )
 
-    paths = [config_root / "site_main.json"]
-    site = Site(paths)
-    assert site.get("colorize") is None
+        paths = [config_root / "site_main.json"]
+        site = Site(paths)
+        assert site.get("colorize") is None
 
-    result = site.dump()
-    for check in checks:
-        assert check.format(green=Fore.GREEN, reset=Style.RESET_ALL) in result
+        result = site.dump()
+        for check in checks:
+            c = check.format(
+                green=Fore.GREEN, reset=Style.RESET_ALL, fn="site_main.json"
+            )
+            assert c in result
 
-    paths = [config_root / "site_override.json"]
-    site = Site(paths)
-    assert site.get("colorize") is False
+        paths = [config_root / "site_override.json"]
+        site = Site(paths)
+        assert site.get("colorize") is False
 
-    result = site.dump()
-    for check in checks:
-        assert check.format(green="", reset="") in result
+        result = site.dump()
+        for check in checks:
+            c = check.format(green="", reset="", fn="site_override.json")
+            assert c in result
 
+    def test_cached(self, config_root, habcached_site_file):
+        """Test that cached indicators are shown properly for site dump based on
+        verbosity setting."""
 
-def test_dump_cached(config_root, habcached_site_file):
-    """Test that cached indicators are shown properly for site dump based on
-    verbosity setting."""
+        # Create the hab setup with caching only on one of the two site files
+        other_site = config_root / "site_os_specific.json"
+        site = Site([habcached_site_file, other_site])
+        resolver = Resolver(site)
+        site.cache.save_cache(resolver, habcached_site_file)
 
-    # Create the hab setup with caching only on one of the two site files
-    other_site = config_root / "site_os_specific.json"
-    site = Site([habcached_site_file, other_site])
-    resolver = Resolver(site)
-    site.cache.save_cache(resolver, habcached_site_file)
+        # Build a check string to verify that the dump is correctly formatted
+        # Note: To simplify the check_template for testing we will force the dump
+        # to a smaller width to ensure it always wraps the file paths.
+        platform = utils.Platform.name()
+        check_template = (
+            f"{{green}}HAB_PATHS:  {{reset}}{habcached_site_file}{{cached}}",
+            f"            {other_site}",
+            f"{{green}}config_paths:  {{reset}}config\\path\\{platform}",
+            f"               {config_root}\\configs\\*{{cached}}",
+            f"{{green}}distro_paths:  {{reset}}distro\\path\\{platform}{{cls_name}}",
+            f"               {config_root}\\distros\\*{{cls_name}}{{cached}}",
+        )
+        check_template = "\n".join(check_template)
+        colors = {
+            "green": Fore.GREEN,
+            "reset": Style.RESET_ALL,
+        }
+        if platform != "windows":
+            check_template = check_template.replace("\\", "/")
 
-    # Build a check string to verify that the dump is correctly formatted
-    # Note: To simplify the check_template for testing we will force the dump
-    # to a smaller width to ensure it always wraps the file paths.
-    platform = utils.Platform.name()
-    check_template = (
-        f"{{green}}HAB_PATHS:  {{reset}}{habcached_site_file}{{cached}}",
-        f"            {other_site}",
-        f"{{green}}config_paths:  {{reset}}config\\path\\{platform}",
-        f"               {config_root}\\configs\\*{{cached}}",
-        f"{{green}}distro_paths:  {{reset}}distro\\path\\{platform}{{cls_name}}",
-        f"               {config_root}\\distros\\*{{cls_name}}{{cached}}",
-    )
-    check_template = "\n".join(check_template)
-    colors = {
-        "green": Fore.GREEN,
-        "reset": Style.RESET_ALL,
-    }
-    if platform != "windows":
-        check_template = check_template.replace("\\", "/")
+        # With color enabled:
+        # No verbosity, should not show cached status
+        assert site.get("colorize") is None
+        result = site.dump(width=60)
+        check = check_template.format(cached="", cls_name="", **colors)
+        assert check in result
 
-    # With color enabled:
-    # No verbosity, should not show cached status
-    assert site.get("colorize") is None
-    result = site.dump(width=60)
-    check = check_template.format(cached="", cls_name="", **colors)
-    assert check in result
+        # verbosity enabled, should show cached status
+        result = site.dump(verbosity=1, width=60)
+        check = check_template.format(
+            cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}", cls_name="", **colors
+        )
+        assert check in result
 
-    # verbosity enabled, should show cached status
-    result = site.dump(verbosity=1, width=60)
-    check = check_template.format(
-        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}", cls_name="", **colors
-    )
-    assert check in result
+        # verbosity level 2, should also show DistroFinder classes
+        result = site.dump(verbosity=2, width=60)
+        check = check_template.format(
+            cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}",
+            cls_name=f" {Fore.CYAN}[DistroFinder]{Style.RESET_ALL}",
+            **colors,
+        )
+        assert check in result
 
-    # verbosity level 2, should also show DistroFinder classes
-    result = site.dump(verbosity=2, width=60)
-    check = check_template.format(
-        cached=f" {Fore.YELLOW}(cached){Style.RESET_ALL}",
-        cls_name=f" {Fore.CYAN}[DistroFinder]{Style.RESET_ALL}",
-        **colors,
-    )
-    assert check in result
+        # Disable Color:
+        site["colorize"] = False
+        assert site.get("colorize") is False
 
-    # Disable Color:
-    site["colorize"] = False
-    assert site.get("colorize") is False
+        # No verbosity, should not show cached status
+        result = site.dump(width=60)
+        check = check_template.format(cached="", green="", reset="", cls_name="")
+        assert check in result
 
-    # No verbosity, should not show cached status
-    result = site.dump(width=60)
-    check = check_template.format(cached="", green="", reset="", cls_name="")
-    assert check in result
+        # verbosity enabled, should show cached status
+        result = site.dump(verbosity=1, width=60)
+        check = check_template.format(
+            cached=" (cached)", green="", reset="", cls_name=""
+        )
+        assert check in result
 
-    # verbosity enabled, should show cached status
-    result = site.dump(verbosity=1, width=60)
-    check = check_template.format(cached=" (cached)", green="", reset="", cls_name="")
-    assert check in result
+        # verbosity level 2, should also show DistroFinder classes
+        result = site.dump(verbosity=2, width=60)
+        check = check_template.format(
+            cached=" (cached)", green="", reset="", cls_name=" [DistroFinder]"
+        )
+        assert check in result
 
-    # verbosity level 2, should also show DistroFinder classes
-    result = site.dump(verbosity=2, width=60)
-    check = check_template.format(
-        cached=" (cached)", green="", reset="", cls_name=" [DistroFinder]"
-    )
-    assert check in result
+    def test_filters(self, config_root, tmp_path):
+        """Check that dump properly respects dump_filters["site"] site settings."""
+        paths = [
+            config_root / "site_main.json",
+            config_root / "site" / "site_dump_filter.json",
+        ]
+        site = Site(paths)
+
+        # Verify that the expected test data is set.
+        assert set(site["dump_filters"]["site"].keys()) == set([0, 2, 4])
+
+        # Verify that a empty list is returned if requesting a undefined target.
+        assert "undefined" not in site["dump_filters"]
+        assert site.dump_filter("undefined", 0) == []
+        assert site.dump_filter("undefined", 1) == []
+        assert site.dump_filter("undefined", 9) == []
+
+        def check_verbosity(verbosity, checks):
+            """Verify that dump_filters is respected for site"""
+            result = site.dump(verbosity=verbosity, color=False)
+            try:
+                for check in checks.values():
+                    if check[0]:
+                        assert (
+                            check[1] in result
+                        ), f"{check[1]!r} should be in dump for verbosity {verbosity}"
+                    else:
+                        assert (
+                            check[1] not in result
+                        ), f"{check[1]!r} should not be in dump for verbosity {verbosity}"
+            except Exception:
+                print(result)
+                raise
+
+        checks = {
+            "hab": [True, "HAB_PATHS:  "],
+            "config": [False, "config_paths:  "],
+            "distro": [False, "distro_paths:  "],
+            "stub": [False, "stub_distros:"],
+            "ignore": [False, "ignored_distros:  release, pre"],
+            "platforms": [False, "platforms:  windows, linux"],
+            "cache": [False, "site_cache_file_template:  {stem}.habcache"],
+            "dump_filters": [False, "dump_filters:"],
+            "generic": [True, "generic_value:  False"],
+            "filename": [True, "filename:  site_main.json"],
+            "plat_map": [False, "platform_path_maps:"],
+            "download": [False, "downloads:"],
+        }
+
+        check_verbosity(0, checks)
+        check_verbosity(1, checks)
+        # Filename is only hidden for verbosity 2-3
+        checks["filename"][0] = False
+        # These are now being shown
+        checks["config"][0] = True
+        checks["distro"][0] = True
+        checks["stub"][0] = True
+        checks["ignore"][0] = True
+        checks["cache"][0] = True
+        check_verbosity(2, checks)
+        check_verbosity(3, checks)
+        # Filename is only hidden for verbosity 2-3
+        checks["filename"][0] = True
+        # These are now being shown
+        checks["download"][0] = True
+        check_verbosity(4, checks)
+        # Everything should be shown
+        for check in checks.values():
+            check[0] = True
+        check_verbosity(5, checks)
+
+    def test_filters_invalid(self, config_root, tmp_path):
+        """Tests handling of invalid verbosity keys."""
+
+        # Create a invalid site file
+        site_file = tmp_path / "invalid.json"
+        invalid = {
+            "set": {
+                "dump_filters": {
+                    "site": {
+                        # These keys must be convertible to ints. A ValueError
+                        # will be raised when processing this file.
+                        "a": ["dump_filters"]
+                    }
+                }
+            }
+        }
+        with site_file.open("w") as fh:
+            json.dump(invalid, fh)
+
+        with pytest.raises(
+            ValueError,
+            match="dump_filter's verbosity keys must be an int, got: 'a' for",
+        ):
+            Site([site_file])
 
 
 class TestOsSpecific:

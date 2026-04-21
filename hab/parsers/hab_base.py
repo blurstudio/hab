@@ -401,9 +401,15 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
             elif prop == "versions":
                 value = self._dump_versions(value, verbosity=verbosity, color=color)
 
+            # Hide some of the alias keys depending on the selected verbosity
+            exclude = self.resolver.site.dump_filter("alias", verbosity)
             ret.append(
                 utils.dump_object(
-                    value, label=f"{prop}:  ", flat_list=flat_list, color=color
+                    value,
+                    label=f"{prop}:  ",
+                    flat_list=flat_list,
+                    color=color,
+                    exclude=exclude,
                 )
             )
 

@@ -132,7 +132,9 @@ def decode_freeze(txt):
     return json.loads(data)
 
 
-def dump_object(obj, label="", width=80, flat_list=False, color=False, verbosity=0):
+def dump_object(
+    obj, label="", width=80, flat_list=False, color=False, verbosity=0, exclude=None
+):
     """Recursively convert python objects into a human readable table string.
 
     Args:
@@ -152,6 +154,8 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False, verbosity
         color (bool, optional): Use ANSI escape character sequences to colorize
             the output of the text.
         verbosity (int, optional): More information is shown with higher values.
+        exclude (list, optional): A list of dict keys to exclude from the output.
+            This is how `Site.dump_filter()` gets applied.
     """
     pad = " " * len(label)
     if label:
@@ -165,7 +169,12 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False, verbosity
         rows = []
         obj = [
             dump_object(
-                o, width=width, flat_list=flat_list, color=color, verbosity=verbosity
+                o,
+                width=width,
+                flat_list=flat_list,
+                color=color,
+                verbosity=verbosity,
+                exclude=exclude,
             )
             for o in obj
         ]
@@ -200,6 +209,8 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False, verbosity
         rows = []
         lbl = label
         for k, v in sorted(obj.items()):
+            if exclude and k in exclude:
+                continue
             rows.append(
                 dump_object(
                     v,
@@ -208,6 +219,7 @@ def dump_object(obj, label="", width=80, flat_list=False, color=False, verbosity
                     flat_list=flat_list,
                     color=color,
                     verbosity=verbosity,
+                    exclude=exclude,
                 )
             )
             lbl = pad

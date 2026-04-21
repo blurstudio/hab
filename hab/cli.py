@@ -646,7 +646,7 @@ def env(settings, uri, launch):
     "--verbose",
     "verbosity",
     count=True,
-    help="Show increasingly detailed output. Can be used up to 3 times.",
+    help="Show increasingly detailed output.",
 )
 @click.option(
     "-f",

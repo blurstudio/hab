@@ -689,6 +689,61 @@ calling `hab cache` has all of the required `platform_path_maps` defined. The
 cache will replace the start of file paths matching one of the current platform's
 mapping values with the mappings key.
 
+#### Filtering dumps
+
+The cli's dump command can get pretty verbose, to give better control over this
+you can use the `dump_filters` key in your site config. This defaults to hiding
+some of the complexity in the site and alias output.
+
+See the site default in [hab/site.py](hab/site.py).
+```json5
+{
+    "dump_filters": {
+        // Filters for the site dump
+        "site": {
+            // For verbosity 0 and 1, don't show these items
+            "0": [
+                "dump_filters",
+                "ignored_distros",
+                "platforms"
+            ],
+            // For verbosity 2, show all items but dump_filters
+            "2": ["dump_filters"]
+            // Any higher verbosity will show all items
+        },
+        // Filters for alias dump
+        "alias": {...}
+    }
+}
+```
+
+Each key in `dump_filters` is targeting a specific dump filter. "alias" is used
+to filter the output of aliases (`hab dump - -vvv`), and site controls the site
+dump's items (`hab dump -t s -vvv`). For each of these dicts, the key is a int
+representing the verbosity level. `-vv` is `"2"`, `-vvvvv` is `"5"`. The value
+is a list of key names to hide. When there is a gap in verbosity numbers it will
+use the closest verbosity filter <= the requested verbosity. If the verbosity is
+higher than the largest defined verbosity, no filtering will happen.
+
+These commands show the differences by adding extra verbosity for a site dump:
+```bash
+$ cd tests
+$ hab --site site/site_dump_filter.json --site site_main.json dump -t s
+$ hab --site site/site_dump_filter.json --site site_main.json dump -t s -v
+...
+$ hab --site site/site_dump_filter.json --site site_main.json dump -t s -vvvvv
+```
+
+Similarly you can filter the text shown for alias by specifying `dump_filters["alias"]`.
+Config dumps only start to show filterable keys for aliases at verbosity 3+ there
+is no need to specify lower numbers.
+
+```bash
+$ cd tests
+$ hab --site "site_main.json" dump app/aliased -vvv
+$ hab --site "site_main.json" dump app/aliased -vvvv
+```
+
 ### Python version
 
 Hab uses shell script files instead of an entry_point executable. This allows it

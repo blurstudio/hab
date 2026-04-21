@@ -1,3 +1,4 @@
+import bisect
 import copy
 import logging
 import os
@@ -36,6 +37,28 @@ class Site(UserDict):
             "ignored_distros": ["release", "pre"],
             "platforms": ["windows", "osx", "linux"],
             "site_cache_file_template": ["{{stem}}.habcache"],
+            "dump_filters": {
+                "alias": {
+                    "3": [
+                        "defines_aliases",
+                        "distro",
+                        "icon",
+                        "min_verbosity",
+                        "sources",
+                    ]
+                },
+                "site": {
+                    "0": [
+                        "dump_filters",
+                        "ignored_distros",
+                        "platforms",
+                        "prefs_default",
+                        "site_cache_file_template",
+                        "verbosity_action",
+                    ],
+                    "2": ["dump_filters"],
+                },
+            },
         }
     }
 
@@ -44,6 +67,7 @@ class Site(UserDict):
             platform = utils.Platform.name()
         self.platform = platform
         self._downloads_parsed = False
+        self._dump_filters_cache = {}
 
         # Add default data to all site instances. Site data is only valid for
         # the current platform, so discard any other platform configurations.
@@ -166,6 +190,9 @@ class Site(UserDict):
         # Include all of the resolved site configurations
         ret = []
         for prop, value in self.items():
+            # Hide some properties depending on the selected verbosity
+            if prop in self.dump_filter("site", verbosity):
+                continue
             if verbosity and prop in ("config_paths", "distro_paths"):
                 cache = getattr(self.cache, prop)()
                 paths = []
@@ -185,6 +212,32 @@ class Site(UserDict):
 
         ret = "\n".join(ret)
         return utils.dump_title("Dump of Site", f"{site_ret}\n{ret}", color=color)
+
+    def dump_filter(self, target, verbosity):
+        """Returns the requested filter <= to the requested verbosity level.
+
+        The returned list of key names is used by various dump methods to filter
+        how much data they show. When showing a target dict, it will hide the
+        items stored in this list for the verbosity level.
+        """
+        sorted_keys = self._dump_filters_cache.get(target)
+        if not sorted_keys:
+            return []
+
+        # Don't filter anything if larger than the largest defined verbosity
+        if verbosity > sorted_keys[-1]:
+            return []
+
+        # Find the insertion point for the verbosity threshold
+        idx = bisect.bisect_right(sorted_keys, verbosity)
+
+        # Verbosity is lower than the smallest available filter level
+        if idx == 0:
+            return []
+
+        # Retrieve the correct key and return the associated list
+        target_verbosity = sorted_keys[idx - 1]
+        return self.data["dump_filters"][target][target_verbosity]
 
     def entry_point_init(self, group, value, args, name=""):
         """Initialize an entry point with args and kwargs.
@@ -311,6 +364,9 @@ class Site(UserDict):
 
         self["distro_paths"] = distro_paths
 
+        # Standardize and cache dump_filters
+        self.standardize_dump_filters()
+
         # Ensure any platform_path_maps are converted to pathlib objects.
         self.standardize_platform_path_maps()
 
@@ -422,6 +478,32 @@ class Site(UserDict):
             logger.debug(f"Running {group} entry_point: {ep}")
             func = ep.load()
             func(**kwargs)
+
+    def standardize_dump_filters(self):
+        """Conforms dump_filter and caches data to ensure dump_filter() is fast.
+
+        Rebuilds "dump_filters" converting the verbosity keys to int. Populates
+        the _dump_filters_cache used by dump_filter().
+        """
+        dump_filters = self.data.get("dump_filters", {})
+
+        for target, verbosity_filter in dump_filters.items():
+            standardized_flter = {}
+            for k, v in verbosity_filter.items():
+                # Convert the key to an int value for later use and check for
+                # invalid configuration.
+                try:
+                    standardized_flter[int(k)] = v
+                except ValueError:
+                    raise ValueError(
+                        f"dump_filter's verbosity keys must be an int, got: {k!r} for {v}"
+                    ) from None
+
+            # Update from str to int keys
+            dump_filters[target] = standardized_flter
+
+            # Store the cache for repeated bisect calls
+            self._dump_filters_cache[target] = sorted(standardized_flter.keys())
 
     def standardize_platform_path_maps(self):
         """Ensure the mappings defined in platform_path_maps are converted to
