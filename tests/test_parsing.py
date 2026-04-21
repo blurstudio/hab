@@ -551,7 +551,10 @@ class TestDump:
         assert set(habcached_resolver.site["dump_filters"]["alias"].keys()) == set([3])
 
         cfg = habcached_resolver.resolve("not_set/child")
-        checks = ["distro:  ('aliased', '2.0')", "distro:  ('maya2020', '2020.1')"]
+        checks = [
+            "distro:  ('aliased', '2.0', None)",
+            "distro:  ('maya2020', '2020.1', None)",
+        ]
 
         # At verbosity 3 distro is not shown
         result = cfg.dump(verbosity=3, color=False)

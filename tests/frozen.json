@@ -50,21 +50,21 @@
     "windows": {
       "dcc": {
         "cmd": "TEST_DIR_NAME\\the_dcc.exe",
-        "distro": ["the_dcc", "1.2"]
+        "distro": ["the_dcc", "1.2", null]
       },
       "dcc1.2": {
         "cmd": "TEST_DIR_NAME\\the_dcc.exe",
-        "distro": ["the_dcc", "1.2"]
+        "distro": ["the_dcc", "1.2", null]
       }
     },
     "linux": {
       "dcc": {
         "cmd": "TEST_DIR_NAME//the_dcc",
-        "distro": ["the_dcc", "1.2"]
+        "distro": ["the_dcc", "1.2", null]
       },
       "dcc1.2": {
         "cmd": "TEST_DIR_NAME//the_dcc",
-        "distro": ["the_dcc", "1.2"]
+        "distro": ["the_dcc", "1.2", null]
       }
     }
   },

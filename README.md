@@ -1085,9 +1085,9 @@ require multiple arguments, for more details see args documentation in
 [subprocess.Popen](https://docs.python.org/3/library/subprocess.html#subprocess.Popen).
 
 When the aliases are converted to dicts, they automatically get a "distro" key
-added to them. This contains a two item tuple containing the `distro_name` and
-`version`. This is preserved when frozen. You can use this to track down what
-distro created a [duplicate alias](#duplicate-definitions). This is also useful
+added to them. This contains a three item tuple containing the `distro_name`,
+`version` and `source`. This is preserved when frozen. You can use this to track
+down what distro created a [duplicate alias](#duplicate-definitions). This is also useful
 if you need to tie a farm job to a specific version of a dcc based on the active
 hab setup.
 ```py

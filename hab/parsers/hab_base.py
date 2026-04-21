@@ -536,7 +536,7 @@ class HabBase(anytree.NodeMixin, metaclass=HabMeta):
                 )
                 for k, v in value.items()
             }
-        elif isinstance(value, (bool, int)):
+        elif isinstance(value, (bool, int)) or value is None:
             # Just return boolean values, no need to format
             return value
 
