@@ -27,40 +27,6 @@ def config_root():
     return Path(__file__).parent
 
 
-def generate_habcached_site_file(config_root, dest):
-    """Returns the path to a site config file generated from `site_main.json`
-    configured so it can have a .habcache file generated next to it. The
-    config_paths and distro_paths of the site file are hard coded to point to
-    the repo's tests directory so it uses the same configs/distros. It also adds
-    a `config-root` entry to `platform_path_maps`.
-    """
-    site_file = Path(dest) / "site.json"
-    site_src = config_root / "site_main.json"
-
-    # Load the site_main.json files contents so we can modify it before saving
-    # it into the dest for testing.
-    data = json.load(site_src.open())
-    append = data["append"]
-
-    # Hard code relative_root to the tests folder so it works from
-    # a random testing directory without copying all configs/distros.
-    for key in ("config_paths", "distro_paths"):
-        for i in range(len(append[key])):
-            append[key][i] = append[key][i].format(relative_root=site_src.parent)
-
-    # Add platform_path_maps for the pytest directory to simplify testing and
-    # test cross-platform support. We need to add all platforms, but this only
-    # needs to run on the current platform, so add the same path to all.
-    append["platform_path_maps"]["config-root"] = {
-        platform: str(config_root) for platform in data["set"]["platforms"]
-    }
-
-    with site_file.open("w") as fle:
-        json.dump(data, fle, indent=4)
-
-    return site_file
-
-
 @pytest.fixture(scope="session")
 def habcached_site_file(config_root, tmp_path_factory):
     """Generates a site.json file and generates its habcache file.
@@ -70,7 +36,7 @@ def habcached_site_file(config_root, tmp_path_factory):
     """
     # Create the site file
     shared = tmp_path_factory.mktemp("_cache")
-    ret = generate_habcached_site_file(config_root, shared)
+    ret = Helpers.generate_habcached_site_file(config_root, shared)
 
     # Generate the habcache file
     site = Site([ret])
@@ -303,6 +269,40 @@ class Helpers(object):
             bool: If a and b represent the same requirement
         """
         return type(a) == type(b) and str(a) == str(b)
+
+    @staticmethod
+    def generate_habcached_site_file(config_root, dest):
+        """Returns the path to a site config file generated from `site_main.json`
+        configured so it can have a .habcache file generated next to it. The
+        config_paths and distro_paths of the site file are hard coded to point to
+        the repo's tests directory so it uses the same configs/distros. It also adds
+        a `config-root` entry to `platform_path_maps`.
+        """
+        site_file = Path(dest) / "site.json"
+        site_src = config_root / "site_main.json"
+
+        # Load the site_main.json files contents so we can modify it before saving
+        # it into the dest for testing.
+        data = json.load(site_src.open())
+        append = data["append"]
+
+        # Hard code relative_root to the tests folder so it works from
+        # a random testing directory without copying all configs/distros.
+        for key in ("config_paths", "distro_paths"):
+            for i in range(len(append[key])):
+                append[key][i] = append[key][i].format(relative_root=site_src.parent)
+
+        # Add platform_path_maps for the pytest directory to simplify testing and
+        # test cross-platform support. We need to add all platforms, but this only
+        # needs to run on the current platform, so add the same path to all.
+        append["platform_path_maps"]["config-root"] = {
+            platform: str(config_root) for platform in data["set"]["platforms"]
+        }
+
+        with site_file.open("w") as fle:
+            json.dump(data, fle, indent=4)
+
+        return site_file
 
     @staticmethod
     @contextmanager

@@ -235,8 +235,16 @@ class Cache:
                 cache = cache_to_platform(contents[key], mappings)
                 self._cache.setdefault(key, {}).update(cache)
 
-    def save_cache(self, resolver, site_file, version=1):
+    def save_cache(self, resolver, site_file, version=1, dest=None):
+        """Create a .habcache file next to site_file that can be loaded instead
+        of having to glob the file system.
+
+        If dest is provided the .habcache file will be saved in that directory
+        instead of next to site_file with the same name.
+        """
         cache_file = self.site_cache_path(site_file)
+        if dest:
+            cache_file = dest / cache_file.name
         cache = self.generate_cache(resolver, site_file, version=version)
 
         with cache_file.open("w") as fle:
