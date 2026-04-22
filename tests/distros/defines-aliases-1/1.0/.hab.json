@@ -1,0 +1,44 @@
+{
+    "name": "defines-aliases-1",
+    "description": "Simulates having access to multiple major application versions like Nuke 15 and Nuke 16 in the same config.",
+    "aliases": {
+        "windows": [
+            [
+                "da", {
+                    "label": "Ver Alias"
+                }
+            ],
+            [
+                "da_1.0", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "defines_aliases": ["da", "da_blank"],
+                    "environment": {
+                        "prepend": {
+                            "DA_ALIAS": "1.0"
+                        }
+                    },
+                    "label": "Ver Alias 1.0"
+                }
+            ]
+        ],
+        "linux": [
+            [
+                "da", {
+                    "label": "Ver Alias"
+                }
+            ],
+            [
+                "da_1.0", {
+                    "cmd": ["python", "{relative_root}/list_vars.py"],
+                    "defines_aliases": ["da", "da_blank"],
+                    "environment": {
+                        "prepend": {
+                            "DA_ALIAS": "1.0"
+                        }
+                    },
+                    "label": "Ver Alias 1.0"
+                }
+            ]
+        ]
+    }
+}

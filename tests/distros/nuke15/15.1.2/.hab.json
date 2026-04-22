@@ -1,0 +1,37 @@
+{
+    "name": "nuke15",
+    "aliases": {
+        "linux": [
+            [
+                "nuke", {
+                    "label": "Nuke",
+                    "min_verbosity": {"global": 0}
+                }
+            ],
+            [
+                "nuke15.1", {
+                    "cmd": "/usr/local/Nuke15.1v2/Nuke15.1",
+                    "defines_aliases": ["nuke"],
+                    "label": "Nuke 15.1v2",
+                    "min_verbosity": {"global": 1}
+                }
+            ]
+        ],
+        "windows": [
+            [
+                "nuke", {
+                    "label": "Nuke",
+                    "min_verbosity": {"global": 0}
+                }
+            ],
+            [
+                "nuke15", {
+                    "cmd": "C:\\Program Files\\Nuke15.1v2\\Nuke15.1.exe",
+                    "defines_aliases": ["nuke"],
+                    "label": "Nuke 15.1v2",
+                    "min_verbosity": {"global": 1}
+                }
+            ]
+        ]
+    }
+}

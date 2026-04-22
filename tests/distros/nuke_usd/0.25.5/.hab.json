@@ -1,0 +1,38 @@
+{
+    "name": "nuke-usd",
+    "description": "Example of using hab to work around the limited usd plugin system. The houdini package and maya module system handle this much nicer.",
+    "alias_mods": {
+        "nuke15": {
+            "environment": {
+                "os_specific": true,
+                "linux": {
+                    "prepend": {
+                        "PXR_PLUGINPATH_NAME": "{relative_root}/nuke15/linux"
+                    }
+                },
+                "windows": {
+                    "prepend": {
+                        "PXR_PLUGINPATH_NAME": "{relative_root}/nuke15/win64",
+                        "PXR_USD_WINDOWS_DLL_PATH": "{relative_root}/nuke15/win64"
+                    }
+                }
+            }
+        },
+        "nuke16": {
+            "environment": {
+                "os_specific": true,
+                "linux": {
+                    "prepend": {
+                        "PXR_PLUGINPATH_NAME": "{relative_root}/nuke16/linux"
+                    }
+                },
+                "windows": {
+                    "prepend": {
+                        "PXR_PLUGINPATH_NAME": "{relative_root}/nuke16/win64",
+                        "PXR_USD_WINDOWS_DLL_PATH": "{relative_root}/nuke16/win64"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,34 @@
+{
+    "name": "defines-aliases-1",
+    "description": "Shows how order aliases are defined dictates which defines_aliases is used.",
+    "aliases": {
+        "windows": [
+            [
+                "da_1.0", {
+                    "defines_aliases": ["da"],
+                    "label": "da_1.0 used for da, its defined first in the distro."
+                }
+            ],
+            [
+                "da_dup_1.0", {
+                    "defines_aliases": ["da"],
+                    "label": "da_dup_1.0 not used for da, its defined second in the distro."
+                }
+            ]
+        ],
+        "linux": [
+            [
+                "da_1.0", {
+                    "defines_aliases": ["da"],
+                    "label": "da_1.0 used for da, its defined first in the distro."
+                }
+            ],
+            [
+                "da_dup_1.0", {
+                    "defines_aliases": ["da"],
+                    "label": "da_dup_1.0 not used for da, its defined second in the distro."
+                }
+            ]
+        ]
+    }
+}

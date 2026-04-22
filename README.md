@@ -1175,6 +1175,58 @@ plugin for the same usd version, as well as having multiple plugins you want to
 version independently. To do this you can define a distro for each USD plugin,
 and modify the `PXR_PLUGINPATH_NAME` env var for usdview using alias_mods.
 
+#### Duplicating aliases
+
+When using [multiple app versions](#multiple-app-versions) you may want to add convenience aliases
+that are not version specific so users can simply launch the correct version, but
+if needed can choose the version to launch. The distro [`nuke15`](tests/distros/nuke15/15.1.2/.hab.json) adds the
+aliases nuke and nuke15. The distro [`nuke16`](tests\distros\nuke16\16.0.4\.hab.json) adds the aliases nuke and nuke16.
+The distro [`nuke-usd`](tests/distros/nuke_usd/0.25.5/.hab.json) uses [alias_mods](#alias-mods) to add specific env var paths to
+the nuke15 and nuke16 aliases.
+
+There is no way for `nuke-usd` to define the correct paths to add to the shared nuke
+alias. If you use `hab -r nuke15 -r nuke16 -r nuke-usd ...` nuke will be defined
+by the `nuke15` distro and if you use `hab -r nuke16 -r nuke15 -r nuke-usd` nuke
+will be defined by the `nuke16` distro.
+
+To handle this `nuke-usd` ignores the generic nuke alias and only modifies the
+nuke15 and nuke16 aliases. It then relies on those aliases defining `"defines_aliases": ["nuke"]`.
+This tells hab to create(if needed) and copy the contents of nuke15 or nuke16 (which
+ever is requested first) onto the generic nuke alias including any alias_mods.
+The `nuke15` and `nuke16` distros define the nuke alias but only set label and
+min_verbosity on the nuke alias. Only undefined values are copied so this makes
+the nuke alias have a generic label and visible by [default](#hiding-aliases).
+
+The order aliases and distros are specified controls which alias gets copied.
+If you run `hab -r nuke15 -r nuke16 -r nuke-usd dump "" -vvvv` note that nuke
+is a copy of nuke15 including env vars added by `nuke-usd`.
+```
+aliases:  nuke:  cmd:  C:\Program Files\Nuke15.1v2\Nuke15.1.exe
+                 distro:  ('nuke15', '15.1.2', 'nuke15')
+                 environment:  PXR_PLUGINPATH_NAME:  C:/hab/tests/distros/nuke_usd/0.25.5/nuke15/win64
+                               PXR_USD_WINDOWS_DLL_PATH:  C:/hab/tests/distros/nuke_usd/0.25.5/nuke15/win64
+                 label:  Nuke
+                 min_verbosity:  global:  0
+          nuke15:  cmd:  C:\Program Files\Nuke15.1v2\Nuke15.1.exe
+                   defines_aliases:  nuke
+                   distro:  ('nuke15', '15.1.2', None)
+                   environment:  PXR_PLUGINPATH_NAME:  C:/hab/tests/distros/nuke_usd/0.25.5/nuke15/win64
+                                 PXR_USD_WINDOWS_DLL_PATH:  C:/hab/tests/distros/nuke_usd/0.25.5/nuke15/win64
+                   label:  Nuke 15.1v2
+                   min_verbosity:  global:  1
+          nuke16:  cmd:  C:\Program Files\Nuke16.0v4\Nuke16.0.exe
+                   defines_aliases:  nuke
+                   distro:  ('nuke16', '16.0.4', None)
+                   environment:  PXR_PLUGINPATH_NAME:  C:/hab/tests/distros/nuke_usd/0.25.5/nuke16/win64
+                                 PXR_USD_WINDOWS_DLL_PATH:  C:/hab/tests/distros/nuke_usd/0.25.5/nuke16/win64
+                   label:  Nuke 16.0v4
+                   min_verbosity:  global:  1
+```
+
+However if you swap the order of the distros, `hab -r nuke16 -r nuke15 -r nuke-usd dump "" -vvvv`
+you will see that nuke is now sourced from nuke16 instead.
+
+
 #### Hiding aliases
 
 You may find that you have to define more aliases than a regular user will

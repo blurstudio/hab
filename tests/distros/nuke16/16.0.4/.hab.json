@@ -1,0 +1,37 @@
+{
+    "name": "nuke16",
+    "aliases": {
+        "linux": [
+            [
+                "nuke", {
+                    "label": "Nuke",
+                    "min_verbosity": {"global": 0}
+                }
+            ],
+            [
+                "nuke16.0", {
+                    "cmd": "/usr/local/Nuke16.0v4/Nuke16.0",
+                    "defines_aliases": ["nuke"],
+                    "label": "Nuke 16.0v4",
+                    "min_verbosity": {"global": 1}
+                }
+            ]
+        ],
+        "windows": [
+            [
+                "nuke", {
+                    "label": "Nuke",
+                    "min_verbosity": {"global": 0}
+                }
+            ],
+            [
+                "nuke16", {
+                    "cmd": "C:\\Program Files\\Nuke16.0v4\\Nuke16.0.exe",
+                    "defines_aliases": ["nuke"],
+                    "label": "Nuke 16.0v4",
+                    "min_verbosity": {"global": 1}
+                }
+            ]
+        ]
+    }
+}

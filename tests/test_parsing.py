@@ -1050,7 +1050,7 @@ class TestAliasMods:
         assert env["ALIASED_MOD_LOCAL_A"] == ["Local Mod A", "Local Config Mod A"]
 
 
-def test_duplicates(resolver):
+def test_duplicate_aliases(resolver):
     """Ensure consistent handling of duplicate alias names."""
 
     # houdini18.5 is the first distro, it's duplicate generic alias is used
@@ -1064,6 +1064,80 @@ def test_duplicates(resolver):
     assert "19.5" in cfg.aliases["houdini"]["cmd"]
     assert "18.5" in cfg.aliases["houdini18.5"]["cmd"]
     assert "19.5" in cfg.aliases["houdini19.5"]["cmd"]
+
+
+@pytest.mark.parametrize("requirements", ("1-2", "2-1"))
+def test_defines_aliases(requirements, habcached_resolver, config_root):
+    """Test defines_aliases correctly copies aliases."""
+
+    if requirements == "1-2":
+        reqs = ("defines-aliases-1", "defines-aliases-2")
+        n = 1
+    elif requirements == "2-1":
+        reqs = ("defines-aliases-2", "defines-aliases-1")
+        n = 2
+
+    cfg = habcached_resolver.resolve("", forced_requirements=reqs)
+    list_vars = (
+        f"{config_root.as_posix()}/distros/defines-aliases-{{}}/1.0/list_vars.py"
+    )
+
+    # Verify that all distros are correctly configured
+    da = cfg.aliases["da"]
+    da_1 = cfg.aliases["da_1.0"]
+    da_2 = cfg.aliases["da_2.0"]
+    da_blank = cfg.aliases["da_blank"]
+
+    # da is copied from the src da_1.0 or da_2.0
+    assert da["cmd"] == ["python", list_vars.format(n)]
+    assert "defines_aliases" not in da
+    assert da["distro"] == (f"defines-aliases-{n}", "1.0", f"da_{n}.0")
+    assert da["environment"] == {"DA_ALIAS": [f"{n}.0"]}
+    # Label is pre-defined and is not copied from the src
+    assert da["label"] == "Ver Alias"
+
+    # Source versioned aliase is not modified.
+    assert da_1["cmd"] == ["python", list_vars.format(1)]
+    assert da_1["defines_aliases"] == ["da", "da_blank"]
+    assert da_1["distro"] == ("defines-aliases-1", "1.0", None)
+    assert da_1["environment"] == {"DA_ALIAS": ["1.0"]}
+    assert da_1["label"] == "Ver Alias 1.0"
+
+    # Source versioned aliase is not modified.
+    assert da_2["cmd"] == ["python", list_vars.format(2)]
+    assert da_2["defines_aliases"] == ["da", "da_blank"]
+    assert da_2["distro"] == ("defines-aliases-2", "1.0", None)
+    assert da_2["environment"] == {"DA_ALIAS": ["2.0"]}
+    assert da_2["label"] == "Ver Alias 2.0"
+
+    # This alias was created from scratch, all values are copied
+    assert da_blank["cmd"] == ["python", list_vars.format(n)]
+    # Except for defines_aliases
+    assert "defines_aliases" not in da_blank
+    assert da_blank["distro"] == (f"defines-aliases-{n}", "1.0", f"da_{n}.0")
+    assert da_blank["environment"] == {"DA_ALIAS": [f"{n}.0"]}
+    assert da_blank["label"] == f"Ver Alias {n}.0"
+
+
+def test_defines_aliases_order(habcached_resolver):
+    """The order aliases are defined controls which alias is copied by defines_aliases.
+
+    The only difference between the 0.8 and 0.9 versions is if da_1.0 is defined
+    before or after da_dup_1.0. This controls which of them populates the da alias
+    created by using defines_aliases.
+    """
+    cfg_8 = habcached_resolver.resolve(
+        "", forced_requirements=["defines-aliases-1==0.8"]
+    )
+    cfg_9 = habcached_resolver.resolve(
+        "", forced_requirements=["defines-aliases-1==0.9"]
+    )
+
+    da_8 = cfg_8.aliases["da"]
+    da_9 = cfg_9.aliases["da"]
+
+    assert da_8["label"] == "da_1.0 used for da, its defined first in the distro."
+    assert da_9["label"] == "da_dup_1.0 used for da, its defined first in the distro."
 
 
 def test_get_min_verbosity(resolver):
