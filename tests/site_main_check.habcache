@@ -1005,6 +1005,222 @@
                     ]
                 }
             },
+            "{config-root}/distros/defines-aliases-1/0.8/.hab.json": {
+                "name": "defines-aliases-1",
+                "description": "Shows how order aliases are defined dictates which defines_aliases is used.",
+                "aliases": {
+                    "windows": [
+                        [
+                            "da_1.0",
+                            {
+                                "defines_aliases": [
+                                    "da"
+                                ],
+                                "label": "da_1.0 used for da, its defined first in the distro."
+                            }
+                        ],
+                        [
+                            "da_dup_1.0",
+                            {
+                                "defines_aliases": [
+                                    "da"
+                                ],
+                                "label": "da_dup_1.0 not used for da, its defined second in the distro."
+                            }
+                        ]
+                    ],
+                    "linux": [
+                        [
+                            "da_1.0",
+                            {
+                                "defines_aliases": [
+                                    "da"
+                                ],
+                                "label": "da_1.0 used for da, its defined first in the distro."
+                            }
+                        ],
+                        [
+                            "da_dup_1.0",
+                            {
+                                "defines_aliases": [
+                                    "da"
+                                ],
+                                "label": "da_dup_1.0 not used for da, its defined second in the distro."
+                            }
+                        ]
+                    ]
+                },
+                "version": "0.8"
+            },
+            "{config-root}/distros/defines-aliases-1/0.9/.hab.json": {
+                "name": "defines-aliases-1",
+                "description": "Shows how order aliases are defined dictates which defines_aliases is used.",
+                "aliases": {
+                    "windows": [
+                        [
+                            "da_dup_1.0",
+                            {
+                                "defines_aliases": [
+                                    "da"
+                                ],
+                                "label": "da_dup_1.0 used for da, its defined first in the distro."
+                            }
+                        ],
+                        [
+                            "da_1.0",
+                            {
+                                "defines_aliases": [
+                                    "da"
+                                ],
+                                "label": "da_1.0 not used for da, its defined second in the distro."
+                            }
+                        ]
+                    ],
+                    "linux": [
+                        [
+                            "da_dup_1.0",
+                            {
+                                "defines_aliases": [
+                                    "da"
+                                ],
+                                "label": "da_dup_1.0 used for da, its defined first in the distro."
+                            }
+                        ],
+                        [
+                            "da_1.0",
+                            {
+                                "defines_aliases": [
+                                    "da"
+                                ],
+                                "label": "da_1.0 not used for da, its defined second in the distro."
+                            }
+                        ]
+                    ]
+                },
+                "version": "0.9"
+            },
+            "{config-root}/distros/defines-aliases-1/1.0/.hab.json": {
+                "name": "defines-aliases-1",
+                "description": "Simulates having access to multiple major application versions like Nuke 15 and Nuke 16 in the same config.",
+                "aliases": {
+                    "windows": [
+                        [
+                            "da",
+                            {
+                                "label": "Ver Alias"
+                            }
+                        ],
+                        [
+                            "da_1.0",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "defines_aliases": [
+                                    "da",
+                                    "da_blank"
+                                ],
+                                "environment": {
+                                    "prepend": {
+                                        "DA_ALIAS": "1.0"
+                                    }
+                                },
+                                "label": "Ver Alias 1.0"
+                            }
+                        ]
+                    ],
+                    "linux": [
+                        [
+                            "da",
+                            {
+                                "label": "Ver Alias"
+                            }
+                        ],
+                        [
+                            "da_1.0",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "defines_aliases": [
+                                    "da",
+                                    "da_blank"
+                                ],
+                                "environment": {
+                                    "prepend": {
+                                        "DA_ALIAS": "1.0"
+                                    }
+                                },
+                                "label": "Ver Alias 1.0"
+                            }
+                        ]
+                    ]
+                },
+                "version": "1.0"
+            },
+            "{config-root}/distros/defines-aliases-2/1.0/.hab.json": {
+                "name": "defines-aliases-2",
+                "description": "Simulates having access to multiple major application versions like Nuke 15 and Nuke 16 in the same config.",
+                "aliases": {
+                    "windows": [
+                        [
+                            "da",
+                            {
+                                "label": "Ver Alias"
+                            }
+                        ],
+                        [
+                            "da_2.0",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "defines_aliases": [
+                                    "da",
+                                    "da_blank"
+                                ],
+                                "environment": {
+                                    "prepend": {
+                                        "DA_ALIAS": "2.0"
+                                    }
+                                },
+                                "label": "Ver Alias 2.0"
+                            }
+                        ]
+                    ],
+                    "linux": [
+                        [
+                            "da",
+                            {
+                                "label": "Ver Alias"
+                            }
+                        ],
+                        [
+                            "da_2.0",
+                            {
+                                "cmd": [
+                                    "python",
+                                    "{relative_root}/list_vars.py"
+                                ],
+                                "defines_aliases": [
+                                    "da",
+                                    "da_blank"
+                                ],
+                                "environment": {
+                                    "prepend": {
+                                        "DA_ALIAS": "2.0"
+                                    }
+                                },
+                                "label": "Ver Alias 2.0"
+                            }
+                        ]
+                    ]
+                },
+                "version": "1.0"
+            },
             "{config-root}/distros/houdini18.5/18.5.351/.hab.json": {
                 "name": "houdini18.5",
                 "version": "18.5.351",
@@ -1456,6 +1672,153 @@
                     ]
                 },
                 "version": "2024.0"
+            },
+            "{config-root}/distros/nuke15/15.1.2/.hab.json": {
+                "name": "nuke15",
+                "aliases": {
+                    "linux": [
+                        [
+                            "nuke",
+                            {
+                                "label": "Nuke",
+                                "min_verbosity": {
+                                    "global": 0
+                                }
+                            }
+                        ],
+                        [
+                            "nuke15.1",
+                            {
+                                "cmd": "/usr/local/Nuke15.1v2/Nuke15.1",
+                                "defines_aliases": [
+                                    "nuke"
+                                ],
+                                "label": "Nuke 15.1v2",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "nuke",
+                            {
+                                "label": "Nuke",
+                                "min_verbosity": {
+                                    "global": 0
+                                }
+                            }
+                        ],
+                        [
+                            "nuke15",
+                            {
+                                "cmd": "C:\\Program Files\\Nuke15.1v2\\Nuke15.1.exe",
+                                "defines_aliases": [
+                                    "nuke"
+                                ],
+                                "label": "Nuke 15.1v2",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ]
+                    ]
+                },
+                "version": "15.1.2"
+            },
+            "{config-root}/distros/nuke16/16.0.4/.hab.json": {
+                "name": "nuke16",
+                "aliases": {
+                    "linux": [
+                        [
+                            "nuke",
+                            {
+                                "label": "Nuke",
+                                "min_verbosity": {
+                                    "global": 0
+                                }
+                            }
+                        ],
+                        [
+                            "nuke16.0",
+                            {
+                                "cmd": "/usr/local/Nuke16.0v4/Nuke16.0",
+                                "defines_aliases": [
+                                    "nuke"
+                                ],
+                                "label": "Nuke 16.0v4",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ]
+                    ],
+                    "windows": [
+                        [
+                            "nuke",
+                            {
+                                "label": "Nuke",
+                                "min_verbosity": {
+                                    "global": 0
+                                }
+                            }
+                        ],
+                        [
+                            "nuke16",
+                            {
+                                "cmd": "C:\\Program Files\\Nuke16.0v4\\Nuke16.0.exe",
+                                "defines_aliases": [
+                                    "nuke"
+                                ],
+                                "label": "Nuke 16.0v4",
+                                "min_verbosity": {
+                                    "global": 1
+                                }
+                            }
+                        ]
+                    ]
+                },
+                "version": "16.0.4"
+            },
+            "{config-root}/distros/nuke_usd/0.25.5/.hab.json": {
+                "name": "nuke-usd",
+                "description": "Example of using hab to work around the limited usd plugin system. The houdini package and maya module system handle this much nicer.",
+                "alias_mods": {
+                    "nuke15": {
+                        "environment": {
+                            "os_specific": true,
+                            "linux": {
+                                "prepend": {
+                                    "PXR_PLUGINPATH_NAME": "{relative_root}/nuke15/linux"
+                                }
+                            },
+                            "windows": {
+                                "prepend": {
+                                    "PXR_PLUGINPATH_NAME": "{relative_root}/nuke15/win64",
+                                    "PXR_USD_WINDOWS_DLL_PATH": "{relative_root}/nuke15/win64"
+                                }
+                            }
+                        }
+                    },
+                    "nuke16": {
+                        "environment": {
+                            "os_specific": true,
+                            "linux": {
+                                "prepend": {
+                                    "PXR_PLUGINPATH_NAME": "{relative_root}/nuke16/linux"
+                                }
+                            },
+                            "windows": {
+                                "prepend": {
+                                    "PXR_PLUGINPATH_NAME": "{relative_root}/nuke16/win64",
+                                    "PXR_USD_WINDOWS_DLL_PATH": "{relative_root}/nuke16/win64"
+                                }
+                            }
+                        }
+                    }
+                },
+                "version": "0.25.5"
             },
             "{config-root}/distros/pre-release2/1.0/.hab.json": {
                 "name": "pre-release2",

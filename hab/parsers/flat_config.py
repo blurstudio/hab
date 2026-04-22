@@ -60,6 +60,39 @@ class FlatConfig(Config):
             ):
                 platform_aliases.setdefault(platform, {})[alias] = data
 
+        # Process "defines_aliases". This will create new aliases if needed and
+        # copy any undefined properties. This is useful for defining multiple
+        # version specific aliases that plugins can update and customize. If needed
+        # users can choose the alias version they want to access, but you can also
+        # expose a generic "non-versioned" alias that launches the preferred version.
+        for platform, platform_aliases in self.frozen_data["aliases"].items():
+            processed = set()
+            for src_name, src_alias in list(platform_aliases.items()):
+                for dest_name in src_alias.get("defines_aliases", []):
+                    id_str = f"[{platform!r}: {src_name!r} -> {dest_name!r}]"
+                    if dest_name in processed:
+                        dest = platform_aliases.get(dest_name)
+                        logger.debug(f"{id_str} already added by {dest['distro']}")
+                        continue
+                    processed.add(dest_name)
+                    # If the dest alias doesn't exist, log and create it
+                    if dest_name not in platform_aliases:
+                        logger.debug(f"{id_str} Creating undefined alias")
+                        platform_aliases[dest_name] = {}
+                    # Merge all un-defined values from src onto the target alias
+                    dest = platform_aliases.get(dest_name)
+                    for key, value in src_alias.items():
+                        if key == "defines_aliases":
+                            # Don't copy these values
+                            continue
+                        # Only copy missing keys
+                        if key not in dest:
+                            dest[key] = value
+                            logger.debug(f"{id_str} Copying alias property {key!r}")
+                            # Record the source of the copied alias data
+                            distro = src_alias["distro"]
+                            dest["distro"] = distro[:2] + (src_name,)
+
         # Run any configured entry_points before finishing
         self.resolver.site.run_entry_points_for_group(
             "hab.cfg.reduce.finalize", cfg=self
