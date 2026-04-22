@@ -804,18 +804,27 @@ def launch(settings, uri, alias, args):
 
 # Cache command
 @_cli.command()
+@click.option(
+    "--dest",
+    type=click.Path(file_okay=False, resolve_path=True),
+    help="Save the .habcache file in this folder instead of next to path.",
+)
 @click.argument("path", type=click.Path(file_okay=True, resolve_path=True))
 @click.pass_obj
-def cache(settings, path):
+def cache(settings, path, dest):
     """Create/update the cache for a given site file. The path argument is the
     site config file. To allow for cross-platform support you should make sure
     you are loading the same site configuration that will be used by this cache
     or at least a site configuration that defines the same `platform_path_maps`.
     """
     path = Path(path)
-    click.echo(f"Caching: {path}")
+    if dest:
+        dest = Path(dest)
+        click.echo(f'Caching: "{path}", saving to "{dest}"')
+    else:
+        click.echo(f'Caching: "{path}"')
     s = datetime.now()
-    out = settings.resolver.site.cache.save_cache(settings.resolver, path)
+    out = settings.resolver.site.cache.save_cache(settings.resolver, path, dest=dest)
     e = datetime.now()
     click.echo(f"Cache took: {e - s}, cache file: {out}")
 

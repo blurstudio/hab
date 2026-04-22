@@ -42,12 +42,43 @@ def test_site_cache_path(config_root, uncached_resolver, tmpdir):
     assert site.cache.cache_template == ".{stem}.hab_cache"
 
 
-def test_save_cache(config_root, tmpdir, habcached_resolver, helpers):
-    # Check that the habcache file generated the expected output text
+def test_save_cache(config_root, habcached_resolver, helpers):
+    """Check that the habcache file generated the expected output text"""
     # Note: This file will need updated as the test configuration is updated
     check_path = config_root / "site_main_check.habcache"
     cache_file = habcached_resolver._test_cache_file
     helpers.compare_files(cache_file, check_path)
+
+
+def test_save_cache_dest(config_root, tmp_path, helpers):
+    """Test the dest argument for Cache.site_cache_path correctly places the file."""
+    # Generate the cache and provide easy access to the habcache file path
+    site_file = helpers.generate_habcached_site_file(config_root, tmp_path)
+    site = Site([site_file])
+    resolver = Resolver(site)
+    # The path a proper .habcache file would be created.
+    cache_file = site.cache.site_cache_path(site_file)
+
+    check_path = config_root / "site_main_check.habcache"
+    # The dest argument moves the output to another folder
+    dest = tmp_path / "destination"
+    dest.mkdir(parents=True, exist_ok=True)
+    dest_file = dest / cache_file.name
+
+    # Verify that the site file only exists and no .habcache files
+    assert site_file.exists()
+    assert not cache_file.exists()
+    assert not dest_file.exists()
+
+    # Generate the .habcache file in the dest location
+    resolver.site.cache.save_cache(resolver, site_file, dest=dest)
+
+    # Verify that the .habcache file was created in the requested dest
+    helpers.compare_files(dest_file, check_path)
+    # not next to the site file
+    assert not cache_file.exists()
+    # and there isn't a site file in the dest folder
+    assert not (dest_file.parent / site_file.name).exists()
 
 
 def test_load_cache(config_root, uncached_resolver, habcached_site_file):
