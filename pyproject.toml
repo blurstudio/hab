@@ -74,6 +74,9 @@ s3 = [
     "remotezip",
     "requests-aws4auth",
 ]
+p4 = [
+    "p4python;python_version>='3.9'",
+]
 
 [tool.setuptools]
 include-package-data = true

@@ -33,6 +33,9 @@ class DistroVersion(HabBase):
             _IgnoredVersionError: Internal use, this version should not be processed.
             InvalidVersionError: Raised if the version could not be resolved.
         """
+        # TODO: Convert this into a plugin system splitting each method into its
+        # own plugin so this can be extended with a P4 lookup plugin using
+        # Site.entry_points_for_group style workflow.
         version_txt = self.dirname / ".hab_version.txt"
 
         if "version" in data:
