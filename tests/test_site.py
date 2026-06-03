@@ -494,6 +494,17 @@ class TestOsSpecific:
 
 
 class TestPlatformPathMap:
+    # Note: file:// support likely could be added in the future.
+    url_protocols = (
+        r"file:///C:\Windows",
+        r"file:///C:/Windows",
+        r"file:///usr/local",
+        "ftp://example.com",
+        "http://example.com",
+        "https://example.com",
+        "smb://example.com",
+    )
+
     def test_linux(self, monkeypatch, config_root):
         """For linux check that various inputs are correctly processed."""
         monkeypatch.setattr(utils, "Platform", utils.LinuxPlatform)
@@ -526,6 +537,12 @@ class TestPlatformPathMap:
         assert out.as_posix() == "{host-root}"
         out = site.platform_path_key("/usr/local/host/root/extra", platform="windows")
         assert out.as_posix() == "{host-root}/extra"
+
+        # Test that url protocols are not converted
+        for url in self.url_protocols:
+            assert site.platform_path_map(url, platform="linux") == url
+            assert site.platform_path_map(url, platform="osx") == url
+            assert site.platform_path_map(url, platform="windows") == url
 
     def test_win(self, monkeypatch, config_root):
         """For windows check that various inputs are correctly processed."""
@@ -570,6 +587,12 @@ class TestPlatformPathMap:
         # capitalized the drive letter
         out = site.platform_path_key(r"z:\root\path", platform="windows")
         assert out.as_posix() == r"Z:/root/path"
+
+        # Test that url protocols are not converted
+        for url in self.url_protocols:
+            assert site.platform_path_map(url, platform="linux") == url
+            assert site.platform_path_map(url, platform="osx") == url
+            assert site.platform_path_map(url, platform="windows") == url
 
     def test_unset_variables(self, config_root):
         """Don't modify variables that are not specified in platform_path_map"""

@@ -564,6 +564,9 @@ With these settings, if a path on a linux host, starts with `/mnt/main` when
 generating the corresponding windows file path it will translate it to
 `\\example\main`. Note the use of `platforms` to disable osx platform support.
 
+If a url is detected by finding `://` it is simply returned as a string without
+any translation.
+
 #### Hab Entry Points
 
 The site file can be used to replace some hab functionality with custom plugins.
