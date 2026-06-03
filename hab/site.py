@@ -430,6 +430,11 @@ class Site(UserDict):
         Uses mappings defined in `site.get('platform_path_maps', {})` to convert
         path to the target platform.
         """
+
+        # URL's are not handled by pathlib, just convert them to a string
+        if "://" in str(path):
+            return str(path)
+
         if self.platform == "windows":
             path = PureWindowsPath(path)
         else:
