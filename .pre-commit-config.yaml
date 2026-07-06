@@ -6,12 +6,12 @@ ci:
 repos:
 
 -   repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 22.12.0
+    rev: 26.5.1
     hooks:
     -   id: black
 
 -   repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 7.3.0
     hooks:
     -   id: flake8
         additional_dependencies:
@@ -34,13 +34,13 @@ repos:
       - id: check-added-large-files
 
 -   repo: https://github.com/pycqa/isort
-    rev: 6.1.0
+    rev: 9.0.0a3
     hooks:
       - id: isort
         name: isort (python)
 
 -   repo: https://github.com/semgrep/pre-commit
-    rev: 'v1.159.0'
+    rev: 'v1.168.0'
     hooks:
       - id: semgrep
         language_version: python3.11
